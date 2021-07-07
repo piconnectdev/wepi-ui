@@ -168,6 +168,18 @@ export class Login extends Component<any, State> {
   }
 
   registerForm() {
+    var script = document.createElement('script');
+    script.src = 'https://sdk.minepi.com/pi-sdk.js';
+    script.type = 'text/javascript';
+    var scriptPi = document.createElement('script');
+    scriptPi.src = 'Pi.init({ version: "2.0" })';
+    const scopes = ['payments'];
+    //function onIncompletePaymentFound(payment) {};
+    //scriptPi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
+    //   console.log(`Hi there! You're ready to make payments!`);
+    // }).catch(function(error) {
+    //   console.error(error);
+    // });
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
         <h5>{i18n.t("sign_up")}</h5>
@@ -192,7 +204,7 @@ export class Login extends Component<any, State> {
           </div>
         </div>
 
-        <div class="form-group row">
+        {/* <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-email">
             {i18n.t("email")}
           </label>
@@ -214,7 +226,7 @@ export class Login extends Component<any, State> {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-password">
@@ -255,7 +267,7 @@ export class Login extends Component<any, State> {
           </div>
         </div>
 
-        {this.state.captcha && (
+        {/* {this.state.captcha && (
           <div class="form-group row">
             <label class="col-sm-2" htmlFor="register-captcha">
               <span class="mr-2">{i18n.t("enter_code")}</span>
@@ -308,7 +320,7 @@ export class Login extends Component<any, State> {
               #<a href={joinLemmyUrl}>#</a>
             </T>
           </div>
-        )}
+        )} */}
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
