@@ -55,21 +55,21 @@ type ModlogType = {
   id: number;
   type_: ModlogEnum;
   view:
-    | ModRemovePostView
-    | ModLockPostView
-    | ModStickyPostView
-    | ModRemoveCommentView
-    | ModRemoveCommunityView
-    | ModBanFromCommunityView
-    | ModBanView
-    | ModAddCommunityView
-    | ModAddView;
+  | ModRemovePostView
+  | ModLockPostView
+  | ModStickyPostView
+  | ModRemoveCommentView
+  | ModRemoveCommunityView
+  | ModBanFromCommunityView
+  | ModBanView
+  | ModAddCommunityView
+  | ModAddView;
   when_: string;
 };
 
 interface ModlogState {
   res: GetModlogResponse;
-  communityId?: number;
+  communityId?: string;
   communityName?: string;
   communityMods?: CommunityModeratorView[];
   page: number;
@@ -102,7 +102,7 @@ export class Modlog extends Component<any, ModlogState> {
 
     this.state = this.emptyState;
     this.state.communityId = this.props.match.params.community_id
-      ? Number(this.props.match.params.community_id)
+      ? this.props.match.params.community_id
       : undefined;
 
     this.parseMessage = this.parseMessage.bind(this);
@@ -228,7 +228,7 @@ export class Modlog extends Component<any, ModlogState> {
             Post <Link to={`/post/${mrpv.post.id}`}>{mrpv.post.name}</Link>
           </span>,
           mrpv.mod_remove_post.reason &&
-            ` reason: ${mrpv.mod_remove_post.reason}`,
+          ` reason: ${mrpv.mod_remove_post.reason}`,
         ];
       }
       case ModlogEnum.ModLockPost: {
@@ -264,7 +264,7 @@ export class Modlog extends Component<any, ModlogState> {
             by <PersonListing person={mrc.commenter} />
           </span>,
           mrc.mod_remove_comment.reason &&
-            ` reason: ${mrc.mod_remove_comment.reason}`,
+          ` reason: ${mrc.mod_remove_comment.reason}`,
         ];
       }
       case ModlogEnum.ModRemoveCommunity: {
@@ -275,11 +275,11 @@ export class Modlog extends Component<any, ModlogState> {
             Community <CommunityLink community={mrco.community} />
           </span>,
           mrco.mod_remove_community.reason &&
-            ` reason: ${mrco.mod_remove_community.reason}`,
+          ` reason: ${mrco.mod_remove_community.reason}`,
           mrco.mod_remove_community.expires &&
-            ` expires: ${moment
-              .utc(mrco.mod_remove_community.expires)
-              .fromNow()}`,
+          ` expires: ${moment
+            .utc(mrco.mod_remove_community.expires)
+            .fromNow()}`,
         ];
       }
       case ModlogEnum.ModBanFromCommunity: {
@@ -498,14 +498,14 @@ export class Modlog extends Component<any, ModlogState> {
     };
 
     if (communityId) {
-      modlogForm.community_id = Number(communityId);
+      modlogForm.community_id = communityId;
     }
 
     promises.push(req.client.getModlog(modlogForm));
 
     if (communityId) {
       let communityForm: GetCommunity = {
-        id: Number(communityId),
+        id: communityId,
       };
       promises.push(req.client.getCommunity(communityForm));
     }

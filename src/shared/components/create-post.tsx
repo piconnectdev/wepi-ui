@@ -137,8 +137,8 @@ export class CreatePost extends Component<any, CreatePostState> {
       name: urlParams.get("title"),
       community_name: urlParams.get("community_name") || this.prevCommunityName,
       community_id: urlParams.get("community_id")
-        ? Number(urlParams.get("community_id")) || this.prevCommunityId
-        : null,
+        ? urlParams.get("community_id") || this.prevCommunityId
+        : this.prevCommunityId,
       body: urlParams.get("body"),
       url: urlParams.get("url"),
     };
@@ -158,13 +158,13 @@ export class CreatePost extends Component<any, CreatePostState> {
     return null;
   }
 
-  get prevCommunityId(): number {
+  get prevCommunityId(): string {
     if (this.props.match.params.id) {
       return this.props.match.params.id;
     } else if (this.props.location.state) {
       let lastLocation = this.props.location.state.prevPath;
       if (lastLocation.includes("/community/")) {
-        return Number(lastLocation.split("/community/")[1]);
+        return lastLocation.split("/community/")[1];
       }
     }
     return null;

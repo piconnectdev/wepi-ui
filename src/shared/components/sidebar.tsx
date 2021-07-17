@@ -468,7 +468,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     i.setState(i.state);
   }
 
-  handleUnsubscribe(communityId: number, event: any) {
+  handleUnsubscribe(communityId: string, event: any) {
     event.preventDefault();
     let form: FollowCommunity = {
       community_id: communityId,
@@ -478,7 +478,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     WebSocketService.Instance.send(wsClient.followCommunity(form));
   }
 
-  handleSubscribe(communityId: number, event: any) {
+  handleSubscribe(communityId: string, event: any) {
     event.preventDefault();
     let form: FollowCommunity = {
       community_id: communityId,

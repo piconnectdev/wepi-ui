@@ -7,7 +7,7 @@ interface CommentNodesProps {
   nodes: CommentNodeI[];
   moderators?: CommunityModeratorView[];
   admins?: PersonViewSafe[];
-  postCreatorId?: number;
+  postCreatorId?: string;
   noBorder?: boolean;
   noIndent?: boolean;
   viewOnly?: boolean;

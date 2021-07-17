@@ -67,7 +67,7 @@ import { CommunityLink } from "./community-link";
 
 interface PersonState {
   personRes: GetPersonDetailsResponse;
-  personId: number;
+  personId: string;
   userName: string;
   view: PersonDetailsView;
   sort: SortType;
@@ -87,7 +87,7 @@ interface PersonProps {
   view: PersonDetailsView;
   sort: SortType;
   page: number;
-  person_id: number | null;
+  person_id: string | null;
   username: string;
 }
 
@@ -203,13 +203,14 @@ export class Person extends Component<any, PersonState> {
 
     // It can be /u/me, or /username/1
     let idOrName = pathSplit[2];
-    let person_id: number;
+    let person_id: string;
     let username: string;
     if (isNaN(Number(idOrName))) {
       username = idOrName;
     } else {
-      person_id = Number(idOrName);
+      person_id = idOrName;
     }
+    person_id = idOrName;
 
     let view = this.getViewFromProps(pathSplit[4]);
     let sort = this.getSortTypeFromProps(pathSplit[6]);
@@ -227,7 +228,7 @@ export class Person extends Component<any, PersonState> {
     return promises;
   }
 
-  static setIdOrName(obj: any, id: number, name_: string) {
+  static setIdOrName(obj: any, id: string, name_: string) {
     if (id) {
       obj.person_id = id;
     } else {
@@ -245,7 +246,7 @@ export class Person extends Component<any, PersonState> {
       view: this.getViewFromProps(props.match.params.view),
       sort: this.getSortTypeFromProps(props.match.params.sort),
       page: this.getPageFromProps(props.match.params.page),
-      person_id: Number(props.match.params.id) || null,
+      person_id: props.match.params.id || null,
       username: props.match.params.username,
     };
   }
@@ -441,9 +442,8 @@ export class Person extends Component<any, PersonState> {
               ) : (
                 <>
                   <a
-                    className={`d-flex align-self-start btn btn-secondary mr-2 ${
-                      !pv.person.matrix_user_id && "invisible"
-                    }`}
+                    className={`d-flex align-self-start btn btn-secondary mr-2 ${!pv.person.matrix_user_id && "invisible"
+                      }`}
                     rel="noopener"
                     href={`https://matrix.to/#/${pv.person.matrix_user_id}`}
                   >
@@ -649,7 +649,7 @@ export class Person extends Component<any, PersonState> {
             <ListingTypeSelect
               type_={
                 Object.values(ListingType)[
-                  this.state.saveUserSettingsForm.default_listing_type
+                this.state.saveUserSettingsForm.default_listing_type
                 ]
               }
               showLocal={showLocal(this.isoData)}
@@ -663,7 +663,7 @@ export class Person extends Component<any, PersonState> {
             <SortSelect
               sort={
                 Object.values(SortType)[
-                  this.state.saveUserSettingsForm.default_sort_type
+                this.state.saveUserSettingsForm.default_sort_type
                 ]
               }
               onChange={this.handleUserSettingsSortTypeChange}
@@ -1295,7 +1295,7 @@ export class Person extends Component<any, PersonState> {
       if (
         UserService.Instance.localUserView &&
         data.comment_view.creator.id ==
-          UserService.Instance.localUserView.person.id
+        UserService.Instance.localUserView.person.id
       ) {
         toast(i18n.t("reply_sent"));
       }

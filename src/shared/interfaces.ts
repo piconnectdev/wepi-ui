@@ -42,7 +42,7 @@ export interface PostFormParams {
   url?: string;
   body?: string;
   community_name?: string;
-  community_id?: number;
+  community_id?: string;
 }
 
 export enum CommentSortType {

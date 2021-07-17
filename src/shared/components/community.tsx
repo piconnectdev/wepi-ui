@@ -60,7 +60,7 @@ import { i18n } from "../i18next";
 interface State {
   communityRes: GetCommunityResponse;
   siteRes: GetSiteResponse;
-  communityId: number;
+  communityId: string;
   communityName: string;
   communityLoading: boolean;
   postsLoading: boolean;
@@ -89,7 +89,7 @@ export class Community extends Component<any, State> {
   private subscription: Subscription;
   private emptyState: State = {
     communityRes: undefined,
-    communityId: Number(this.props.match.params.id),
+    communityId: this.props.match.params.id,
     communityName: this.props.match.params.name,
     communityLoading: true,
     postsLoading: true,
@@ -159,14 +159,14 @@ export class Community extends Component<any, State> {
 
     // It can be /c/main, or /c/1
     let idOrName = pathSplit[2];
-    let id: number;
+    let id: string;
     let name_: string;
     if (isNaN(Number(idOrName))) {
       name_ = idOrName;
     } else {
-      id = Number(idOrName);
+      id = idOrName;
     }
-
+    id = idOrName;
     let communityForm: GetCommunity = id ? { id } : { name: name_ };
     setOptionalAuth(communityForm, req.auth);
     promises.push(req.client.getCommunity(communityForm));
@@ -178,10 +178,10 @@ export class Community extends Component<any, State> {
     let sort: SortType = pathSplit[6]
       ? SortType[pathSplit[6]]
       : UserService.Instance.localUserView
-      ? Object.values(SortType)[
-          UserService.Instance.localUserView.local_user.default_sort_type
+        ? Object.values(SortType)[
+        UserService.Instance.localUserView.local_user.default_sort_type
         ]
-      : SortType.Active;
+        : SortType.Active;
 
     let page = pathSplit[8] ? Number(pathSplit[8]) : 1;
 
@@ -212,7 +212,7 @@ export class Community extends Component<any, State> {
     return promises;
   }
 
-  static setIdOrName(obj: any, id: number, name_: string) {
+  static setIdOrName(obj: any, id: string, name_: string) {
     if (id) {
       obj.community_id = id;
     } else {

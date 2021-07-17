@@ -64,9 +64,9 @@ import { i18n } from "../i18next";
 
 interface PostState {
   postRes: GetPostResponse;
-  postId: number;
+  postId: string;
   commentTree: CommentNodeI[];
-  commentId?: number;
+  commentId?: string;
   commentSort: CommentSortType;
   commentViewType: CommentViewType;
   scrolled?: boolean;
@@ -146,7 +146,7 @@ export class Post extends Component<any, PostState> {
     let pathSplit = req.path.split("/");
     let promises: Promise<any>[] = [];
 
-    let id = Number(pathSplit[2]);
+    let id = pathSplit[2];
 
     let postForm: GetPost = {
       id,
@@ -298,9 +298,8 @@ export class Post extends Component<any, PostState> {
       <>
         <div class="btn-group btn-group-toggle flex-wrap mr-3 mb-2">
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentSort === CommentSortType.Hot && "active"
-            }`}
+            className={`btn btn-outline-secondary pointer ${this.state.commentSort === CommentSortType.Hot && "active"
+              }`}
           >
             {i18n.t("hot")}
             <input
@@ -311,9 +310,8 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentSort === CommentSortType.Top && "active"
-            }`}
+            className={`btn btn-outline-secondary pointer ${this.state.commentSort === CommentSortType.Top && "active"
+              }`}
           >
             {i18n.t("top")}
             <input
@@ -324,9 +322,8 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentSort === CommentSortType.New && "active"
-            }`}
+            className={`btn btn-outline-secondary pointer ${this.state.commentSort === CommentSortType.New && "active"
+              }`}
           >
             {i18n.t("new")}
             <input
@@ -337,9 +334,8 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentSort === CommentSortType.Old && "active"
-            }`}
+            className={`btn btn-outline-secondary pointer ${this.state.commentSort === CommentSortType.Old && "active"
+              }`}
           >
             {i18n.t("old")}
             <input
@@ -352,9 +348,8 @@ export class Post extends Component<any, PostState> {
         </div>
         <div class="btn-group btn-group-toggle flex-wrap mb-2">
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentViewType === CommentViewType.Chat && "active"
-            }`}
+            className={`btn btn-outline-secondary pointer ${this.state.commentViewType === CommentViewType.Chat && "active"
+              }`}
           >
             {i18n.t("chat")}
             <input
@@ -444,7 +439,7 @@ export class Post extends Component<any, PostState> {
       toast(i18n.t(msg.error), "danger");
       return;
     } else if (msg.reconnect) {
-      let postId = Number(this.props.match.params.id);
+      let postId = this.props.match.params.id;
       WebSocketService.Instance.send(wsClient.postJoin({ post_id: postId }));
       WebSocketService.Instance.send(
         wsClient.getPost({
@@ -555,7 +550,7 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.Search) {
       let data = wsJsonToRes<SearchResponse>(msg).data;
       this.state.crossPosts = data.posts.filter(
-        p => p.post.id != Number(this.props.match.params.id)
+        p => p.post.id != this.props.match.params.id
       );
       this.setState(this.state);
     } else if (op == UserOperation.TransferSite) {

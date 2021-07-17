@@ -248,7 +248,7 @@ export class Communities extends Component<any, CommunitiesState> {
     i.updateUrl({ page: i.state.page - 1 });
   }
 
-  handleUnsubscribe(communityId: number) {
+  handleUnsubscribe(communityId: string) {
     let form: FollowCommunity = {
       community_id: communityId,
       follow: false,
@@ -257,7 +257,7 @@ export class Communities extends Component<any, CommunitiesState> {
     WebSocketService.Instance.send(wsClient.followCommunity(form));
   }
 
-  handleSubscribe(communityId: number) {
+  handleSubscribe(communityId: string) {
     let form: FollowCommunity = {
       community_id: communityId,
       follow: true,

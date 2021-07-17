@@ -71,8 +71,8 @@ interface SearchProps {
   type_: SearchType;
   sort: SortType;
   listingType: ListingType;
-  communityId: number;
-  creatorId: number;
+  communityId: string;
+  creatorId: string;
   page: number;
 }
 
@@ -81,8 +81,8 @@ interface SearchState {
   type_: SearchType;
   sort: SortType;
   listingType: ListingType;
-  communityId: number;
-  creatorId: number;
+  communityId: string;
+  creatorId: string;
   page: number;
   searchResponse: SearchResponse;
   communities: CommunityView[];
@@ -97,8 +97,8 @@ interface UrlParams {
   type_?: SearchType;
   sort?: SortType;
   listingType?: ListingType;
-  communityId?: number;
-  creatorId?: number;
+  communityId?: string;
+  creatorId?: string;
   page?: number;
 }
 
@@ -148,12 +148,12 @@ export class Search extends Component<any, SearchState> {
     return listingType ? routeListingTypeToEnum(listingType) : ListingType.All;
   }
 
-  static getCommunityIdFromProps(id: string): number {
-    return id ? Number(id) : 0;
+  static getCommunityIdFromProps(id: string): string {
+    return id;
   }
 
-  static getCreatorIdFromProps(id: string): number {
-    return id ? Number(id) : 0;
+  static getCreatorIdFromProps(id: string): string {
+    return id;
   }
 
   static getPageFromProps(page: string): number {
@@ -677,7 +677,7 @@ export class Search extends Component<any, SearchState> {
         this.communityChoices.passedElement.element.addEventListener(
           "choice",
           (e: any) => {
-            this.handleCommunityFilterChange(Number(e.detail.choice.value));
+            this.handleCommunityFilterChange(e.detail.choice.value);
           },
           false
         );
@@ -704,7 +704,7 @@ export class Search extends Component<any, SearchState> {
         this.creatorChoices.passedElement.element.addEventListener(
           "choice",
           (e: any) => {
-            this.handleCreatorFilterChange(Number(e.detail.choice.value));
+            this.handleCreatorFilterChange(e.detail.choice.value);
           },
           false
         );
@@ -740,14 +740,14 @@ export class Search extends Component<any, SearchState> {
     });
   }
 
-  handleCommunityFilterChange(communityId: number) {
+  handleCommunityFilterChange(communityId: string) {
     this.updateUrl({
       communityId,
       page: 1,
     });
   }
 
-  handleCreatorFilterChange(creatorId: number) {
+  handleCreatorFilterChange(creatorId: string) {
     this.updateUrl({
       creatorId,
       page: 1,
@@ -778,13 +778,9 @@ export class Search extends Component<any, SearchState> {
     const listingTypeStr = paramUpdates.listingType || this.state.listingType;
     const sortStr = paramUpdates.sort || this.state.sort;
     const communityId =
-      paramUpdates.communityId == 0
-        ? 0
-        : paramUpdates.communityId || this.state.communityId;
+      paramUpdates.communityId == paramUpdates.communityId || this.state.communityId;
     const creatorId =
-      paramUpdates.creatorId == 0
-        ? 0
-        : paramUpdates.creatorId || this.state.creatorId;
+      paramUpdates.creatorId == paramUpdates.creatorId || this.state.creatorId;
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/search/q/${qStrEncoded}/type/${typeStr}/sort/${sortStr}/listing_type/${listingTypeStr}/community_id/${communityId}/creator_id/${creatorId}/page/${page}`

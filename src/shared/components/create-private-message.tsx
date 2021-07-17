@@ -29,7 +29,7 @@ import { InitialFetchRequest } from "shared/interfaces";
 interface CreatePrivateMessageState {
   site_view: SiteView;
   recipient: PersonViewSafe;
-  recipient_id: number;
+  recipient_id: string;
   loading: boolean;
 }
 
@@ -80,7 +80,7 @@ export class CreatePrivateMessage extends Component<
   }
 
   static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let person_id = Number(req.path.split("/").pop());
+    let person_id = req.path.split("/").pop();
     let form: GetPersonDetails = {
       person_id,
       sort: SortType.New,
@@ -91,9 +91,8 @@ export class CreatePrivateMessage extends Component<
   }
 
   get documentTitle(): string {
-    return `${i18n.t("create_private_message")} - ${
-      this.state.site_view.site.name
-    }`;
+    return `${i18n.t("create_private_message")} - ${this.state.site_view.site.name
+      }`;
   }
 
   componentWillUnmount() {

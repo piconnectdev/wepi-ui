@@ -194,9 +194,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <form>
                 <label
                   htmlFor="file-upload"
-                  className={`${
-                    UserService.Instance.localUserView && "pointer"
-                  } d-inline-block float-right text-muted font-weight-bold`}
+                  className={`${UserService.Instance.localUserView && "pointer"
+                    } d-inline-block float-right text-muted font-weight-bold`}
                   data-tippy-content={i18n.t("upload_image")}
                 >
                   <Icon icon="image" classes="icon-inline" />
@@ -250,9 +249,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 value={this.state.postForm.name}
                 id="post-title"
                 onInput={linkEvent(this, this.handlePostNameChange)}
-                class={`form-control ${
-                  !validTitle(this.state.postForm.name) && "is-invalid"
-                }`}
+                class={`form-control ${!validTitle(this.state.postForm.name) && "is-invalid"
+                  }`}
                 required
                 rows={1}
                 minLength={3}
@@ -458,7 +456,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   handlePostCommunityChange(i: PostForm, event: any) {
-    i.state.postForm.community_id = Number(event.target.value);
+    i.state.postForm.community_id = event.target.value;
     i.setState(i.state);
   }
 
@@ -542,7 +540,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         this.choices.passedElement.element.addEventListener(
           "choice",
           (e: any) => {
-            this.state.postForm.community_id = Number(e.detail.choice.value);
+            this.state.postForm.community_id = e.detail.choice.value;
             this.setState(this.state);
           },
           false

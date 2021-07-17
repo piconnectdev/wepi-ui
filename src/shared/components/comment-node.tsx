@@ -77,7 +77,7 @@ interface CommentNodeProps {
   moderators: CommunityModeratorView[];
   admins: PersonViewSafe[];
   // TODO is this necessary, can't I get it from the node itself?
-  postCreatorId?: number;
+  postCreatorId?: string;
   showCommunity?: boolean;
   enableDownvotes: boolean;
 }

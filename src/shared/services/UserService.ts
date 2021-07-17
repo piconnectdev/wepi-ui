@@ -5,7 +5,7 @@ import jwt_decode from "jwt-decode";
 import { Subject, BehaviorSubject } from "rxjs";
 
 interface Claims {
-  sub: number;
+  sub: string;
   iss: string;
   iat: number;
 }

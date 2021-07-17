@@ -23,7 +23,7 @@ import { MarkdownTextArea } from "./markdown-textarea";
 import { Icon } from "./icon";
 
 interface CommentFormProps {
-  postId?: number;
+  postId?: string;
   node?: CommentNodeI; // Can either be the parent, or the editable comment
   edit?: boolean;
   disabled?: boolean;

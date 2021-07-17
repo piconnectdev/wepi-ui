@@ -244,8 +244,8 @@ export function getUnixTime(text: string): number {
 
 export function canMod(
   localUserView: LocalUserSettingsView,
-  modIds: number[],
-  creator_id: number,
+  modIds: string[],
+  creator_id: string,
   onSelf = false
 ): boolean {
   // You can do moderator actions only on the mods added after you.
@@ -263,7 +263,7 @@ export function canMod(
   }
 }
 
-export function isMod(modIds: number[], creator_id: number): boolean {
+export function isMod(modIds: string[], creator_id: string): boolean {
   return modIds.includes(creator_id);
 }
 
@@ -832,10 +832,10 @@ export function getListingTypeFromProps(props: any): ListingType {
   return props.match.params.listing_type
     ? routeListingTypeToEnum(props.match.params.listing_type)
     : UserService.Instance.localUserView
-    ? Object.values(ListingType)[
-        UserService.Instance.localUserView.local_user.default_listing_type
+      ? Object.values(ListingType)[
+      UserService.Instance.localUserView.local_user.default_listing_type
       ]
-    : ListingType.Local;
+      : ListingType.Local;
 }
 
 // TODO might need to add a user setting for this too
@@ -849,28 +849,26 @@ export function getSortTypeFromProps(props: any): SortType {
   return props.match.params.sort
     ? routeSortTypeToEnum(props.match.params.sort)
     : UserService.Instance.localUserView
-    ? Object.values(SortType)[
-        UserService.Instance.localUserView.local_user.default_sort_type
+      ? Object.values(SortType)[
+      UserService.Instance.localUserView.local_user.default_sort_type
       ]
-    : SortType.Active;
+      : SortType.Active;
 }
 
 export function getPageFromProps(props: any): number {
   return props.match.params.page ? Number(props.match.params.page) : 1;
 }
 
-export function getRecipientIdFromProps(props: any): number {
-  return props.match.params.recipient_id
-    ? Number(props.match.params.recipient_id)
-    : 1;
+export function getRecipientIdFromProps(props: any): string {
+  return props.match.params.recipient_id;
 }
 
-export function getIdFromProps(props: any): number {
-  return Number(props.match.params.id);
+export function getIdFromProps(props: any): string {
+  return props.match.params.id;
 }
 
-export function getCommentIdFromProps(props: any): number {
-  return Number(props.match.params.comment_id);
+export function getCommentIdFromProps(props: any): string {
+  return props.match.params.comment_id;
 }
 
 export function getUsernameFromProps(props: any): string {
