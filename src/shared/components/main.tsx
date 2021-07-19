@@ -168,7 +168,7 @@ export class Main extends Component<any, MainState> {
       this.context.router.history.push("/setup");
     }
 
-    WebSocketService.Instance.send(wsClient.communityJoin({ community_id: 0 }));
+    WebSocketService.Instance.send(wsClient.communityJoin({ community_id: null }));
   }
 
   componentWillUnmount() {
@@ -731,7 +731,7 @@ export class Main extends Component<any, MainState> {
       return;
     } else if (msg.reconnect) {
       WebSocketService.Instance.send(
-        wsClient.communityJoin({ community_id: 0 })
+        wsClient.communityJoin({ community_id: null })
       );
       this.fetchData();
     } else if (op == UserOperation.GetFollowedCommunities) {
