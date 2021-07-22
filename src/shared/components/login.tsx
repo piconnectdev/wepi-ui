@@ -92,6 +92,8 @@ export class Login extends Component<any, State> {
   render() {
     return (
       <div class="container">
+
+
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -168,20 +170,39 @@ export class Login extends Component<any, State> {
   }
 
   registerForm() {
-    var script = document.createElement('script');
-    script.src = 'https://sdk.minepi.com/pi-sdk.js';
-    script.type = 'text/javascript';
-    var scriptPi = document.createElement('script');
-    scriptPi.src = 'Pi.init({ version: "2.0" })';
-    const scopes = ['payments'];
-    //function onIncompletePaymentFound(payment) {};
-    //scriptPi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
-    //   console.log(`Hi there! You're ready to make payments!`);
-    // }).catch(function(error) {
-    //   console.error(error);
-    // });
     return (
+
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+        <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+        <script>Pi.init({{ version: "2.0", sandbox: true }})</script>
+
+        // Read more about this callback in the SDK reference:
+        const scopes = ['username','payments'];
+        const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+        {/* const axiosClient = axios.creat({baseURL: SERVER_URL, timeout: 20000});
+        const config = {headers : {'Content-Type' : 'application/json', 'Access-Control-Allow-Origin': '*'}};
+        
+        function onIncompletePaymentFound = (payment : paymentDTO) => {
+          console.log("onIncompletePaymentFound", payment);
+        return axiosClient.post('/incomplete', {payment}.config);
+        } */}
+
+        Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
+          console.log('Hi there! Youre ready to make payments!')
+        }).catch(function(error) {
+          console.error('error')
+        });
+
+        {/* Pi.createPayment({
+          amount: 3.14,
+        memo: "...", 
+        metadata: { }, 
+}, {
+        onReadyForServerApproval: function(paymentId) { },
+        onReadyForServerCompletion: function(paymentId, txid) { },
+        onCancel: function(paymentId) { },
+        onError: function(error, payment) { },
+}); */}
         <h5>{i18n.t("sign_up")}</h5>
 
         <div class="form-group row">
@@ -360,6 +381,7 @@ export class Login extends Component<any, State> {
       </div>
     );
   }
+
 
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
