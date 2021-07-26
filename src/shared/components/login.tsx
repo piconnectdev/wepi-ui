@@ -168,12 +168,12 @@ export class Login extends Component<any, State> {
   }
 
   registerForm() {
-    var script = document.createElement('script');
-    script.src = 'https://sdk.minepi.com/pi-sdk.js';
-    script.type = 'text/javascript';
-    var scriptPi = document.createElement('script');
-    scriptPi.src = 'Pi.init({ version: "2.0" })';
-    const scopes = ['payments'];
+    // var script = document.createElement('script');
+    // script.src = 'https://sdk.minepi.com/pi-sdk.js';
+    // script.type = 'text/javascript';
+    // var scriptPi = document.createElement('script');
+    // scriptPi.src = 'Pi.init({ version: "2.0" })';
+    // const scopes = ['payments'];
     //function onIncompletePaymentFound(payment) {};
     //scriptPi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
     //   console.log(`Hi there! You're ready to make payments!`);
@@ -182,9 +182,9 @@ export class Login extends Component<any, State> {
     // });
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h5>{i18n.t("sign_up")}</h5>
+        {/* <h5>{i18n.t("sign_up")}</h5> */}
 
-        <div class="form-group row">
+        {/* <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-username">
             {i18n.t("username")}
           </label>
@@ -202,7 +202,7 @@ export class Login extends Component<any, State> {
               pattern="[a-zA-Z0-9_]+"
             />
           </div>
-        </div>
+        </div> */}
 
         {/* <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-email">
@@ -228,7 +228,7 @@ export class Login extends Component<any, State> {
           </div>
         </div> */}
 
-        <div class="form-group row">
+        {/* <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-password">
             {i18n.t("password")}
           </label>
@@ -265,7 +265,7 @@ export class Login extends Component<any, State> {
               required
             />
           </div>
-        </div>
+        </div> */}
 
         {/* {this.state.captcha && (
           <div class="form-group row">
@@ -323,8 +323,9 @@ export class Login extends Component<any, State> {
         )} */}
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">
-              {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
+            <button type="submit" class="btn btn-secondary" onClick="window.location='http://wepi.social/register';">
+              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")} formaction */}
+              {i18n.t("sign_up")}
             </button>
           </div>
         </div>
@@ -332,34 +333,34 @@ export class Login extends Component<any, State> {
     );
   }
 
-  showCaptcha() {
-    return (
-      <div class="col-sm-4">
-        {this.state.captcha.ok && (
-          <>
-            <img
-              class="rounded-top img-fluid"
-              src={this.captchaPngSrc()}
-              style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
-              alt={i18n.t("captcha")}
-            />
-            {this.state.captcha.ok.wav && (
-              <button
-                class="rounded-bottom btn btn-sm btn-secondary btn-block"
-                style="border-top-right-radius: 0; border-top-left-radius: 0;"
-                title={i18n.t("play_captcha_audio")}
-                onClick={linkEvent(this, this.handleCaptchaPlay)}
-                type="button"
-                disabled={this.state.captchaPlaying}
-              >
-                <Icon icon="play" classes="icon-play" />
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
+  // showCaptcha() {
+  //   return (
+  //     <div class="col-sm-4">
+  //       {this.state.captcha.ok && (
+  //         <>
+  //           <img
+  //             class="rounded-top img-fluid"
+  //             src={this.captchaPngSrc()}
+  //             style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
+  //             alt={i18n.t("captcha")}
+  //           />
+  //           {this.state.captcha.ok.wav && (
+  //             <button
+  //               class="rounded-bottom btn btn-sm btn-secondary btn-block"
+  //               style="border-top-right-radius: 0; border-top-left-radius: 0;"
+  //               title={i18n.t("play_captcha_audio")}
+  //               onClick={linkEvent(this, this.handleCaptchaPlay)}
+  //               type="button"
+  //               disabled={this.state.captchaPlaying}
+  //             >
+  //               <Icon icon="play" classes="icon-play" />
+  //             </button>
+  //           )}
+  //         </>
+  //       )}
+  //     </div>
+  //   );
+  // }
 
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
