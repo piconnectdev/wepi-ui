@@ -323,12 +323,17 @@ export class Login extends Component<any, State> {
         )} */}
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary" onClick="window.location='http://wepi.social/register';">
+            <button type="submit" id="register" class="btn btn-secondary">
               {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")} formaction */}
               {i18n.t("sign_up")}
             </button>
           </div>
         </div>
+        <script>
+          $( "#register" ).click(function() {
+            window.location.href = 'http://wepi.social/register'
+          });
+        </script>
       </form>
     );
   }
