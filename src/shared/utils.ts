@@ -1027,7 +1027,7 @@ export function buildCommentsTree(
   comments: CommentView[],
   commentSortType: CommentSortType
 ): CommentNodeI[] {
-  let map = new Map<number, CommentNodeI>();
+  let map = new Map<string, CommentNodeI>();
   for (let comment_view of comments) {
     let node: CommentNodeI = {
       comment_view: comment_view,
@@ -1081,7 +1081,7 @@ export function insertCommentIntoTree(tree: CommentNodeI[], cv: CommentView) {
 
 export function searchCommentTree(
   tree: CommentNodeI[],
-  id: number
+  id: string
 ): CommentNodeI {
   for (let node of tree) {
     if (node.comment_view.comment.id === id) {
