@@ -64,7 +64,7 @@ export class Login extends Component<any, State> {
 
   constructor(props: any, context: any) {
     super(props, context);
-
+    console.log('props', this.props)
     this.state = this.emptyState;
 
     this.parseMessage = this.parseMessage.bind(this);
