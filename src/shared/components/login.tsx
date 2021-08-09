@@ -64,7 +64,7 @@ export class Login extends Component<any, State> {
 
   constructor(props: any, context: any) {
     super(props, context);
-    console.log('props', this.props)
+    //console.log('props', this.props)
     this.state = this.emptyState;
 
     this.parseMessage = this.parseMessage.bind(this);
@@ -321,6 +321,11 @@ export class Login extends Component<any, State> {
             </T>
           </div>
         )} */}
+        <script>
+          $( "#register" ).click(function() {
+            window.location.href = 'http://wepi.social/register'
+          });
+        </script>
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" id="register" class="btn btn-secondary">
@@ -329,11 +334,7 @@ export class Login extends Component<any, State> {
             </button>
           </div>
         </div>
-        <script>
-          $( "#register" ).click(function() {
-            window.location.href = 'http://wepi.social/register'
-          });
-        </script>
+
       </form>
     );
   }
