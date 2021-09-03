@@ -19,7 +19,7 @@ export class Footer extends Component<FooterProps, any> {
       <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-3">
         <div className="navbar-collapse">
           <ul class="navbar-nav ml-auto">
-            {this.props.site.version !== VERSION && (
+            {/* {this.props.site.version !== VERSION && (
               <li class="nav-item">
                 <span class="nav-link">UI: {VERSION}</span>
               </li>
@@ -48,10 +48,10 @@ export class Footer extends Component<FooterProps, any> {
               <a className="nav-link" href={repoUrl}>
                 {i18n.t("code")}
               </a>
-            </li>
+            </li> */}
             <li class="nav-item">
               <a className="nav-link" href={joinLemmyUrl}>
-                {i18n.t("join_lemmy")}
+                Fork from Lemmy
               </a>
             </li>
           </ul>
