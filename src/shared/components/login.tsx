@@ -329,8 +329,9 @@ export class Login extends Component<any, State> {
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" id="register" class="btn btn-secondary">
+              <a href="https://preview.page.link/pibrowser.page.link?link=http://wepi.social/register">{i18n.t("sign_up")}</a>
               {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")} formaction */}
-              {i18n.t("sign_up")}
+
             </button>
           </div>
         </div>
