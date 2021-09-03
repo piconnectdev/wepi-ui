@@ -112,9 +112,9 @@ export class Login extends Component<any, State> {
           <div class="form-group row">
             <label
               class="col-sm-2 col-form-label"
-              htmlFor="login-email-or-username"
+              htmlFor="login-username"
             >
-              {i18n.t("email_or_username")}
+              {i18n.t("username")}
             </label>
             <div class="col-sm-10">
               <input
@@ -181,7 +181,7 @@ export class Login extends Component<any, State> {
     //   console.error(error);
     // });
     return (
-      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+      <form action="http://wepi.social/register">
         {/* <h5>{i18n.t("sign_up")}</h5> */}
 
         {/* <div class="form-group row">
@@ -321,16 +321,12 @@ export class Login extends Component<any, State> {
             </T>
           </div>
         )} */}
-        <script>
-          $( "#register" ).click(function() {
-            window.location.href = 'http://wepi.social/register'
-          });
-        </script>
+
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" id="register" class="btn btn-secondary">
-              <a href="https://preview.page.link/pibrowser.page.link?link=http://wepi.social/register">{i18n.t("sign_up")}</a>
-              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")} formaction */}
+            <button type="submit" class="btn btn-secondary">
+              <a href="http://wepi.social/register">{i18n.t("sign_up")}</a>
+              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
 
             </button>
           </div>
