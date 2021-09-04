@@ -146,12 +146,12 @@ export class Login extends Component<any, State> {
               />
               <button
                 type="button"
-                onClick={linkEvent(this, this.handlePasswordReset)}
                 className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
                 disabled={!validEmail(this.state.loginForm.username_or_email)}
                 title={i18n.t("no_password_reset")}
               >
-                {i18n.t("forgot_password")}
+                <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
+
               </button>
             </div>
           </div>
@@ -181,151 +181,12 @@ export class Login extends Component<any, State> {
     //   console.error(error);
     // });
     return (
-      <form action="http://wepi.social/register">
-        {/* <h5>{i18n.t("sign_up")}</h5> */}
-
-        {/* <div class="form-group row">
-          <label class="col-sm-2 col-form-label" htmlFor="register-username">
-            {i18n.t("username")}
-          </label>
-
-          <div class="col-sm-10">
-            <input
-              type="text"
-              id="register-username"
-              class="form-control"
-              value={this.state.registerForm.username}
-              onInput={linkEvent(this, this.handleRegisterUsernameChange)}
-              required
-              minLength={3}
-              maxLength={20}
-              pattern="[a-zA-Z0-9_]+"
-            />
-          </div>
-        </div> */}
-
-        {/* <div class="form-group row">
-          <label class="col-sm-2 col-form-label" htmlFor="register-email">
-            {i18n.t("email")}
-          </label>
-          <div class="col-sm-10">
-            <input
-              type="email"
-              id="register-email"
-              class="form-control"
-              placeholder={i18n.t("optional")}
-              value={this.state.registerForm.email}
-              autoComplete="email"
-              onInput={linkEvent(this, this.handleRegisterEmailChange)}
-              minLength={3}
-            />
-            {!validEmail(this.state.registerForm.email) && (
-              <div class="mt-2 mb-0 alert alert-light" role="alert">
-                <Icon icon="alert-triangle" classes="icon-inline mr-2" />
-                {i18n.t("no_password_reset")}
-              </div>
-            )}
-          </div>
-        </div> */}
-
-        {/* <div class="form-group row">
-          <label class="col-sm-2 col-form-label" htmlFor="register-password">
-            {i18n.t("password")}
-          </label>
-          <div class="col-sm-10">
-            <input
-              type="password"
-              id="register-password"
-              value={this.state.registerForm.password}
-              autoComplete="new-password"
-              onInput={linkEvent(this, this.handleRegisterPasswordChange)}
-              maxLength={60}
-              class="form-control"
-              required
-            />
-          </div>
-        </div>
-
-        <div class="form-group row">
-          <label
-            class="col-sm-2 col-form-label"
-            htmlFor="register-verify-password"
-          >
-            {i18n.t("verify_password")}
-          </label>
-          <div class="col-sm-10">
-            <input
-              type="password"
-              id="register-verify-password"
-              value={this.state.registerForm.password_verify}
-              autoComplete="new-password"
-              onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
-              maxLength={60}
-              class="form-control"
-              required
-            />
-          </div>
-        </div> */}
-
-        {/* {this.state.captcha && (
-          <div class="form-group row">
-            <label class="col-sm-2" htmlFor="register-captcha">
-              <span class="mr-2">{i18n.t("enter_code")}</span>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                onClick={linkEvent(this, this.handleRegenCaptcha)}
-                aria-label={i18n.t("captcha")}
-              >
-                <Icon icon="refresh-cw" classes="icon-refresh-cw" />
-              </button>
-            </label>
-            {this.showCaptcha()}
-            <div class="col-sm-6">
-              <input
-                type="text"
-                class="form-control"
-                id="register-captcha"
-                value={this.state.registerForm.captcha_answer}
-                onInput={linkEvent(
-                  this,
-                  this.handleRegisterCaptchaAnswerChange
-                )}
-                required
-              />
-            </div>
-          </div>
-        )}
-        {this.state.site_view.site.enable_nsfw && (
-          <div class="form-group row">
-            <div class="col-sm-10">
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  id="register-show-nsfw"
-                  type="checkbox"
-                  checked={this.state.registerForm.show_nsfw}
-                  onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
-                />
-                <label class="form-check-label" htmlFor="register-show-nsfw">
-                  {i18n.t("show_nsfw")}
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-        {this.isLemmyMl && (
-          <div class="mt-2 mb-0 alert alert-light" role="alert">
-            <T i18nKey="lemmy_ml_registration_message">
-              #<a href={joinLemmyUrl}>#</a>
-            </T>
-          </div>
-        )} */}
+      <form action="https://wepi.social/register">
 
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
-              <a href="http://wepi.social/register">{i18n.t("sign_up")}</a>
+              <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
               {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
 
             </button>
