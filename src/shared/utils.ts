@@ -1,77 +1,87 @@
-import "moment/locale/es";
-import "moment/locale/el";
-import "moment/locale/eu";
-import "moment/locale/eo";
-import "moment/locale/de";
-import "moment/locale/zh-cn";
-import "moment/locale/fr";
-import "moment/locale/sv";
-import "moment/locale/ru";
-import "moment/locale/nl";
-import "moment/locale/it";
-import "moment/locale/fi";
-import "moment/locale/ca";
-import "moment/locale/fa";
-import "moment/locale/pl";
-import "moment/locale/pt-br";
-import "moment/locale/ja";
-import "moment/locale/ka";
-import "moment/locale/hi";
-import "moment/locale/gl";
-import "moment/locale/tr";
-import "moment/locale/hu";
-import "moment/locale/uk";
-import "moment/locale/sq";
-import "moment/locale/km";
-import "moment/locale/ga";
-import "moment/locale/sr";
-import "moment/locale/ko";
-import "moment/locale/da";
-import "moment/locale/hr";
-import "moment/locale/bg";
-
+import emojiShortName from "emoji-short-name";
 import {
-  UserOperation,
+  BlockCommunityResponse,
+  BlockPersonResponse,
   CommentView,
-  LocalUserSettingsView,
-  SortType,
+  CommunityBlockView,
+  CommunityView,
+  GetSiteMetadata,
+  GetSiteResponse,
+  LemmyHttp,
+  LemmyWebsocket,
   ListingType,
-  SearchType,
-  WebSocketResponse,
-  WebSocketJsonResponse,
-  Search,
-  SearchResponse,
+  MyUserInfo,
+  PersonBlockView,
+  PersonViewSafe,
   PostView,
   PrivateMessageView,
-  LemmyWebsocket,
-  PersonViewSafe,
-  CommunityView,
-  LemmyHttp,
+  Search,
+  SearchResponse,
+  SearchType,
+  SortType,
+  UserOperation,
+  WebSocketJsonResponse,
+  WebSocketResponse,
 } from "lemmy-js-client";
-
+import markdown_it from "markdown-it";
+import markdown_it_container from "markdown-it-container";
+import markdown_it_sub from "markdown-it-sub";
+import markdown_it_sup from "markdown-it-sup";
+import moment from "moment";
+import "moment/locale/bg";
+import "moment/locale/ca";
+import "moment/locale/cy";
+import "moment/locale/da";
+import "moment/locale/de";
+import "moment/locale/el";
+import "moment/locale/eo";
+import "moment/locale/es";
+import "moment/locale/eu";
+import "moment/locale/fa";
+import "moment/locale/fi";
+import "moment/locale/fr";
+import "moment/locale/ga";
+import "moment/locale/gl";
+import "moment/locale/hi";
+import "moment/locale/hr";
+import "moment/locale/hu";
+import "moment/locale/id";
+import "moment/locale/it";
+import "moment/locale/ja";
+import "moment/locale/ka";
+import "moment/locale/km";
+import "moment/locale/ko";
+import "moment/locale/nb";
+import "moment/locale/nl";
+import "moment/locale/pl";
+import "moment/locale/pt-br";
+import "moment/locale/ru";
+import "moment/locale/sk";
+import "moment/locale/sq";
+import "moment/locale/sr";
+import "moment/locale/sv";
+import "moment/locale/tr";
+import "moment/locale/uk";
+import "moment/locale/vi";
+import "moment/locale/zh-cn";
+import { Subscription } from "rxjs";
+import { delay, retryWhen, take } from "rxjs/operators";
+import tippy from "tippy.js";
+import Toastify from "toastify-js";
+import { httpBase } from "./env";
+import { i18n } from "./i18next";
 import {
+  CommentNode as CommentNodeI,
   CommentSortType,
   DataType,
   IsoData,
-  CommentNode as CommentNodeI,
 } from "./interfaces";
 import { UserService, WebSocketService } from "./services";
+
 var Tribute: any;
 if (isBrowser()) {
   Tribute = require("tributejs");
 }
-import markdown_it from "markdown-it";
-import markdown_it_sub from "markdown-it-sub";
-import markdown_it_sup from "markdown-it-sup";
-import markdown_it_container from "markdown-it-container";
-import emojiShortName from "emoji-short-name";
-import Toastify from "toastify-js";
-import tippy from "tippy.js";
-import moment from "moment";
-import { Subscription } from "rxjs";
-import { retryWhen, delay, take } from "rxjs/operators";
-import { i18n } from "./i18next";
-import { httpBase } from "./env";
 
 export const wsClient = new LemmyWebsocket();
 
@@ -79,8 +89,10 @@ export const favIconUrl = "/static/assets/icons/favicon.svg";
 export const favIconPngUrl = "/static/assets/icons/apple-touch-icon.png";
 // TODO
 // export const defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
-export const repoUrl = "https://github.com/LemmyNet";
+export const joinPiUrl = "https://minepi.com/halybang";
+export const repoUrl = "https://github.com/piconnectdev/wepi";
 export const joinLemmyUrl = "https://join-lemmy.org";
+export const supportUrl = `https://wepi.social/`;
 export const supportLemmyUrl = `${joinLemmyUrl}/support`;
 export const docsUrl = `${joinLemmyUrl}/docs/en/index.html`;
 export const helpGuideUrl = `${joinLemmyUrl}/docs/en/about/guide.html`; // TODO find a way to redirect to the non-en folder
@@ -106,6 +118,7 @@ export const languages = [
   { code: "gl" },
   { code: "hr" },
   { code: "hu" },
+  { code: "id" },
   { code: "ka" },
   { code: "ko" },
   { code: "km" },
@@ -113,6 +126,7 @@ export const languages = [
   { code: "fa" },
   { code: "ja" },
   { code: "oc" },
+  { code: "nb_NO" },
   { code: "pl" },
   { code: "pt_BR" },
   { code: "zh" },
@@ -128,6 +142,12 @@ export const languages = [
   { code: "nl" },
   { code: "it" },
   { code: "bg" },
+  { code: "zh_Hant" },
+  { code: "cy" },
+  { code: "mnc" },
+  { code: "sk" },
+  { code: "vi" },
+  { code: "pt" },
 ];
 
 export const themes = [
@@ -243,14 +263,16 @@ export function getUnixTime(text: string): number {
 }
 
 export function canMod(
-  localUserView: LocalUserSettingsView,
+  myUserInfo: MyUserInfo,
   modIds: string[],
   creator_id: string,
   onSelf = false
 ): boolean {
   // You can do moderator actions only on the mods added after you.
-  if (localUserView) {
-    let yourIndex = modIds.findIndex(id => id == localUserView.person.id);
+  if (myUserInfo) {
+    let yourIndex = modIds.findIndex(
+      id => id == myUserInfo.local_user_view.person.id
+    );
     if (yourIndex == -1) {
       return false;
     } else {
@@ -323,10 +345,12 @@ export function routeSearchTypeToEnum(type: string): SearchType {
   return SearchType[type];
 }
 
-export async function getPageTitle(url: string) {
-  let res = await fetch(`/iframely/oembed?url=${url}`).then(res => res.json());
-  let title = await res.title;
-  return title;
+export async function getSiteMetadata(url: string) {
+  let form: GetSiteMetadata = {
+    url,
+  };
+  let client = new LemmyHttp(httpBase);
+  return client.getSiteMetadata(form);
 }
 
 export function debounce(func: any, wait = 1000, immediate = false) {
@@ -372,11 +396,11 @@ export function debounce(func: any, wait = 1000, immediate = false) {
 
 // TODO
 export function getLanguage(override?: string): string {
-  let localUserView = UserService.Instance.localUserView;
+  let myUserInfo = UserService.Instance.myUserInfo;
   let lang =
     override ||
-    (localUserView?.local_user.lang
-      ? localUserView.local_user.lang
+    (myUserInfo?.local_user_view.local_user.lang
+      ? myUserInfo.local_user_view.local_user.lang
       : "browser");
 
   if (lang == "browser" && isBrowser()) {
@@ -387,7 +411,14 @@ export function getLanguage(override?: string): string {
 }
 
 export function getBrowserLanguage(): string {
-  return navigator.language;
+  // Intersect lemmy's langs, with the browser langs
+  let langs = languages ? languages.map(l => l.code) : ["en"];
+
+  // NOTE, mobile browsers seem to be missing this list, so append en
+  let allowedLangs = navigator.languages
+    .concat("en")
+    .filter(v => langs.includes(v));
+  return allowedLangs[0];
 }
 
 export function getMomentLanguage(): string {
@@ -418,7 +449,7 @@ export function getMomentLanguage(): string {
     lang = "fa";
   } else if (lang.startsWith("pl")) {
     lang = "pl";
-  } else if (lang.startsWith("pt")) {
+  } else if (lang.startsWith("pt_BR")) {
     lang = "pt-br";
   } else if (lang.startsWith("ja")) {
     lang = "ja";
@@ -458,6 +489,18 @@ export function getMomentLanguage(): string {
     lang = "th";
   } else if (lang.startsWith("bg")) {
     lang = "bg";
+  } else if (lang.startsWith("id")) {
+    lang = "id";
+  } else if (lang.startsWith("nb")) {
+    lang = "nb";
+  } else if (lang.startsWith("cy")) {
+    lang = "cy";
+  } else if (lang.startsWith("sk")) {
+    lang = "sk";
+  } else if (lang.startsWith("vi")) {
+    lang = "vi";
+  } else if (lang.startsWith("pt")) {
+    lang = "pt";
   } else {
     lang = "en";
   }
@@ -518,15 +561,15 @@ export function objectFlip(obj: any) {
 
 export function showAvatars(): boolean {
   return (
-    UserService.Instance.localUserView?.local_user.show_avatars ||
-    !UserService.Instance.localUserView
+    UserService.Instance.myUserInfo?.local_user_view.local_user.show_avatars ||
+    !UserService.Instance.myUserInfo
   );
 }
 
 export function showScores(): boolean {
   return (
-    UserService.Instance.localUserView?.local_user.show_scores ||
-    !UserService.Instance.localUserView
+    UserService.Instance.myUserInfo?.local_user_view.local_user.show_scores ||
+    !UserService.Instance.myUserInfo
   );
 }
 
@@ -645,18 +688,21 @@ export function notifyPrivateMessage(pmv: PrivateMessageView, router: any) {
 function notify(info: NotifyInfo, router: any) {
   messageToastify(info, router);
 
-  if (Notification.permission !== "granted") Notification.requestPermission();
-  else {
-    var notification = new Notification(info.name, {
-      icon: info.icon,
-      body: info.body,
-    });
+  // TODO absolute nightmare bug, but notifs are currently broken.
+  // Notification.new will try to do a browser fetch ???
 
-    notification.onclick = (ev: Event): any => {
-      ev.preventDefault();
-      router.history.push(info.link);
-    };
-  }
+  // if (Notification.permission !== "granted") Notification.requestPermission();
+  // else {
+  //   var notification = new Notification(info.name, {
+  //     icon: info.icon,
+  //     body: info.body,
+  //   });
+
+  //   notification.onclick = (ev: Event): any => {
+  //     ev.preventDefault();
+  //     router.history.push(info.link);
+  //   };
+  // }
 }
 
 export function setupTribute() {
@@ -831,11 +877,18 @@ function communitySearch(
 export function getListingTypeFromProps(props: any): ListingType {
   return props.match.params.listing_type
     ? routeListingTypeToEnum(props.match.params.listing_type)
-    : UserService.Instance.localUserView
-      ? Object.values(ListingType)[
-      UserService.Instance.localUserView.local_user.default_listing_type
+    : UserService.Instance.myUserInfo
+    ? Object.values(ListingType)[
+        UserService.Instance.myUserInfo.local_user_view.local_user
+          .default_listing_type
       ]
       : ListingType.Local;
+}
+
+export function getListingTypeFromPropsNoDefault(props: any): ListingType {
+  return props.match.params.listing_type
+    ? routeListingTypeToEnum(props.match.params.listing_type)
+    : ListingType.Local;
 }
 
 // TODO might need to add a user setting for this too
@@ -848,9 +901,10 @@ export function getDataTypeFromProps(props: any): DataType {
 export function getSortTypeFromProps(props: any): SortType {
   return props.match.params.sort
     ? routeSortTypeToEnum(props.match.params.sort)
-    : UserService.Instance.localUserView
-      ? Object.values(SortType)[
-      UserService.Instance.localUserView.local_user.default_sort_type
+    : UserService.Instance.myUserInfo
+    ? Object.values(SortType)[
+        UserService.Instance.myUserInfo.local_user_view.local_user
+          .default_sort_type
       ]
       : SortType.Active;
 }
@@ -893,6 +947,44 @@ export function saveCommentRes(data: CommentView, comments: CommentView[]) {
   if (found) {
     found.saved = data.saved;
   }
+}
+
+export function updatePersonBlock(
+  data: BlockPersonResponse
+): PersonBlockView[] {
+  if (data.blocked) {
+    UserService.Instance.myUserInfo.person_blocks.push({
+      person: UserService.Instance.myUserInfo.local_user_view.person,
+      target: data.person_view.person,
+    });
+    toast(`${i18n.t("blocked")} ${data.person_view.person.name}`);
+  } else {
+    UserService.Instance.myUserInfo.person_blocks =
+      UserService.Instance.myUserInfo.person_blocks.filter(
+        i => i.target.id != data.person_view.person.id
+      );
+    toast(`${i18n.t("unblocked")} ${data.person_view.person.name}`);
+  }
+  return UserService.Instance.myUserInfo.person_blocks;
+}
+
+export function updateCommunityBlock(
+  data: BlockCommunityResponse
+): CommunityBlockView[] {
+  if (data.blocked) {
+    UserService.Instance.myUserInfo.community_blocks.push({
+      person: UserService.Instance.myUserInfo.local_user_view.person,
+      community: data.community_view.community,
+    });
+    toast(`${i18n.t("blocked")} ${data.community_view.community.name}`);
+  } else {
+    UserService.Instance.myUserInfo.community_blocks =
+      UserService.Instance.myUserInfo.community_blocks.filter(
+        i => i.community.id != data.community_view.community.id
+      );
+    toast(`${i18n.t("unblocked")} ${data.community_view.community.name}`);
+  }
+  return UserService.Instance.myUserInfo.community_blocks;
 }
 
 export function createCommentLikeRes(
@@ -1038,9 +1130,13 @@ export function buildCommentsTree(
   let tree: CommentNodeI[] = [];
   for (let comment_view of comments) {
     let child = map.get(comment_view.comment.id);
-    if (comment_view.comment.parent_id) {
-      let parent_ = map.get(comment_view.comment.parent_id);
-      parent_.children.push(child);
+    let parent_id = comment_view.comment.parent_id;
+    if (parent_id) {
+      let parent = map.get(parent_id);
+      // Necessary because blocked comment might not exist
+      if (parent) {
+        parent.children.push(child);
+      }
     } else {
       tree.push(child);
     }
@@ -1288,14 +1384,14 @@ export const choicesConfig = {
   searchResultLimit: fetchLimit,
   classNames: {
     containerOuter: "choices",
-    containerInner: "choices__inner bg-light border-0",
+    containerInner: "choices__inner bg-secondary border-0",
     input: "form-control",
     inputCloned: "choices__input--cloned",
     list: "choices__list",
     listItems: "choices__list--multiple",
     listSingle: "choices__list--single",
     listDropdown: "choices__list--dropdown",
-    item: "choices__item bg-light",
+    item: "choices__item bg-secondary",
     itemSelectable: "choices__item--selectable",
     itemDisabled: "choices__item--disabled",
     itemChoice: "choices__item--choice",
@@ -1326,4 +1422,9 @@ export function personSelectName(pvs: PersonViewSafe): string {
   return pvs.person.local
     ? pvs.person.name
     : `${hostname(pvs.person.actor_id)}/${pvs.person.name}`;
+}
+
+export function initializeSite(site: GetSiteResponse) {
+  UserService.Instance.myUserInfo = site.my_user;
+  i18n.changeLanguage(getLanguage());
 }
