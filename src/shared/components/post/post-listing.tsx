@@ -515,6 +515,23 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </small>
               </button>
             )}
+            {!this.showBody && (
+              <button
+                class="btn btn-link btn-animate text-muted py-0"
+                onClick={linkEvent(this, this.handleSavePostClick)}
+                data-tippy-content={
+                  i18n.t("tip") 
+                }
+                aria-label={i18n.t("tip")}
+              >
+                <small>
+                  <Icon
+                    icon="heart"
+                    classes={`icon-inline ${post_view.saved && "text-warning"}`}
+                  />
+                </small>
+              </button>
+            )}
           </>
         )}
         {/* This is an expanding spacer for mobile */}
@@ -586,6 +603,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               />
             </button>
 
+            <button
+              class="btn btn-link btn-animate text-muted py-0 pl-1 pr-0"
+              onClick={linkEvent(this, this.handleSavePostClick)}
+              aria-label={post_view.saved ? i18n.t("tip") : i18n.t("tip")}
+              data-tippy-content={
+                post_view.saved ? i18n.t("tip") : i18n.t("tip")
+              }
+            >
+              <Icon
+                icon="heart"
+                classes={`icon-inline ${post_view.saved && "text-warning"}`}
+              />
+            </button>
             {!this.state.showMoreMobile && this.showBody && (
               <button
                 class="btn btn-link btn-animate text-muted py-0"

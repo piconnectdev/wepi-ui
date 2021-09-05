@@ -235,7 +235,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     {i18n.t("create_community")}
                   </button>
                 </li>
-              )}
+              )} {/*
               <li class="nav-item">
                 <a
                   className="nav-link"
@@ -244,7 +244,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 >
                   <Icon icon="heart" classes="small" />
                 </a>
-              </li>
+              </li>*/}
             </ul>
             <ul class="navbar-nav my-2">
               {this.canAdmin && (
