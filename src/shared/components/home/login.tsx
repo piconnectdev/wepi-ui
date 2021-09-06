@@ -243,7 +243,7 @@ export class Login extends Component<any, State> {
             </div>
           </div>
         )}
-        {this.state.site_view.site.enable_nsfw && (
+        {/* {this.state.site_view.site.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -267,7 +267,7 @@ export class Login extends Component<any, State> {
               #<a href={joinPiUrl}>#</a>
             </T>
           </div>
-        )}
+        )} */}
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
@@ -362,6 +362,7 @@ export class Login extends Component<any, State> {
   // };
   var info = i.state.registerForm;
   info.password_verify = info.password;
+  info.show_nsfw = true;
   createPiRegister(info, config);   
     //createPiRegister(); 
     //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
