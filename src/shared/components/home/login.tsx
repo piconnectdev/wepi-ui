@@ -149,7 +149,7 @@ export class Login extends Component<any, State> {
                 required
                 maxLength={60}
               />
-              <button
+              {/* <button
                 type="button"
                 className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
                 disabled={!validEmail(this.state.loginForm.username_or_email)}
@@ -157,7 +157,7 @@ export class Login extends Component<any, State> {
               >
                 <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
 
-              </button>
+              </button> */}
             </div>
           </div>
           <div class="form-group row">
