@@ -1,15 +1,18 @@
 import axios from './axios';
-
-const Pi = window.Pi;
+//import { * } from "./utils";
+//const Pi = window.Pi;
 var piUser;
 var piApiResult = null;
 export const authenticatePiUser = async () => {
     // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
     const scopes = ['username','payments'];
     
-    try{
-        piUser = await Pi.authenticate(scopes, onIncompletePaymentFound);
-	return piUser;
+    try
+    {
+        if (typeof window !== "undefined") {
+            piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+	        return piUser;
+        }
 
     } catch(err) {
         console.log(err)
@@ -47,13 +50,15 @@ export const onIncompletePaymentFound = async (payment) => {
 
 export const createPiRegister = async (info, config) => {
     piApiResult = null;
-    Pi.createPayment(config, {
+    if (typeof window !== "undefined") { 
+        window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
         onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
         onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletionRegister(payment_id, txid, info, config),
         onCancel,
         onError,
       });
+    }
 }
 
 export const onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
@@ -107,13 +112,15 @@ export const onReadyForCompletionRegister = async (payment_id, txid, info, payme
 
 export const createPiPayment = async (config) => {
     piApiResult = null;
-    Pi.createPayment(config, {
+    if (typeof window !== "undefined") {
+    window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
         onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
         onReadyForServerCompletion: onReadyForCompletion,
         onCancel,
         onError,
       });
+    }
 }
 
 export const onReadyForApproval = async (payment_id, paymentConfig) => {
@@ -173,5 +180,7 @@ export const onError = (error, paymentId) => {
 }
 
 export const openPiShareDialog = (title, message) => {
-    Pi.openShareDialog(title, message)
+    if (typeof window !== "undefined") {        
+        window.Pi.openShareDialog(title, message)
+    }
 }
