@@ -17,6 +17,7 @@ import {
   authField,
   isBrowser,
   joinLemmyUrl,
+  joinPiUrl,
   setIsoData,
   toast,
   validEmail,
@@ -37,6 +38,8 @@ interface State {
   captchaPlaying: boolean;
   site_view: SiteView;
 }
+//import { createPiRegister, createPiPayment, authenticatePiUser, openPiShareDialog, piApiResponsee } from "../../pi";
+import { createPiRegister, authenticatePiUser, piApiResponsee } from "../../pisdk";
 
 export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
@@ -74,6 +77,7 @@ export class Login extends Component<any, State> {
     if (isBrowser()) {
       WebSocketService.Instance.send(wsClient.getCaptcha());
     }
+    authenticatePiUser();
   }
 
   componentWillUnmount() {
@@ -86,8 +90,8 @@ export class Login extends Component<any, State> {
     return `${i18n.t("login")} - ${this.state.site_view.site.name}`;
   }
 
-  get isLemmyMl(): boolean {
-    return isBrowser() && window.location.hostname == "lemmy.ml";
+  get isWePi(): boolean {
+    return isBrowser() && window.location.hostname == "wepi.social";
   }
 
   render() {
@@ -169,62 +173,154 @@ export class Login extends Component<any, State> {
   }
 
   registerForm() {
-    // var script = document.createElement('script');
-    // script.src = 'https://sdk.minepi.com/pi-sdk.js';
-    // script.type = 'text/javascript';
-    // var scriptPi = document.createElement('script');
-    // scriptPi.src = 'Pi.init({ version: "2.0" })';
-    // const scopes = ['payments'];
-    //function onIncompletePaymentFound(payment) {};
-    //scriptPi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
-    //   console.log(`Hi there! You're ready to make payments!`);
-    // }).catch(function(error) {
-    //   console.error(error);
-    // });
     return (
-      <form action="https://wepi.social/register">
-        <div class="form-group row">
-          <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">
-              <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
-              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+    <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+        <h5>{i18n.t("sign_up")}</h5>
 
-            </button>
+        <div class="form-group row">
+          <label class="col-sm-2 col-form-label" htmlFor="register-username">
+            {i18n.t("username")}
+          </label>
+
+          <div class="col-sm-10">
+            <input
+              type="text"
+              id="register-username"
+              class="form-control"
+              value={this.state.registerForm.username}
+              onInput={linkEvent(this, this.handleRegisterUsernameChange)}
+              required
+              minLength={3}
+              pattern="[a-zA-Z0-9_]+"
+            />
           </div>
         </div>
 
+        <div class="form-group row">
+          <label class="col-sm-2 col-form-label" htmlFor="register-password">
+            {i18n.t("password")}
+          </label>
+          <div class="col-sm-10">
+            <input
+              type="password"
+              id="register-password"
+              value={this.state.registerForm.password}
+              autoComplete="new-password"
+              onInput={linkEvent(this, this.handleRegisterPasswordChange)}
+              maxLength={60}
+              class="form-control"
+              required
+            />
+          </div>
+        </div>
+
+        {this.state.captcha && (
+          <div class="form-group row">
+            <label class="col-sm-2" htmlFor="register-captcha">
+              <span class="mr-2">{i18n.t("enter_code")}</span>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onClick={linkEvent(this, this.handleRegenCaptcha)}
+                aria-label={i18n.t("captcha")}
+              >
+                <Icon icon="refresh-cw" classes="icon-refresh-cw" />
+              </button>
+            </label>
+            {this.showCaptcha()}
+            <div class="col-sm-6">
+              <input
+                type="text"
+                class="form-control"
+                id="register-captcha"
+                value={this.state.registerForm.captcha_answer}
+                onInput={linkEvent(
+                  this,
+                  this.handleRegisterCaptchaAnswerChange
+                )}
+                required
+              />
+            </div>
+          </div>
+        )}
+        {this.state.site_view.site.enable_nsfw && (
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  id="register-show-nsfw"
+                  type="checkbox"
+                  checked={this.state.registerForm.show_nsfw}
+                  onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
+                />
+                <label class="form-check-label" htmlFor="register-show-nsfw">
+                  {i18n.t("show_nsfw")}
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+        {this.isWePi && (
+          <div class="mt-2 mb-0 alert alert-light" role="alert">
+            <T i18nKey="lemmy_ml_registration_message">
+              #<a href={joinPiUrl}>#</a>
+            </T>
+          </div>
+        )}
+        <div class="form-group row">
+          <div class="col-sm-10">
+            <button type="submit" class="btn btn-secondary">
+              {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
+            </button>
+          </div>
+        </div>
       </form>
     );
+    // return (
+    //   <form action="https://wepi.social/register">
+    //     <div class="form-group row">
+    //       <div class="col-sm-10">
+    //         <button type="submit" class="btn btn-secondary">
+    //           <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
+    //           {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+
+    //         </button>
+    //       </div>
+    //     </div>
+
+    //   </form>
+    // );
   }
 
-  // showCaptcha() {
-  //   return (
-  //     <div class="col-sm-4">
-  //       {this.state.captcha.ok && (
-  //         <>
-  //           <img
-  //             class="rounded-top img-fluid"
-  //             src={this.captchaPngSrc()}
-  //             style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
-  //             alt={i18n.t("captcha")}
-  //           />
-  //           {this.state.captcha.ok.wav && (
-  //             <button
-  //               class="rounded-bottom btn btn-sm btn-secondary btn-block"
-  //               style="border-top-right-radius: 0; border-top-left-radius: 0;"
-  //               title={i18n.t("play_captcha_audio")}
-  //               onClick={linkEvent(this, this.handleCaptchaPlay)}
-  //               type="button"
-  //               disabled={this.state.captchaPlaying}
-  //             >
-  //               <Icon icon="play" classes="icon-play" />
-  //             </button>
-  //           )}
-  //         </>
-  //       )}
-  //     </div>
-  //   );
-  // }
+  showCaptcha() {
+    return (
+      <div class="col-sm-4">
+        {this.state.captcha.ok && (
+          <>
+            <img
+              class="rounded-top img-fluid"
+              src={this.captchaPngSrc()}
+              style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
+              alt={i18n.t("captcha")}
+            />
+            {this.state.captcha.ok.wav && (
+              <button
+                class="rounded-bottom btn btn-sm btn-secondary btn-block"
+                style="border-top-right-radius: 0; border-top-left-radius: 0;"
+                title={i18n.t("play_captcha_audio")}
+                onClick={linkEvent(this, this.handleCaptchaPlay)}
+                type="button"
+                disabled={this.state.captchaPlaying}
+              >
+                <Icon icon="play" classes="icon-play" />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
@@ -247,7 +343,28 @@ export class Login extends Component<any, State> {
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
-    WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
+    var config = {
+      amount: 0.01,
+      memo: 'wepi:account',
+      metadata: {
+          ref_id: "",
+      }
+  };
+  // create user register info
+  // var info = {
+  //     username: usernameToTransfer,
+  //     password: passwordToTransfer,
+  //     password_verify: passwordToTransfer,
+  //     show_nsfw: true,
+  //     email: null,
+  //     captcha_uuid: null,
+  //     captcha_answer: null,
+  // };
+  var info = i.state.registerForm;
+  info.password_verify = info.password;
+  createPiRegister(info, config);   
+    //createPiRegister(); 
+    //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {

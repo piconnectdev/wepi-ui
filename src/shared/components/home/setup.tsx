@@ -51,7 +51,7 @@ export class Setup extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    return `${i18n.t("setup")} - Lemmy`;
+    return `${i18n.t("setup")} - WePi`;
   }
 
   render() {

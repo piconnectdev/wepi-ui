@@ -44,7 +44,7 @@ import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
 import { MetadataCard } from "./metadata-card";
 import { PostForm } from "./post-form";
-
+import { createPiPayment, authenticatePiUser, piApiResponsee } from "../../pisdk";
 interface PostListingState {
   showEdit: boolean;
   showRemoveDialog: boolean;
@@ -109,6 +109,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
+    authenticatePiUser();
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -605,7 +606,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
             <button
               class="btn btn-link btn-animate text-muted py-0 pl-1 pr-0"
-              onClick={linkEvent(this, this.handleSavePostClick)}
+              onClick={linkEvent(this, this.handleTipPostClick)}
               aria-label={post_view.saved ? i18n.t("tip") : i18n.t("tip")}
               data-tippy-content={
                 post_view.saved ? i18n.t("tip") : i18n.t("tip")
@@ -1359,6 +1360,27 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
 
     WebSocketService.Instance.send(wsClient.savePost(form));
+  }
+
+  handleTipPostClick(i: PostListing) {
+    let saved =
+      i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
+    let form: SavePost = {
+      post_id: i.props.post_view.post.id,
+      save: saved,
+      auth: authField(),
+    };
+    var config = {
+      amount: "0.001",
+      memo: 'wepi:p:'+i.props.post_view.creator.id,
+      metadata: {
+          member: i.props.post_view.creator.id,
+          post: i.props.post_view.post.id,
+          comment: "",
+      }
+  };
+    createPiPayment(config);
+    // WebSocketService.Instance.send(wsClient.savePost(form));
   }
 
   get crossPostParams(): string {

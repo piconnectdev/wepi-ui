@@ -17,6 +17,7 @@
   "dependencies": {
     "@typescript-eslint/parser": "^4.28.3",
     "autosize": "^5.0.1",
+    "axios": "^0.21.3",
     "choices.js": "^9.0.1",
     "emoji-short-name": "^1.0.0",
     "express": "~4.17.1",

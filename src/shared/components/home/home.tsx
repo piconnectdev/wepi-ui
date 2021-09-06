@@ -260,7 +260,7 @@ export class Home extends Component<any, HomeState> {
         ? this.state.siteRes.site_view.site.description
           ? `${this.state.siteRes.site_view.site.name} - ${this.state.siteRes.site_view.site.description}`
           : this.state.siteRes.site_view.site.name
-        : "Lemmy"
+        : "WePi"
     }`;
   }
 

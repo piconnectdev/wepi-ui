@@ -110,7 +110,8 @@ server.get("/*", async (req, res) => {
            <head>
            <script>window.isoData = ${serialize(isoData)}</script>
            <script>window.lemmyConfig = ${serialize(config)}</script>
-
+           <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+           <script>Pi.init({ version: "2.0" })</script>
            <!-- A remote debugging utility for mobile
            <script src="//cdn.jsdelivr.net/npm/eruda"></script>
            <script>eruda.init();</script>
@@ -120,7 +121,7 @@ server.get("/*", async (req, res) => {
            ${helmet.meta.toString()}
 
            <!-- Required meta tags -->
-           <meta name="Description" content="Lemmy">
+           <meta name="Description" content="WePi">
            <meta charset="utf-8">
            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 

@@ -204,6 +204,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 )}
               </button>
               {this.linkBtn(true)}
+              <button
+                class="btn btn-sm text-muted"
+                onClick={linkEvent(this, this.handleTipComment)}
+                aria-label={this.expandText}
+                data-tippy-content={this.expandText}
+              >
+              <Icon icon="heart" classes="icon-inline" />
+              </button>
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               {showScores() && (
@@ -1260,6 +1268,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentCollapse(i: CommentNode) {
+    i.state.collapsed = !i.state.collapsed;
+    i.setState(i.state);
+    setupTippy();
+  }
+  handleTipComment(i: CommentNode) {
     i.state.collapsed = !i.state.collapsed;
     i.setState(i.state);
     setupTippy();
