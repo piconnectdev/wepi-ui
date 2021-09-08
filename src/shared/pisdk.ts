@@ -6,17 +6,20 @@ var piApiResult = null;
 export const authenticatePiUser = async () => {
     // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
     const scopes = ['username','payments'];
-    
-    try
+    //if (piUser === "undefined") 
     {
-        if (typeof window !== "undefined") {
-            piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-	        return piUser;
-        }
+        try
+        {
+            if (typeof window !== "undefined") {
+                piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+                return piUser;
+            }
 
-    } catch(err) {
-        console.log(err)
+        } catch(err) {
+            console.log(err)
+        }
     }
+    return piUser;
 }
 
 export const piApiResponsee = () => {
@@ -133,7 +136,7 @@ export const onReadyForApproval = async (payment_id, paymentConfig) => {
 
     if (status === 500) {
         //there was a problem approving this payment show user body.message from server
-        alert(`${body.status}: ${body.message}`);
+        alert(`${data.status}: ${data.message}`);
         return false;
     } 
 
@@ -145,14 +148,14 @@ export const onReadyForApproval = async (payment_id, paymentConfig) => {
 
 export const onReadyForCompletion = async (payment_id, txid) => {
     //make POST request to your app server /pi/complete endpoint with paymentId and txid in the body
-    const { body, status } = await axios.post('/pi/complete', {
+    const { data, status } = await axios.post('/pi/complete', {
         payment_id, 
         txid
     })
 
     if (status === 500) {
         //there was a problem completing this payment show user body.message from server
-        alert(`${body.status}: ${body.message}`);
+        alert(`${data.status}: ${data.message}`);
         return false;
     } 
 

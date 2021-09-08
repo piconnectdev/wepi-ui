@@ -36,6 +36,7 @@ import {
 } from "../../utils";
 import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
+import { authenticatePiUser } from "../../pisdk";
 
 interface NavbarProps {
   site_res: GetSiteResponse;
@@ -81,8 +82,11 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   componentDidMount() {
-    // Subscribe to jwt changes
     if (isBrowser()) {
+      authenticatePiUser().then((piUser)=>{
+         
+      });
+      
       this.websocketEvents();
 
       this.searchTextField = createRef();

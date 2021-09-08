@@ -76,14 +76,8 @@ export class Login extends Component<any, State> {
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
-    const scopes = ['username','payments'];
     if (isBrowser()) {
       WebSocketService.Instance.send(wsClient.getCaptcha());      
-    }
-    if (this.isPiBrowser) {
-        window.Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth){
-        this.piUser = auth;
-      });
     }
   }
 
@@ -352,13 +346,16 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
-  handleRegisterSubmit(i: Login, event: any) {
+  // Hàm này cần access piUser từ PiSdk, nhưng nó không gọi Authenticate nữa
+  async handleRegisterSubmit(i: Login, event: any) {    
     event.preventDefault();
+    this.piUser = await this.authenticatePiUser();
     i.state.registerLoading = true;
     i.setState(i.state);
+    
     var config = {
       amount: 0.01,
-      memo: 'wepi:acc'+i.state.registerForm.username,
+      memo: 'wepi:acc:'+i.state.registerForm.username,
       metadata: {
           ref_id: "",
       }
@@ -376,9 +373,24 @@ export class Login extends Component<any, State> {
   var info = i.state.registerForm;
   info.password_verify = info.password;
   info.show_nsfw = true;
-  this.createPiRegister(info, config);   
-    //createPiRegister(); 
+   await this.createPiRegister(info, config);   // Call use copy function.
+    //  await createPiRegister(info, config); // Call use wrapper 
     //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
+  }
+
+  /// BEGIN FUNCTIONS COPIED 
+  ///  Goi truc tiep, copy tu wrapper sang day
+
+  authenticatePiUser = async () => {
+      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+      const scopes = ['username','payments'];      
+      try {
+          /// HOW TO CALL Pi.authenticate Global/Init
+          this.piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+          return this.piUser;
+      } catch(err) {
+          console.log(err)
+      }
   }
 
   createPiRegister = async (info, config) => {
@@ -391,15 +403,15 @@ export class Login extends Component<any, State> {
         onError:this.onError,
       });
   }
+  
   onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
-    //make POST request to your app server /payments/approve endpoint with paymentId in the body
-    
+    //make POST request to your app server /payments/approve endpoint with paymentId in the body    
     const { data, status } = await axios.post('/pi/agree', {
 	    paymentid: payment_id,
 	    pi_username: this.piUser.user.username,
 	    pi_uid: this.piUser.user.uid,
 	    info,
-        paymentConfig
+      paymentConfig
     })
 
     if (status === 500) {
@@ -412,10 +424,10 @@ export class Login extends Component<any, State> {
         //payment was approved continue with flow
         return data;
     }
-}
+  }
 
-// Update or change password
-onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
+  // Update or change password
+  onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
     //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
     const { data, status } = await axios.post('/pi/register', {
         paymentid: payment_id,
@@ -439,7 +451,7 @@ onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => 
         return true;
     }
     return false;
-}
+  }
 
   onCancel = (paymentId) => {
       console.log('Register payment cancelled', paymentId)
@@ -447,7 +459,7 @@ onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => 
   onError = (error, paymentId) => { 
       console.log('Register onError', error, paymentId) 
   }
-
+  /// END 
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
     i.setState(i.state);
