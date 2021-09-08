@@ -40,6 +40,8 @@ interface State {
 }
 //import { createPiRegister, createPiPayment, authenticatePiUser, openPiShareDialog, piApiResponsee } from "../../pi";
 import { onIncompletePaymentFound, onReadyForApprovalRegister, onReadyForCompletionRegister, createPiRegister, authenticatePiUser, piApiResponsee } from "../../pisdk";
+import axios from '../../axios';
+//import pisdk from '../../axios';
 
 export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
@@ -79,7 +81,7 @@ export class Login extends Component<any, State> {
       WebSocketService.Instance.send(wsClient.getCaptcha());      
     }
     if (this.isPiBrowser) {
-      window.Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth){
+        window.Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth){
         this.piUser = auth;
       });
     }
@@ -99,7 +101,7 @@ export class Login extends Component<any, State> {
     return isBrowser() && window.location.hostname == "wepi.social";
   }
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes('PiBrowser');
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') && this.piUser !== "undefined";
   }
 
   render() {
@@ -381,22 +383,71 @@ export class Login extends Component<any, State> {
 
   createPiRegister = async (info, config) => {
     //piApiResult = null;
-    if (typeof window !== "undefined") { 
         window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
-        onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
-        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletionRegister(payment_id, txid, info, config),
+        onReadyForServerApproval: (payment_id) => this.onReadyForApprovalRegister(payment_id, info, config),
+        onReadyForServerCompletion:(payment_id, txid) => this.onReadyForCompletionRegister(payment_id, txid, info, config),
         onCancel: this.onCancel,
         onError:this.onError,
       });
-    };
   }
+  onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
+    //make POST request to your app server /payments/approve endpoint with paymentId in the body
+    
+    const { data, status } = await axios.post('/pi/agree', {
+	    paymentid: payment_id,
+	    pi_username: this.piUser.user.username,
+	    pi_uid: this.piUser.user.uid,
+	    info,
+        paymentConfig
+    })
+
+    if (status === 500) {
+        //there was a problem approving this payment show user body.message from server
+        //alert(`${body.status}: ${body.message}`);
+        return false;
+    } 
+
+    if (status === 200) {
+        //payment was approved continue with flow
+        return data;
+    }
+}
+
+// Update or change password
+onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
+    //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+    const { data, status } = await axios.post('/pi/register', {
+        paymentid: payment_id,
+        pi_username: this.piUser.user.username,
+        pi_uid: this.piUser.user.uid,
+        txid,
+	    info,
+	    paymentConfig,
+    })
+
+    if (status === 500) {
+        //there was a problem completing this payment show user body.message from server
+        alert(`${data.status}: ${data.message}`);
+        return false;
+    } 
+
+    if (status === 200) {
+        //payment was completed continue with flow
+        //piApiResult["success"] = true;
+        //piApiResult["type"] = "account";
+        return true;
+    }
+    return false;
+}
+
   onCancel = (paymentId) => {
       console.log('Register payment cancelled', paymentId)
   }
   onError = (error, paymentId) => { 
       console.log('Register onError', error, paymentId) 
   }
+
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
     i.setState(i.state);
