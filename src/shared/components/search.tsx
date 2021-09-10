@@ -256,7 +256,7 @@ export class Search extends Component<any, SearchState> {
     let promises: Promise<any>[] = [];
 
     let communityId = this.getCommunityIdFromProps(pathSplit[11]);
-    if (communityId !== 0) {
+    if (communityId !== null) {
       let getCommunityForm: GetCommunity = {
         id: communityId,
       };
@@ -273,7 +273,7 @@ export class Search extends Component<any, SearchState> {
     }
 
     let creatorId = this.getCreatorIdFromProps(pathSplit[13]);
-    if (creatorId !== 0) {
+    if (creatorId !== null) {
       let getCreatorForm: GetPersonDetails = {
         person_id: creatorId,
       };
@@ -291,10 +291,10 @@ export class Search extends Component<any, SearchState> {
       page: this.getPageFromProps(pathSplit[15]),
       limit: fetchLimit,
     };
-    if (communityId !== 0) {
+    if (communityId !== null) {
       form.community_id = communityId;
     }
-    if (creatorId !== 0) {
+    if (creatorId !== null) {
       form.creator_id = creatorId;
     }
     setOptionalAuth(form, req.auth);
@@ -742,10 +742,10 @@ export class Search extends Component<any, SearchState> {
       limit: fetchLimit,
       auth: authField(false),
     };
-    if (this.state.communityId !== 0) {
+    if (this.state.communityId !== null) {
       form.community_id = this.state.communityId;
     }
-    if (this.state.creatorId !== 0) {
+    if (this.state.creatorId !== null) {
       form.creator_id = this.state.creatorId;
     }
 
