@@ -485,6 +485,43 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             })}
           </Link>
         </button>
+        <button
+          class="btn btn-link btn-animate text-muted py-0"
+          onClick={linkEvent(this, this.handleTipPostClick)}
+          aria-label={i18n.t("tip")}
+          data-tippy-content={i18n.t("tip") }
+          
+        >
+          <Icon
+            icon="heart"
+            classes={`icon-inline mr-1}`}
+          />
+        </button>
+        <button
+          class="btn btn-link btn-animate text-muted p-0"
+          onClick={linkEvent(this, this.handleBlockchainClick)}
+          aria-label={i18n.t("blockchain")}
+          data-tippy-content={i18n.t("blockchain") }
+        >
+          <Icon
+            icon="arrow-up"
+            classes={`icon-inline mr-1`}
+          />
+        </button>
+
+        {/* <button
+          class="btn btn-link btn-animate text-muted p-0"
+          onClick={linkEvent(this, this.handleTipPostClick)}
+          aria-label={i18n.t("explorer")}
+          data-tippy-content={i18n.t("explorer") }
+        >
+          <small>
+            <Icon
+              icon="external-link"
+              classes={`icon-inline mr-1`}
+            />
+          </small>
+        </button> */}
         {!mobile && (
           <>
             {this.state.downvotes !== 0 && showScores() && (
@@ -516,14 +553,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </small>
               </button>
             )}
-            {!this.showBody && (
+            {/* {!this.showBody && (
               <button
                 class="btn btn-link btn-animate text-muted py-0"
-                onClick={linkEvent(this, this.handleSavePostClick)}
+                onClick={linkEvent(this, this.handleTipPostClick)}
+                aria-label={post_view.saved ? i18n.t("tip1") : i18n.t("tip1")}
                 data-tippy-content={
-                  i18n.t("tip") 
+                  i18n.t("tip1") 
                 }
-                aria-label={i18n.t("tip")}
+                aria-label={i18n.t("tip1")}
               >
                 <small>
                   <Icon
@@ -532,7 +570,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   />
                 </small>
               </button>
-            )}
+            )} */}
           </>
         )}
         {/* This is an expanding spacer for mobile */}
@@ -604,19 +642,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               />
             </button>
 
-            <button
+            {/* <button
               class="btn btn-link btn-animate text-muted py-0 pl-1 pr-0"
               onClick={linkEvent(this, this.handleTipPostClick)}
-              aria-label={post_view.saved ? i18n.t("tip") : i18n.t("tip")}
+              aria-label={post_view.saved ? i18n.t("tip2") : i18n.t("tip2")}
               data-tippy-content={
-                post_view.saved ? i18n.t("tip") : i18n.t("tip")
+                post_view.saved ? i18n.t("tip2") : i18n.t("tip2")
               }
             >
               <Icon
                 icon="heart"
                 classes={`icon-inline ${post_view.saved && "text-warning"}`}
               />
-            </button>
+            </button> */}
             {!this.state.showMoreMobile && this.showBody && (
               <button
                 class="btn btn-link btn-animate text-muted py-0"
@@ -1360,6 +1398,56 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
 
     WebSocketService.Instance.send(wsClient.savePost(form));
+  }
+
+  async handleBlockchainClick(i: PostListing) {
+    const utf8ToHex  = (str: string) => {
+      return Array.from(str).map(c => 
+        c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) : 
+        encodeURIComponent(c).replace(/\%/g,'').toLowerCase()
+      ).join('');
+    };
+
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+
+    var config = {
+      memo: 'wepi:post',
+      metadata: {
+          oid: i.props.post_view.creator.id,
+          cid: i.props.post_view.community.id,
+          id: i.props.post_view.post.id,
+          url: i.props.post_view.post.url,
+          name: i.props.post_view.post.name,
+          body: i.props.post_view.post.body,
+          t: i.props.post_view.post.published,
+          u: i.props.post_view.post.updated,
+          e: i.props.post_view.post.embed_description,
+      }
+    };
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: '0x42373a682c73f604e6dA19e2baA8F4F29333A688',
+            value: '0x38D7EA4C68000',
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
   }
 
   handleTipPostClick(i: PostListing) {

@@ -37,6 +37,7 @@ import {
 import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
 import { authenticatePiUser } from "../../pisdk";
+import { fa } from "shared/translations/fa";
 
 interface NavbarProps {
   site_res: GetSiteResponse;
@@ -60,6 +61,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   private userSub: Subscription;
   private unreadCountSub: Subscription;
   private searchTextField: RefObject<HTMLInputElement>;
+  private walletConnected: boolean;
+
   emptyState: NavbarState = {
     isLoggedIn: !!this.props.site_res.my_user,
     unreadCount: 0,
@@ -79,14 +82,63 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
+    this.walletConnected = false;
   }
+
+  
+  onClickConnect = async () => {
+    const onboardButton = document.getElementById('connectWallet');
+    try 
+    {
+      // Will open the MetaMask UI
+      // You should disable this button while the request is pending!
+      if (this.walletConnected === false) {
+        await ethereum.request({ method: 'eth_requestAccounts' });
+        this.walletConnected  = true;
+        onboardButton.innerText = 'Connected MetaMask';
+      } 
+      //else {
+      //  onboardButton.innerText = 'Connect MetaMask';
+      //  this.walletConnected  = false;
+      //}
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
+  initialize = () => {
+    const onboardButton = document.getElementById('connectWallet');
+    //You will start here
+    //Created check function to see if the MetaMask extension is installed
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+    //------Inserted Code------\\
+  const MetaMaskClientCheck = () => {
+    //Now we check to see if MetaMask is installed
+    if (!isMetaMaskInstalled()) {
+      //If it isn't installed we ask the user to click to install it
+      onboardButton.innerText = 'Install MetaMask!';
+      onboardButton.disabled = true;
+    } else {
+      //If it is installed we change our button text
+      onboardButton.innerText = 'Connect MetaMask';
+      onboardButton.onclick = this.onClickConnect;
+      this.walletConnected  = false;
+      onboardButton.disabled = false;
+    }
+  };
+  MetaMaskClientCheck();
+  };
 
   componentDidMount() {
     if (isBrowser()) {
       authenticatePiUser().then((piUser)=>{
          
       });
-      
+      window.addEventListener('DOMContentLoaded', this.initialize);
       this.websocketEvents();
 
       this.searchTextField = createRef();
@@ -390,6 +442,19 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </li>
               </ul>
             )}
+              <ul class="navbar-nav my-2">
+                <li className="ml-2 nav-item">
+                  <button
+                    id="connectWallet"
+                    className="btn btn-success"
+                    onClick={linkEvent(this, this.handleConnectWallet)}
+                    title={i18n.t("Connect Wallet")}
+                  >
+                    {i18n.t("Connect Wallet")}
+                  </button>
+                </li>
+              </ul>
+            
           </div>
         </div>
       </nav>
@@ -483,6 +548,14 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   handleGotoLogin(i: Navbar) {
     i.setState({ showDropdown: false, expanded: false });
     i.context.router.history.push(`/login`);
+  }
+
+  handleConnectWallet(i: Navbar) {
+    //i.setState({ showDropdown: false, expanded: false });
+    //i.context.router.history.push(`/login`);
+    if (typeof window.ethereum !== 'undefined') {
+      console.log('MetaMask is installed!');
+    }    
   }
 
   handleShowDropdown(i: Navbar) {
