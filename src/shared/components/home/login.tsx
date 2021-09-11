@@ -359,7 +359,122 @@ export class Login extends Component<any, State> {
     i.state.loginForm.password = event.target.value;
     i.setState(i.state);
   }
+  
+  async handleRegisterSubmit1(i: Login, event: any) {
+    const authenticatePiUser = async () => {
+      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+      const scopes = ['username','payments'];      
+      try {
+          /// HOW TO CALL Pi.authenticate Global/Init
+          var piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+          return piUser;
+      } catch(err) {
+          console.log(err)
+      }
+    };
+    var piUser = await authenticatePiUser();
+    const createPiRegister = async (info, config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletionRegister(payment_id, txid, info, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      //do something with incompleted payment
+      console.log('incomplete payment found: ', payment) 
+      alert("Incomplete payment found" + JSON.stringify(payment));
+      const { data, status } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
 
+      if (status === 500) {
+          //there was a problem approving this payment show user body.message from server
+          //alert(`${data.status}: ${data.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+    }; // Read more about this in the SDK reference
+
+    const onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data, status } = await axios.post('/pi/agree', {
+        paymentid: payment_id,
+        pi_username: this.piUser.user.username,
+        pi_uid: this.piUser.user.uid,
+        info,
+        paymentConfig
+      })
+
+      if (status === 500) {
+          //there was a problem approving this payment show user body.message from server
+          //alert(`${body.status}: ${body.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was approved continue with flow
+          return data;
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      const { data, status } = await axios.post('/pi/register', {
+          paymentid: payment_id,
+          pi_username: this.piUser.user.username,
+          pi_uid: this.piUser.user.uid,
+          txid,
+          info,
+          paymentConfig,
+      })
+
+      if (status === 500) {
+          //there was a problem completing this payment show user body.message from server
+          alert(`${data.status}: ${data.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was completed continue with flow
+          //piApiResult["success"] = true;
+          //piApiResult["type"] = "account";
+          return true;
+      }
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Register payment cancelled', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Register error', error, paymentId) 
+    }
+    var config = {
+      amount: 0.01,
+      memo: 'wepi:account',
+      metadata: {
+          ref_id: "",
+      }
+    };
+    var info = i.state.registerForm;
+    info.password_verify = info.password;
+    info.show_nsfw = true;
+    await createPiRegister(info, config);
+  }
   // Hàm này cần access piUser từ PiSdk, nhưng nó không gọi Authenticate nữa
   async handleRegisterSubmit(i: Login, event: any) {    
     event.preventDefault();
@@ -373,7 +488,7 @@ export class Login extends Component<any, State> {
       metadata: {
           ref_id: "",
       }
-  };
+    };
   // create user register info
   // var info = {
   //     username: usernameToTransfer,

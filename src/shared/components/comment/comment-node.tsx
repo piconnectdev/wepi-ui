@@ -36,6 +36,8 @@ import {
   utf8ToHex,
   anchorWeb3Address,
   tipWeb3Address,
+  eth001,
+  eth01
 } from "../../utils";
 import { Icon, Spinner } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
@@ -1302,7 +1304,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             content: i.props.node.comment_view.comment.content,
             t: i.props.node.comment_view.comment.published,
             u: i.props.node.comment_view.comment.updated,
-            cert: i.props.node.comment_view.comment.cert,
+            sign: i.props.node.comment_view.comment.cert,
         }
       };
       var str = utf8ToHex(JSON.stringify(config));
@@ -1315,7 +1317,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: anchorWeb3Address,
-              value: '0x38D7EA4C68000',
+              value: eth001,
               data: '0x' + str,
             },
           ],
@@ -1356,7 +1358,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         memo: 'wepi:tip:'+i.props.node.comment_view.creator.name,
         metadata: {
             id: i.props.node.comment_view.creator.id,
-            //post_id: i.props.node.comment_view.post.id,
+            post_id: i.props.node.comment_view.post.id,
             comment_id: i.props.node.comment_view.comment.id,
             //parent_id: i.props.node.comment_view.comment.parent_id,
             //content: i.props.node.comment_view.comment.content,
@@ -1375,7 +1377,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: tipWeb3Address,
-              value: '0x38D7EA4C68000',
+              value: eth01,
               data: '0x' + str,
             },
           ],

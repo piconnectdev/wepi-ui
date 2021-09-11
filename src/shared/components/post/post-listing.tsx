@@ -39,6 +39,9 @@ import {
   utf8ToHex,
   anchorWeb3Address,
   tipWeb3Address,
+  eth001,
+  eth01,
+  isBrowser,
 } from "../../utils";
 import { Icon } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
@@ -47,6 +50,7 @@ import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
 import { MetadataCard } from "./metadata-card";
 import { PostForm } from "./post-form";
+import axios from '../../axios';
 import { createPiPayment, authenticatePiUser, piApiResponsee } from "../../pisdk";
 interface PostListingState {
   showEdit: boolean;
@@ -511,7 +515,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             classes={`icon-inline mr-1`}
           />
         </button>
-
+        { this.isPiBrowser && ( <button
+          class="btn btn-link btn-animate text-muted p-0"
+          //onClick={linkEvent(this, this.handleTipPiPostClick)}
+          aria-label={i18n.t("tip pi")}
+          data-tippy-content={i18n.t("tip pi (working in progress)") }
+        >
+            <Icon
+              icon="heart"
+              classes={`icon-inline mr-1`}
+            />
+        </button>) }        
         {/* <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -1197,6 +1211,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
+  }
+
   private get myPost(): boolean {
     return (
       UserService.Instance.myUserInfo &&
@@ -1414,15 +1432,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     var config = {
       memo: 'wepi:post',
       metadata: {
-          oid: i.props.post_view.creator.id,
+          own: i.props.post_view.creator.id,
           cid: i.props.post_view.community.id,
           id: i.props.post_view.post.id,
           url: i.props.post_view.post.url,
           name: i.props.post_view.post.name,
           body: i.props.post_view.post.body,
+          ap_id: i.props.post_view.post.ap_id,
           t: i.props.post_view.post.published,
           u: i.props.post_view.post.updated,
-          e: i.props.post_view.post.embed_description,
+          et: i.props.post_view.post.embed_title,
+          ed: i.props.post_view.post.embed_description,
+          eb: i.props.post_view.post.embed_html,
+          sign: i.props.post_view.post.cert,
       }
     };
     var str = utf8ToHex(JSON.stringify(config));
@@ -1435,7 +1457,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {
             from: accounts[0],
             to: anchorWeb3Address,
-            value: '0x38D7EA4C68000',
+            value: eth001,
             data: '0x' + str,
           },
         ],
@@ -1447,25 +1469,120 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
+  async handleTipPiPostClick(i: PostListing) {      
+    var config = {
+        amount: "0.001",
+        memo: 'wepi:p:'+i.props.post_view.creator.id,
+        metadata: {
+          id: i.props.post_view.creator.id,
+          post_id: i.props.post_view.post.id,
+          //post_name: i.props.post_view.post.name,
+          t: i.props.post_view.post.published,
+          u: i.props.post_view.post.updated,
+        }
+    };    
+    const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ['username','payments'];      
+        try {
+            /// HOW TO CALL Pi.authenticate Global/Init
+            var piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return piUser;
+        } catch(err) {
+            console.log(err)
+        }
+    };
+    var piUser = await authenticatePiUser();
+    const createPiPayment = async (config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      //do something with incompleted payment
+      console.log('incomplete payment found: ', payment) 
+      alert(payment);
+      const { data, status } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
+
+      if (status === 500) {
+          //there was a problem approving this payment show user body.message from server
+          alert(`${data.status}: ${data.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was approved continue with flow
+          alert(payment);
+          return data;
+      }
+  }; // Read more about this in the SDK reference
+
+  const onReadyForApproval = async (payment_id, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data, status } = await axios.post('/pi/approve', {
+        paymentid: payment_id,
+        //pi_username: piUser.user.username,
+        paymentConfig
+      })
+
+      if (status === 500) {
+          //there was a problem approving this payment show user body.message from server
+          //alert(`${body.status}: ${body.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was approved continue with flow
+          return data;
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletion = async (payment_id, txid, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      const { data, status } = await axios.post('/pi/complete', {
+          paymentid: payment_id,
+          //pi_username: piUser.user.username,
+          txid,
+          paymentConfig,
+      })
+
+      if (status === 500) {
+          //there was a problem completing this payment show user body.message from server
+          alert(`${data.status}: ${data.message}`);
+          return false;
+      } 
+
+      if (status === 200) {
+          //payment was completed continue with flow
+          //piApiResult["success"] = true;
+          //piApiResult["type"] = "account";
+          return true;
+      }
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Payment cancelled', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Payment error', error, paymentId) 
+    }
+    await createPiPayment(config);
+  }
+  
   async handleTipPostClick(i: PostListing) {
-  //   let saved =
-  //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
-  //   let form: SavePost = {
-  //     post_id: i.props.post_view.post.id,
-  //     save: saved,
-  //     auth: authField(),
-  //   };
-  //   var config = {
-  //     amount: "0.001",
-  //     memo: 'wepi:p:'+i.props.post_view.creator.id,
-  //     metadata: {
-  //         member: i.props.post_view.creator.id,
-  //         post: i.props.post_view.post.id,
-  //         comment: "",
-  //     }
-  // };
-  //   createPiPayment(config);
-    // WebSocketService.Instance.send(wsClient.savePost(form));
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1477,8 +1594,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       metadata: {
           id: i.props.post_view.creator.id,
           post_id: i.props.post_view.post.id,
-          comment_id: null,
-          post_name: i.props.post_view.post.name,
+          //post_name: i.props.post_view.post.name,
           t: i.props.post_view.post.published,
           u: i.props.post_view.post.updated,
       }
@@ -1493,7 +1609,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {
             from: accounts[0],
             to: tipWeb3Address,
-            value: '0x38D7EA4C68000',
+            value: eth01,
             data: '0x' + str,
           },
         ],

@@ -103,7 +103,8 @@ export const elementUrl = "https://element.io/";
 
 export const anchorWeb3Address = "0x42373a682c73f604e6dA19e2baA8F4F29333A688";
 export const tipWeb3Address = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
-
+export const eth01="0x2386F26FC10000";
+export const eth001="0x38D7EA4C68000";
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit = 20;
 export const mentionDropdownFetchLimit = 10;
