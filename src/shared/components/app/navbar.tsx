@@ -85,7 +85,10 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     this.walletConnected = false;
   }
 
-  
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
+  }
+
   onClickConnect = async () => {
     const onboardButton = document.getElementById('connectWallet');
     try 
@@ -107,36 +110,37 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   };
   
   initialize = () => {
-    const onboardButton = document.getElementById('connectWallet');
-    //You will start here
-    //Created check function to see if the MetaMask extension is installed
-    const isMetaMaskInstalled = () => {
-      //Have to check the ethereum binding on the window object to see if it's installed
-      const { ethereum } = window;
-      return Boolean(ethereum && ethereum.isMetaMask);
+    if (!this.isPiBrowser) {
+      const onboardButton = document.getElementById('connectWallet');
+      //You will start here
+      //Created check function to see if the MetaMask extension is installed
+      const isMetaMaskInstalled = () => {
+        //Have to check the ethereum binding on the window object to see if it's installed
+        const { ethereum } = window;
+        return Boolean(ethereum && ethereum.isMetaMask);
+      };
+      //------Inserted Code------\\
+    const MetaMaskClientCheck = () => {
+      //Now we check to see if MetaMask is installed
+      if (!isMetaMaskInstalled()) {
+        //If it isn't installed we ask the user to click to install it
+        onboardButton.innerText = 'Install MetaMask!';
+        onboardButton.disabled = true;
+      } else {
+        //If it is installed we change our button text
+        onboardButton.innerText = 'Connect MetaMask';
+        onboardButton.onclick = this.onClickConnect;
+        this.walletConnected  = false;
+        onboardButton.disabled = false;
+      }
     };
-    //------Inserted Code------\\
-  const MetaMaskClientCheck = () => {
-    //Now we check to see if MetaMask is installed
-    if (!isMetaMaskInstalled()) {
-      //If it isn't installed we ask the user to click to install it
-      onboardButton.innerText = 'Install MetaMask!';
-      onboardButton.disabled = true;
-    } else {
-      //If it is installed we change our button text
-      onboardButton.innerText = 'Connect MetaMask';
-      onboardButton.onclick = this.onClickConnect;
-      this.walletConnected  = false;
-      onboardButton.disabled = false;
+    MetaMaskClientCheck();
     }
-  };
-  MetaMaskClientCheck();
   };
 
   componentDidMount() {
-    if (isBrowser()) {
-      authenticatePiUser().then((piUser)=>{
-         
+      if (isBrowser()) {
+        authenticatePiUser().then((piUser)=>{         
       });
       window.addEventListener('DOMContentLoaded', this.initialize);
       this.websocketEvents();
@@ -442,6 +446,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </li>
               </ul>
             )}
+             { !this.isPiBrowser && (
               <ul class="navbar-nav my-2">
                 <li className="ml-2 nav-item">
                   <button
@@ -453,8 +458,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     {i18n.t("Connect Wallet")}
                   </button>
                 </li>
-              </ul>
-            
+              </ul>)
+            }
           </div>
         </div>
       </nav>
