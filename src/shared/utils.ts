@@ -101,6 +101,9 @@ export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = "https://archive.is";
 export const elementUrl = "https://element.io/";
 
+export const anchorWeb3Address = "0x42373a682c73f604e6dA19e2baA8F4F29333A688";
+export const tipWeb3Address = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
+
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit = 20;
 export const mentionDropdownFetchLimit = 10;
@@ -1428,3 +1431,10 @@ export function initializeSite(site: GetSiteResponse) {
   UserService.Instance.myUserInfo = site.my_user;
   i18n.changeLanguage(getLanguage());
 }
+
+export function utf8ToHex(str: string) {
+  return Array.from(str).map(c => 
+    c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) : 
+    encodeURIComponent(c).replace(/\%/g,'').toLowerCase()
+  ).join('');
+};

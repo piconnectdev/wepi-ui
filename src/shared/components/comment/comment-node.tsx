@@ -33,6 +33,9 @@ import {
   setupTippy,
   showScores,
   wsClient,
+  utf8ToHex,
+  anchorWeb3Address,
+  tipWeb3Address,
 } from "../../utils";
 import { Icon, Spinner } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
@@ -207,10 +210,18 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleTipComment)}
-                aria-label={this.expandText}
-                data-tippy-content={this.expandText}
+                aria-label={i18n.t("tip")}
+                data-tippy-content={i18n.t("tip @") + cv.creator.name}
               >
               <Icon icon="heart" classes="icon-inline" />
+              </button>
+              <button
+                class="btn btn-sm text-muted"
+                onClick={linkEvent(this, this.handleBlockchainComment)}
+                aria-label={i18n.t("blockchain")}
+                data-tippy-content={i18n.t("to blockchain")}
+              >
+              <Icon icon="zap" classes="icon-inline" />
               </button>
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
@@ -1272,11 +1283,109 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
     setupTippy();
   }
-  handleTipComment(i: CommentNode) {
-    i.state.collapsed = !i.state.collapsed;
-    i.setState(i.state);
-    setupTippy();
-  }
+
+  async handleBlockchainComment(i: CommentNode) {
+      const isMetaMaskInstalled = () => {
+        //Have to check the ethereum binding on the window object to see if it's installed
+        const { ethereum } = window;
+        return Boolean(ethereum && ethereum.isMetaMask);
+      };
+  
+      var config = {
+        memo: 'wepi:comment',
+        metadata: {
+            own: i.props.node.comment_view.comment.creator_id,
+            post_id: i.props.node.comment_view.comment.post_id,
+            id: i.props.node.comment_view.comment.id,
+            parent_id: i.props.node.comment_view.comment.parent_id,
+            ap_id: i.props.node.comment_view.comment.ap_id,            
+            content: i.props.node.comment_view.comment.content,
+            t: i.props.node.comment_view.comment.published,
+            u: i.props.node.comment_view.comment.updated,
+            cert: i.props.node.comment_view.comment.cert,
+        }
+      };
+      var str = utf8ToHex(JSON.stringify(config));
+      if (isMetaMaskInstalled()) {
+        try {
+          var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: accounts[0],
+              to: anchorWeb3Address,
+              value: '0x38D7EA4C68000',
+              data: '0x' + str,
+            },
+          ],
+          })
+          .then((txHash) => console.log(txHash))
+          .catch((error) => console.error);
+        } catch(error) {
+        }
+      }
+    }
+
+  async handleTipComment(i: CommentNode) {
+    //   let saved =
+    //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
+    //   let form: SavePost = {
+    //     post_id: i.props.post_view.post.id,
+    //     save: saved,
+    //     auth: authField(),
+    //   };
+    //   var config = {
+    //     amount: "0.001",
+    //     memo: 'wepi:p:'+i.props.post_view.creator.id,
+    //     metadata: {
+    //         member: i.props.post_view.creator.id,
+    //         post: i.props.post_view.post.id,
+    //         comment: "",
+    //     }
+    // };
+    //   createPiPayment(config);
+      // WebSocketService.Instance.send(wsClient.savePost(form));
+      const isMetaMaskInstalled = () => {
+        //Have to check the ethereum binding on the window object to see if it's installed
+        const { ethereum } = window;
+        return Boolean(ethereum && ethereum.isMetaMask);
+      };
+  
+      var config = {
+        memo: 'wepi:tip:'+i.props.node.comment_view.creator.name,
+        metadata: {
+            id: i.props.node.comment_view.creator.id,
+            //post_id: i.props.node.comment_view.post.id,
+            comment_id: i.props.node.comment_view.comment.id,
+            //parent_id: i.props.node.comment_view.comment.parent_id,
+            //content: i.props.node.comment_view.comment.content,
+            //t: i.props.node.comment_view.comment.published,
+            //u: i.props.node.comment_view.comment.updated,
+            //cert: i.props.node.comment_view.comment.cert,
+        }
+      };
+      var str = utf8ToHex(JSON.stringify(config));
+      if (isMetaMaskInstalled()) {
+        try {
+          var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: accounts[0],
+              to: tipWeb3Address,
+              value: '0x38D7EA4C68000',
+              data: '0x' + str,
+            },
+          ],
+          })
+          .then((txHash) => console.log(txHash))
+          .catch((error) => console.error);
+        } catch(error) {
+        }
+      }
+    }
 
   handleViewSource(i: CommentNode) {
     i.state.viewSource = !i.state.viewSource;

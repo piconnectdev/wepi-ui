@@ -48,6 +48,8 @@ import {
   wsJsonToRes,
   wsSubscribe,
   wsUserOp,
+  utf8ToHex,
+  anchorWeb3Address,
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
@@ -446,7 +448,7 @@ export class Settings extends Component<any, SettingsState> {
               />
             </div>
           </div>
-          <div class="form-group row">
+          {/* <div class="form-group row">
             <label class="col-lg-3 col-form-label" htmlFor="user-email">
               {i18n.t("email")}
             </label>
@@ -461,7 +463,39 @@ export class Settings extends Component<any, SettingsState> {
                 minLength={3}
               />
             </div>
+          </div> */}
+            <div class="form-group row">
+            <label class="col-lg-3 col-form-label" htmlFor="user-pi-address">
+              {i18n.t("Pi Address")}
+            </label>
+            <div class="col-lg-9">
+              <input
+                type="text"
+                id="user-pi-address"
+                class="form-control"
+                placeholder={i18n.t("Pi Network Address")}
+                value={this.state.saveUserSettingsForm.pi_address}
+                //onInput={linkEvent(this, this.handleEmailChange)}
+                minLength={3}
+              />
+            </div>
           </div>
+          <div class="form-group row">
+            <label class="col-lg-3 col-form-label" htmlFor="user-web3-address">
+              {i18n.t("Web3 Address")}
+            </label>
+            <div class="col-lg-9">
+              <input
+                type="text"
+                id="user-web3-address"
+                class="form-control"
+                placeholder={i18n.t("ETH, BSC, FTM, MATIC address")}
+                value={this.state.saveUserSettingsForm.web3_address}
+                //onInput={linkEvent(this, this.handleEmailChange)}
+                minLength={3}
+              />
+            </div>
+            </div>
           <div class="form-group row">
             <label class="col-lg-5 col-form-label" htmlFor="matrix-user-id">
               <a href={elementUrl} rel="noopener">
@@ -701,6 +735,18 @@ export class Settings extends Component<any, SettingsState> {
             </button>
           </div>
           <hr />
+          <div class="form-group">
+            <button
+              class="btn btn-block btn-secondary mr-4"
+              onClick={linkEvent(
+                this,
+                this.handleBlockchain
+              )}
+            >
+              {i18n.t("Save to Blockchain")}
+            </button>
+            </div>
+            <hr />  
           <div class="form-group">
             <button
               class="btn btn-block btn-danger"
@@ -1115,4 +1161,64 @@ export class Settings extends Component<any, SettingsState> {
       this.setState({ communityBlocks: updateCommunityBlock(data) });
     }
   }
+
+  async handleBlockchain(i: Settings, event: any) {
+    //   let saved =
+    //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
+    //   let form: SavePost = {
+    //     post_id: i.props.post_view.post.id,
+    //     save: saved,
+    //     auth: authField(),
+    //   };
+    //   var config = {
+    //     amount: "0.001",
+    //     memo: 'wepi:p:'+i.props.post_view.creator.id,
+    //     metadata: {
+    //         member: i.props.post_view.creator.id,
+    //         post: i.props.post_view.post.id,
+    //         comment: "",
+    //     }
+    // };
+    //   createPiPayment(config);
+      // WebSocketService.Instance.send(wsClient.savePost(form));
+      const isMetaMaskInstalled = () => {
+        //Have to check the ethereum binding on the window object to see if it's installed
+        const { ethereum } = window;
+        return Boolean(ethereum && ethereum.isMetaMask);
+      };
+      let luv = UserService.Instance.myUserInfo.local_user_view;
+      var config = {
+        memo: 'wepi:profile:'+luv.person.name,
+        metadata: {
+            id: luv.person.id,
+            name: luv.person.name,
+            display: luv.person.display_name,
+            actor_id: luv.person.actor_id,
+            t: luv.person.published,
+            u: luv.person.updated,
+            s: luv.person.cert,
+        }
+      };
+      var str = utf8ToHex(JSON.stringify(config));
+      if (isMetaMaskInstalled()) {
+        try {
+          var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: accounts[0],
+              to: anchorWeb3Address,
+              value: '0x38D7EA4C68000',
+              data: '0x' + str,
+            },
+          ],
+          })
+          .then((txHash) => console.log(txHash))
+          .catch((error) => console.error);
+        } catch(error) {
+        }
+      }
+    }
 }
+

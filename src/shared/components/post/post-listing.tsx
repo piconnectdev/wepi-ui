@@ -36,6 +36,9 @@ import {
   setupTippy,
   showScores,
   wsClient,
+  utf8ToHex,
+  anchorWeb3Address,
+  tipWeb3Address,
 } from "../../utils";
 import { Icon } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
@@ -489,7 +492,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           class="btn btn-link btn-animate text-muted py-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
           aria-label={i18n.t("tip")}
-          data-tippy-content={i18n.t("tip") }
+          data-tippy-content={i18n.t("tip @") + post_view.creator.name }
           
         >
           <Icon
@@ -501,10 +504,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleBlockchainClick)}
           aria-label={i18n.t("blockchain")}
-          data-tippy-content={i18n.t("blockchain") }
+          data-tippy-content={i18n.t("to blockchain") }
         >
           <Icon
-            icon="arrow-up"
+            icon="zap"
             classes={`icon-inline mr-1`}
           />
         </button>
@@ -1401,12 +1404,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handleBlockchainClick(i: PostListing) {
-    const utf8ToHex  = (str: string) => {
-      return Array.from(str).map(c => 
-        c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) : 
-        encodeURIComponent(c).replace(/\%/g,'').toLowerCase()
-      ).join('');
-    };
 
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
@@ -1437,7 +1434,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         params: [
           {
             from: accounts[0],
-            to: '0x42373a682c73f604e6dA19e2baA8F4F29333A688',
+            to: anchorWeb3Address,
             value: '0x38D7EA4C68000',
             data: '0x' + str,
           },
@@ -1450,25 +1447,62 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  handleTipPostClick(i: PostListing) {
-    let saved =
-      i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
-    let form: SavePost = {
-      post_id: i.props.post_view.post.id,
-      save: saved,
-      auth: authField(),
-    };
-    var config = {
-      amount: "0.001",
-      memo: 'wepi:p:'+i.props.post_view.creator.id,
-      metadata: {
-          member: i.props.post_view.creator.id,
-          post: i.props.post_view.post.id,
-          comment: "",
-      }
-  };
-    createPiPayment(config);
+  async handleTipPostClick(i: PostListing) {
+  //   let saved =
+  //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
+  //   let form: SavePost = {
+  //     post_id: i.props.post_view.post.id,
+  //     save: saved,
+  //     auth: authField(),
+  //   };
+  //   var config = {
+  //     amount: "0.001",
+  //     memo: 'wepi:p:'+i.props.post_view.creator.id,
+  //     metadata: {
+  //         member: i.props.post_view.creator.id,
+  //         post: i.props.post_view.post.id,
+  //         comment: "",
+  //     }
+  // };
+  //   createPiPayment(config);
     // WebSocketService.Instance.send(wsClient.savePost(form));
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+
+    var config = {
+      memo: 'wepi:tip:'+i.props.post_view.creator.name,
+      metadata: {
+          id: i.props.post_view.creator.id,
+          post_id: i.props.post_view.post.id,
+          comment_id: null,
+          post_name: i.props.post_view.post.name,
+          t: i.props.post_view.post.published,
+          u: i.props.post_view.post.updated,
+      }
+    };
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: tipWeb3Address,
+            value: '0x38D7EA4C68000',
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
   }
 
   get crossPostParams(): string {
