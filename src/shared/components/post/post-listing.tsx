@@ -492,6 +492,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             })}
           </Link>
         </button>
+        { !this.isPiBrowser && !mobile && (
         <button
           class="btn btn-link btn-animate text-muted py-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -503,7 +504,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             icon="heart"
             classes={`icon-inline mr-1}`}
           />
-        </button>
+        </button>)
+        }
+        { !this.isPiBrowser && !mobile && (
         <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleBlockchainClick)}
@@ -514,10 +517,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             icon="zap"
             classes={`icon-inline mr-1`}
           />
-        </button>
+        </button>)
+        }
         { this.isPiBrowser && ( <button
           class="btn btn-link btn-animate text-muted p-0"
-          //onClick={linkEvent(this, this.handleTipPiPostClick)}
+          onClick={linkEvent(this, this.handleTipPiPostClick)}
           aria-label={i18n.t("tip pi")}
           data-tippy-content={i18n.t("tip pi (working in progress)") }
         >

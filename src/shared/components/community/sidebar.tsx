@@ -11,7 +11,14 @@ import {
 } from "lemmy-js-client";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
-import { authField, getUnixTime, mdToHtml, wsClient } from "../../utils";
+import { authField, getUnixTime, mdToHtml, wsClient,
+  utf8ToHex,
+  anchorWeb3Address,
+  tipWeb3Address,
+  eth001,
+  eth01,
+  isBrowser,
+ } from "../../utils";
 import { BannerIconHeader } from "../common/banner-icon-header";
 import { Icon } from "../common/icon";
 import { CommunityForm } from "../community/community-form";
@@ -285,6 +292,18 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         <ul class="list-inline mb-1 text-muted font-weight-bold">
           {this.canMod && (
             <>
+            { !this.isPiBrowser && (
+            <li className="list-inline-item-action">
+                <button
+                  class="btn btn-link text-muted d-inline-block"
+                  onClick={linkEvent(this, this.handleBlockchainClick)}
+                  data-tippy-content={i18n.t("to blockchain")}
+                  aria-label={i18n.t("blockchain")}
+                >
+                  <Icon icon="zap" classes="icon-inline" />
+                </button>
+              </li>
+            )}
               <li className="list-inline-item-action">
                 <button
                   class="btn btn-link text-muted d-inline-block"
@@ -412,6 +431,10 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     );
   }
 
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
+  }
+  
   handleEditClick(i: Sidebar) {
     i.state.showEdit = true;
     i.setState(i.state);
@@ -547,5 +570,48 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
     i.state.showRemoveDialog = false;
     i.setState(i.state);
+  }
+  async handleBlockchainClick(i: Sidebar) {
+
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+
+    var config = {
+      memo: 'wepi:community',
+      metadata: {
+          id: i.props.community_view.community.actor_id,
+          name: i.props.community_view.community.name,
+          title: i.props.community_view.community.title,
+          desc: i.props.community_view.community.description,
+          banner: i.props.community_view.community.banner,
+          actor_id: i.props.community_view.community.actor_id,
+          t: i.props.community_view.community.published,
+          u: i.props.community_view.community.updated,
+          sign: i.props.community_view.community.cert,
+      }
+    };
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: anchorWeb3Address,
+            value: eth001,
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
   }
 }

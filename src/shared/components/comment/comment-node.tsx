@@ -33,6 +33,7 @@ import {
   setupTippy,
   showScores,
   wsClient,
+  isBrowser,
   utf8ToHex,
   anchorWeb3Address,
   tipWeb3Address,
@@ -209,6 +210,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 )}
               </button>
               {this.linkBtn(true)}
+              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleTipComment)}
@@ -217,6 +219,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               >
               <Icon icon="heart" classes="icon-inline" />
               </button>
+              )}
+              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleBlockchainComment)}
@@ -225,6 +229,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               >
               <Icon icon="zap" classes="icon-inline" />
               </button>
+              )}
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               {showScores() && (
@@ -835,6 +840,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         {this.state.collapsed && <div class="row col-12"></div>}
       </div>
     );
+  }
+
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
   }
 
   get commentOrMentionRead() {

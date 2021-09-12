@@ -735,6 +735,7 @@ export class Settings extends Component<any, SettingsState> {
             </button>
           </div>
           <hr />
+          { !this.isPiBrowser && (
           <div class="form-group">
             <button
               class="btn btn-block btn-secondary mr-4"
@@ -746,7 +747,9 @@ export class Settings extends Component<any, SettingsState> {
               {i18n.t("Save to Blockchain")}
             </button>
             </div>
+            )}
             <hr />  
+          
           <div class="form-group">
             <button
               class="btn btn-block btn-danger"
@@ -799,6 +802,10 @@ export class Settings extends Component<any, SettingsState> {
         </form>
       </>
     );
+  }
+
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
   }
 
   setupBlockPersonChoices() {
