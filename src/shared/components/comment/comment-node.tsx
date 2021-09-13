@@ -217,7 +217,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 aria-label={i18n.t("tip")}
                 data-tippy-content={i18n.t("tip @") + cv.creator.name}
               >
-              <Icon icon="heart" classes="icon-inline" />
+              { cv.creator.web3_address && (
+              <Icon
+                icon="heart"
+                classes={`icon-inline mr-1}`}
+              />          
+              )}
+              { !cv.creator.web3_address && (
+                <small>
+                <Icon
+                icon="heart"
+                classes={`icon-inline mr-1}`}
+              />
+              </small>
+              )}
               </button>
               )}
               { !this.isPiBrowser && (
@@ -1339,24 +1352,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     }
 
   async handleTipComment(i: CommentNode) {
-    //   let saved =
-    //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
-    //   let form: SavePost = {
-    //     post_id: i.props.post_view.post.id,
-    //     save: saved,
-    //     auth: authField(),
-    //   };
-    //   var config = {
-    //     amount: "0.001",
-    //     memo: 'wepi:p:'+i.props.post_view.creator.id,
-    //     metadata: {
-    //         member: i.props.post_view.creator.id,
-    //         post: i.props.post_view.post.id,
-    //         comment: "",
-    //     }
-    // };
-    //   createPiPayment(config);
-      // WebSocketService.Instance.send(wsClient.savePost(form));
+      if (!i.props.node.comment_view.creator.web3_address)
+        return;
       const isMetaMaskInstalled = () => {
         //Have to check the ethereum binding on the window object to see if it's installed
         const { ethereum } = window;
@@ -1369,11 +1366,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             id: i.props.node.comment_view.creator.id,
             post_id: i.props.node.comment_view.post.id,
             comment_id: i.props.node.comment_view.comment.id,
-            //parent_id: i.props.node.comment_view.comment.parent_id,
-            //content: i.props.node.comment_view.comment.content,
-            //t: i.props.node.comment_view.comment.published,
-            //u: i.props.node.comment_view.comment.updated,
-            //cert: i.props.node.comment_view.comment.cert,
         }
       };
       var str = utf8ToHex(JSON.stringify(config));
@@ -1385,7 +1377,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           params: [
             {
               from: accounts[0],
-              to: tipWeb3Address,
+              to: i.props.node.comment_view.creator.web3_address||tipWeb3Address,
               value: eth01,
               data: '0x' + str,
             },

@@ -11,7 +11,6 @@ import { Navbar } from "./navbar";
 import { NoMatch } from "./no-match";
 import "./styles.scss";
 import { Theme } from "./theme";
-import { authenticatePiUser } from "../../pisdk";
 export interface AppProps {
   siteRes: GetSiteResponse;
 }
@@ -19,7 +18,6 @@ export interface AppProps {
 export class App extends Component<AppProps, any> {
   constructor(props: any, context: any) {
     super(props, context);
-    authenticatePiUser();
   }
   render() {
     let siteRes = this.props.siteRes;

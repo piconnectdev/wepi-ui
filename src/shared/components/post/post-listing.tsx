@@ -51,7 +51,6 @@ import { PersonListing } from "../person/person-listing";
 import { MetadataCard } from "./metadata-card";
 import { PostForm } from "./post-form";
 import axios from '../../axios';
-import { createPiPayment, authenticatePiUser, piApiResponsee } from "../../pisdk";
 interface PostListingState {
   showEdit: boolean;
   showRemoveDialog: boolean;
@@ -116,7 +115,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
-    authenticatePiUser();
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -497,13 +495,22 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           class="btn btn-link btn-animate text-muted py-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
           aria-label={i18n.t("tip")}
-          data-tippy-content={i18n.t("tip @") + post_view.creator.name }
-          
+          data-tippy-content={i18n.t("tip @") + post_view.creator.name }          
         >
+          { post_view.creator.web3_address && (
           <Icon
             icon="heart"
             classes={`icon-inline mr-1}`}
+          />          
+          )}
+          { !post_view.creator.web3_address && (
+            <small>
+            <Icon
+            icon="heart"
+            classes={`icon-inline mr-1}`}
           />
+          </small>
+          )}
         </button>)
         }
         { !this.isPiBrowser && !mobile && (
@@ -1473,9 +1480,50 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
+  async handleTipPostClick(i: PostListing) {
+    if (!i.props.post_view.creator.web3_address)
+      return;
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+
+    var config = {
+      memo: 'wepi:tip:'+i.props.post_view.creator.name,
+      metadata: {
+          id: i.props.post_view.creator.id,
+          post_id: i.props.post_view.post.id,
+          //post_name: i.props.post_view.post.name,
+          t: i.props.post_view.post.published,
+          u: i.props.post_view.post.updated,
+      }
+    };
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: i.props.post_view.creator.web3_address || tipWeb3Address,
+            value: eth01,
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
+  }
+
   async handleTipPiPostClick(i: PostListing) {      
     var config = {
-        amount: "0.001",
+        amount: "0.01",
         memo: 'wepi:p:'+i.props.post_view.creator.id,
         metadata: {
           id: i.props.post_view.creator.id,
@@ -1509,71 +1557,63 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
     const onIncompletePaymentFound = async (payment) => { 
       //do something with incompleted payment
-      console.log('incomplete payment found: ', payment) 
-      alert(payment);
-      const { data, status } = await axios.post('/pi/found', {
+      //console.log('incomplete payment found: ', payment) 
+      //alert(payment);
+      const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
           auth: null,
           dto: null
       });
 
-      if (status === 500) {
+      if (data.status === 500) {
           //there was a problem approving this payment show user body.message from server
-          alert(`${data.status}: ${data.message}`);
+          //alert(`${data.status}: ${data.message}`);
           return false;
       } 
 
-      if (status === 200) {
+      if (data.status === 200) {
           //payment was approved continue with flow
-          alert(payment);
+          //alert(payment);
           return data;
       }
   }; // Read more about this in the SDK reference
 
   const onReadyForApproval = async (payment_id, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
-      const { data, status } = await axios.post('/pi/approve', {
+      const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
-        //pi_username: piUser.user.username,
+        pi_username: piUser.user.username,
         paymentConfig
       })
 
-      if (status === 500) {
+      if (data.status === 500) {
           //there was a problem approving this payment show user body.message from server
           //alert(`${body.status}: ${body.message}`);
           return false;
       } 
 
-      if (status === 200) {
+      if (data.status === 200) {
           //payment was approved continue with flow
           return data;
       }
     }
 
     // Update or change password
-    const onReadyForCompletion = async (payment_id, txid, paymentConfig) => {
+    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-      const { data, status } = await axios.post('/pi/complete', {
+      axios.post('/pi/complete', {
           paymentid: payment_id,
-          //pi_username: piUser.user.username,
+          pi_username: piUser.user.username,
           txid,
           paymentConfig,
-      })
-
-      if (status === 500) {
-          //there was a problem completing this payment show user body.message from server
-          alert(`${data.status}: ${data.message}`);
-          return false;
-      } 
-
-      if (status === 200) {
-          //payment was completed continue with flow
-          //piApiResult["success"] = true;
-          //piApiResult["type"] = "account";
-          return true;
-      }
+      }).then((data) => {
+        if (data.status >= 200 && data.status < 300) {
+            return true;
+        }
+        return false;
+      });
       return false;
     }
 
@@ -1586,44 +1626,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     await createPiPayment(config);
   }
   
-  async handleTipPostClick(i: PostListing) {
-    const isMetaMaskInstalled = () => {
-      //Have to check the ethereum binding on the window object to see if it's installed
-      const { ethereum } = window;
-      return Boolean(ethereum && ethereum.isMetaMask);
-    };
-
-    var config = {
-      memo: 'wepi:tip:'+i.props.post_view.creator.name,
-      metadata: {
-          id: i.props.post_view.creator.id,
-          post_id: i.props.post_view.post.id,
-          //post_name: i.props.post_view.post.name,
-          t: i.props.post_view.post.published,
-          u: i.props.post_view.post.updated,
-      }
-    };
-    var str = utf8ToHex(JSON.stringify(config));
-    if (isMetaMaskInstalled()) {
-      try {
-        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-        ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [
-          {
-            from: accounts[0],
-            to: tipWeb3Address,
-            value: eth01,
-            data: '0x' + str,
-          },
-        ],
-        })
-        .then((txHash) => console.log(txHash))
-        .catch((error) => console.error);
-      } catch(error) {
-      }
-    }
-  }
 
   get crossPostParams(): string {
     let post = this.props.post_view.post;

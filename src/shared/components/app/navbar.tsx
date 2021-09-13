@@ -140,8 +140,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   componentDidMount() {
       if (isBrowser()) {
-        authenticatePiUser().then((piUser)=>{         
-      });
+      //   authenticatePiUser().then((piUser)=>{         
+      // });
+      
       window.addEventListener('DOMContentLoaded', this.initialize);
       this.websocketEvents();
 

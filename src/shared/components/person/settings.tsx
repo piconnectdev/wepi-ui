@@ -466,7 +466,7 @@ export class Settings extends Component<any, SettingsState> {
           </div> */}
             <div class="form-group row">
             <label class="col-lg-3 col-form-label" htmlFor="user-pi-address">
-              {i18n.t("Pi Address")}
+              {i18n.t("Pi Network Address")}
             </label>
             <div class="col-lg-9">
               <input
@@ -475,7 +475,7 @@ export class Settings extends Component<any, SettingsState> {
                 class="form-control"
                 placeholder={i18n.t("Pi Network Address")}
                 value={this.state.saveUserSettingsForm.pi_address}
-                //onInput={linkEvent(this, this.handleEmailChange)}
+                onInput={linkEvent(this, this.handlePiAddressChange)}
                 minLength={3}
               />
             </div>
@@ -491,7 +491,7 @@ export class Settings extends Component<any, SettingsState> {
                 class="form-control"
                 placeholder={i18n.t("ETH, BSC, FTM, MATIC address")}
                 value={this.state.saveUserSettingsForm.web3_address}
-                //onInput={linkEvent(this, this.handleEmailChange)}
+                onInput={linkEvent(this, this.handleWeb3AddresslChange)}
                 minLength={3}
               />
             </div>
@@ -980,6 +980,16 @@ export class Settings extends Component<any, SettingsState> {
     i.setState(i.state);
   }
 
+  handlePiAddressChange(i: Settings, event: any) {
+    i.state.saveUserSettingsForm.pi_address = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleWeb3AddresslChange(i: Settings, event: any) {
+    i.state.saveUserSettingsForm.web3_address = event.target.value;
+    i.setState(i.state);
+  }
+
   handleBioChange(val: string) {
     this.state.saveUserSettingsForm.bio = val;
     this.setState(this.state);
@@ -1131,6 +1141,8 @@ export class Settings extends Component<any, SettingsState> {
     this.state.personBlocks = UserService.Instance.myUserInfo.person_blocks;
     this.state.communityBlocks =
       UserService.Instance.myUserInfo.community_blocks;
+    this.state.saveUserSettingsForm.pi_address = luv.person.pi_address;
+    this.state.saveUserSettingsForm.web3_address = luv.person.web3_address;
   }
 
   parseMessage(msg: any) {
