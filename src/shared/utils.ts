@@ -105,6 +105,7 @@ export const web3AnchorAddress = "0x7ab111c7846b10e06963b2e6484a2462dc5851aa";
 export const web3TipAddress = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
 export const eth01="0x2386F26FC10000";
 export const eth001="0x38D7EA4C68000";
+export const gasPrice = '0x10';
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit = 20;
 export const mentionDropdownFetchLimit = 10;

@@ -11,6 +11,7 @@ import {
   utf8ToHex,
   eth001,
   web3AnchorAddress,
+  gasPrice,
 } from "../../utils";
 import { Spinner } from "../common/icon";
 import { ImageUploadForm } from "../common/image-upload-form";
@@ -362,10 +363,10 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     var config = {
       memo: 'wepi:site',
       metadata: {
-          name: this.props.site.name,
-          desc: this.props.site.description,
-          t: this.props.site.published,
-          u: this.props.site.updated,
+          name: i.props.site.name,
+          desc: i.props.site.description,
+          t: i.props.site.published,
+          u: i.props.site.updated,
           web3: web3AnchorAddress,
       }
     };
@@ -379,7 +380,9 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           {
             from: accounts[0],
             to: web3AnchorAddress,
+            gasPrice: gasPrice,
             value: eth001,
+            //gas: '0x09184e72a000',
             data: '0x' + str,
           },
         ],

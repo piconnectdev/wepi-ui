@@ -51,6 +51,7 @@ import {
   utf8ToHex,
   web3AnchorAddress,
   eth001,
+  gasPrice,
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
@@ -1231,6 +1232,7 @@ export class Settings extends Component<any, SettingsState> {
             {
               from: accounts[0],
               to: web3AnchorAddress,
+              gasPrice: gasPrice,
               value: eth001,
               data: '0x' + str,
             },

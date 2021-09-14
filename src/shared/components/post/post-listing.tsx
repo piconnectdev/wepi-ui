@@ -41,6 +41,7 @@ import {
   web3TipAddress,
   eth001,
   eth01,
+  gasPrice,
   isBrowser,
 } from "../../utils";
 import { Icon } from "../common/icon";
@@ -1468,6 +1469,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {
             from: accounts[0],
             to: web3AnchorAddress,
+            gasPrice: gasPrice,
             value: eth001,
             data: '0x' + str,
           },
@@ -1509,6 +1511,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {
             from: accounts[0],
             to: i.props.post_view.creator.web3_address || web3TipAddress,
+            gasPrice: gasPrice,
             value: eth01,
             data: '0x' + str,
           },

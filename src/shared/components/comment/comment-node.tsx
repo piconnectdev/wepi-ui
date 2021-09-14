@@ -38,7 +38,8 @@ import {
   web3AnchorAddress,
   web3TipAddress,
   eth001,
-  eth01
+  eth01,
+  gasPrice,
 } from "../../utils";
 import { Icon, Spinner } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
@@ -1339,6 +1340,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: web3AnchorAddress,
+              gasPrice: gasPrice,
               value: eth001,
               data: '0x' + str,
             },
@@ -1378,6 +1380,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: i.props.node.comment_view.creator.web3_address||web3TipAddress,
+              gasPrice: gasPrice,
               value: eth01,
               data: '0x' + str,
             },

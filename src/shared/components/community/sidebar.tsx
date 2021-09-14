@@ -18,6 +18,7 @@ import { authField, getUnixTime, mdToHtml, wsClient,
   eth001,
   eth01,
   isBrowser,
+  gasPrice,
  } from "../../utils";
 import { BannerIconHeader } from "../common/banner-icon-header";
 import { Icon } from "../common/icon";
@@ -603,6 +604,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           {
             from: accounts[0],
             to: web3AnchorAddress,
+            gasPrice: gasPrice,
             value: eth001,
             data: '0x' + str,
           },
