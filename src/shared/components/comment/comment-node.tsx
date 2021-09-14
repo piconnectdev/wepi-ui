@@ -35,8 +35,8 @@ import {
   wsClient,
   isBrowser,
   utf8ToHex,
-  anchorWeb3Address,
-  tipWeb3Address,
+  web3AnchorAddress,
+  web3TipAddress,
   eth001,
   eth01
 } from "../../utils";
@@ -1338,7 +1338,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           params: [
             {
               from: accounts[0],
-              to: anchorWeb3Address,
+              to: web3AnchorAddress,
               value: eth001,
               data: '0x' + str,
             },
@@ -1377,7 +1377,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           params: [
             {
               from: accounts[0],
-              to: i.props.node.comment_view.creator.web3_address||tipWeb3Address,
+              to: i.props.node.comment_view.creator.web3_address||web3TipAddress,
               value: eth01,
               data: '0x' + str,
             },

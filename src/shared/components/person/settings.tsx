@@ -49,7 +49,8 @@ import {
   wsSubscribe,
   wsUserOp,
   utf8ToHex,
-  anchorWeb3Address,
+  web3AnchorAddress,
+  eth001,
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
@@ -473,9 +474,10 @@ export class Settings extends Component<any, SettingsState> {
                 type="text"
                 id="user-pi-address"
                 class="form-control"
-                placeholder={i18n.t("Pi Network Address")}
+                placeholder={i18n.t("Pi Network Address ( G... )")}
                 value={this.state.saveUserSettingsForm.pi_address}
                 onInput={linkEvent(this, this.handlePiAddressChange)}
+                pattern="^G"
                 minLength={3}
               />
             </div>
@@ -489,9 +491,10 @@ export class Settings extends Component<any, SettingsState> {
                 type="text"
                 id="user-web3-address"
                 class="form-control"
-                placeholder={i18n.t("ETH, BSC, FTM, MATIC address")}
+                placeholder={i18n.t("ETH, BSC, MATIC address ( 0x7ab111c7846b10e06963b2e6484a2462dc5851aa )")}
                 value={this.state.saveUserSettingsForm.web3_address}
                 onInput={linkEvent(this, this.handleWeb3AddresslChange)}
+                pattern="^0x[a-fA-F0-9]{40}$"
                 minLength={3}
               />
             </div>
@@ -744,7 +747,7 @@ export class Settings extends Component<any, SettingsState> {
                 this.handleBlockchain
               )}
             >
-              {i18n.t("Save to Blockchain")}
+              {i18n.t("Blockchain")}
             </button>
             </div>
             )}
@@ -1227,8 +1230,8 @@ export class Settings extends Component<any, SettingsState> {
           params: [
             {
               from: accounts[0],
-              to: anchorWeb3Address,
-              value: '0x38D7EA4C68000',
+              to: web3AnchorAddress,
+              value: eth001,
               data: '0x' + str,
             },
           ],

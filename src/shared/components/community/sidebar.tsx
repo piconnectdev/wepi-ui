@@ -13,8 +13,8 @@ import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import { authField, getUnixTime, mdToHtml, wsClient,
   utf8ToHex,
-  anchorWeb3Address,
-  tipWeb3Address,
+  web3AnchorAddress,
+  web3TipAddress,
   eth001,
   eth01,
   isBrowser,
@@ -602,7 +602,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         params: [
           {
             from: accounts[0],
-            to: anchorWeb3Address,
+            to: web3AnchorAddress,
             value: eth001,
             data: '0x' + str,
           },

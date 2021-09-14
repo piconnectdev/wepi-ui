@@ -8,6 +8,9 @@ import {
   capitalizeFirstLetter,
   randomStr,
   wsClient,
+  utf8ToHex,
+  eth001,
+  web3AnchorAddress,
 } from "../../utils";
 import { Spinner } from "../common/icon";
 import { ImageUploadForm } from "../common/image-upload-form";
@@ -273,10 +276,19 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
               {this.props.site && (
                 <button
                   type="button"
-                  class="btn btn-secondary"
+                  class="btn btn-secondary mr-2"
                   onClick={linkEvent(this, this.handleCancel)}
                 >
                   {i18n.t("cancel")}
+                </button>
+              )}
+              {this.props.site && (
+                <button
+                  type="button"
+                  class="btn btn-secondary mr-2"
+                  onClick={linkEvent(this, this.handleBlockchain)}
+                >
+                  {i18n.t("Blockchain")}
                 </button>
               )}
             </div>
@@ -339,6 +351,46 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   handleCancel(i: SiteForm) {
     i.props.onCancel();
   }
+
+  async handleBlockchain(i: SiteForm) {
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+    //let luv = UserService.Instance.myUserInfo.local_user_view;
+    var config = {
+      memo: 'wepi:site',
+      metadata: {
+          name: this.props.site.name,
+          desc: this.props.site.description,
+          t: this.props.site.published,
+          u: this.props.site.updated,
+          web3: web3AnchorAddress,
+      }
+    };
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: web3AnchorAddress,
+            value: eth001,
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
+  }
+  
 
   handleIconUpload(url: string) {
     this.state.siteForm.icon = url;

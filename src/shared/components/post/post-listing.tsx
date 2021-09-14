@@ -37,8 +37,8 @@ import {
   showScores,
   wsClient,
   utf8ToHex,
-  anchorWeb3Address,
-  tipWeb3Address,
+  web3AnchorAddress,
+  web3TipAddress,
   eth001,
   eth01,
   isBrowser,
@@ -1467,7 +1467,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         params: [
           {
             from: accounts[0],
-            to: anchorWeb3Address,
+            to: web3AnchorAddress,
             value: eth001,
             data: '0x' + str,
           },
@@ -1508,7 +1508,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         params: [
           {
             from: accounts[0],
-            to: i.props.post_view.creator.web3_address || tipWeb3Address,
+            to: i.props.post_view.creator.web3_address || web3TipAddress,
             value: eth01,
             data: '0x' + str,
           },
