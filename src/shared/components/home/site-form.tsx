@@ -380,7 +380,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           {
             from: accounts[0],
             to: web3AnchorAddress,
-            gasPrice: gasPrice,
+            //gasPrice: gasPrice,
             value: eth001,
             //gas: '0x09184e72a000',
             data: '0x' + str,
