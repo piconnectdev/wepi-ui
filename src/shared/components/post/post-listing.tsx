@@ -529,10 +529,23 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           aria-label={i18n.t("tip pi")}
           data-tippy-content={i18n.t("tip pi (working in progress)") }
         >
+        { post_view.creator.pi_address && (
+
             <Icon
               icon="heart"
               classes={`icon-inline mr-1`}
             />
+        )}
+        { !post_view.creator.pi_address && (
+
+          <small>
+          <Icon
+            icon="heart"
+            classes={`icon-inline mr-1`}
+          />
+          </small>
+        )}
+
         </button>)}        
         {/* <button
           class="btn btn-link btn-animate text-muted p-0"
@@ -1524,7 +1537,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  async handleTipPiPostClick(i: PostListing) {      
+  async handleTipPiPostClick(i: PostListing) {   
+    var piUser;   
     var config = {
         amount: "0.01",
         memo: 'wepi:p:'+i.props.post_view.creator.id,
@@ -1535,7 +1549,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           t: i.props.post_view.post.published,
           u: i.props.post_view.post.updated,
         }
-    };    
+    };  
     const authenticatePiUser = async () => {
         // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
         const scopes = ['username','payments'];      
@@ -1544,10 +1558,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             var piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             return piUser;
         } catch(err) {
+            alert("Pi.authenticate error:" + JSON.stringify(err));
             console.log(err)
         }
     };
-    var piUser = await authenticatePiUser();
     const createPiPayment = async (config) => {
       //piApiResult = null;
           window.Pi.createPayment(config, {
@@ -1591,12 +1605,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         paymentConfig
       })
 
-      if (data.status === 500) {
-          //there was a problem approving this payment show user body.message from server
-          //alert(`${body.status}: ${body.message}`);
-          return false;
-      } 
-
       if (data.status === 200) {
           //payment was approved continue with flow
           return data;
@@ -1626,7 +1634,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     const onError = (error, paymentId) => { 
         console.log('Payment error', error, paymentId) 
     }
+
+    try {
+    piUser = await authenticatePiUser();
+    
     await createPiPayment(config);
+    } catch(err) {
+      alert("createPiPayment error:" + JSON.stringify(err));
+    }
   }
   
 

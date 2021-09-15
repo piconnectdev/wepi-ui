@@ -177,141 +177,143 @@ export class Login extends Component<any, State> {
   }
 
   registerForm() {    
-    // if (!this.isPiBrowser) {
-    //   return (
-    //   <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-    //       <h5>{i18n.t("sign_up")}</h5>
+    if (this.isPiBrowser) {
+      return (
+      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+          <h5>{i18n.t("sign_up")}</h5>
 
-    //       <div class="form-group row">
-    //         <label class="col-sm-2 col-form-label" htmlFor="register-username">
-    //           {i18n.t("username")}
-    //         </label>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label" htmlFor="register-username">
+              {i18n.t("username")}
+            </label>
 
-    //         <div class="col-sm-10">
-    //           <input
-    //             type="text"
-    //             id="register-username"
-    //             class="form-control"
-    //             value={this.state.registerForm.username}
-    //             onInput={linkEvent(this, this.handleRegisterUsernameChange)}
-    //             required
-    //             minLength={3}
-    //             pattern="[a-zA-Z0-9_]+"
-    //           />
-    //         </div>
-    //       </div>
-
-    //       <div class="form-group row">
-    //         <label class="col-sm-2 col-form-label" htmlFor="register-password">
-    //           {i18n.t("password")}
-    //         </label>
-    //         <div class="col-sm-10">
-    //           <input
-    //             type="password"
-    //             id="register-password"
-    //             value={this.state.registerForm.password}
-    //             autoComplete="new-password"
-    //             onInput={linkEvent(this, this.handleRegisterPasswordChange)}
-    //             maxLength={60}
-    //             class="form-control"
-    //             required
-    //           />
-    //         </div>
-    //       </div>
-
-    //       {this.state.captcha && (
-    //         <div class="form-group row">
-    //           <label class="col-sm-2" htmlFor="register-captcha">
-    //             <span class="mr-2">{i18n.t("enter_code")}</span>
-    //             <button
-    //               type="button"
-    //               class="btn btn-secondary"
-    //               onClick={linkEvent(this, this.handleRegenCaptcha)}
-    //               aria-label={i18n.t("captcha")}
-    //             >
-    //               <Icon icon="refresh-cw" classes="icon-refresh-cw" />
-    //             </button>
-    //           </label>
-    //           {this.showCaptcha()}
-    //           <div class="col-sm-6">
-    //             <input
-    //               type="text"
-    //               class="form-control"
-    //               id="register-captcha"
-    //               value={this.state.registerForm.captcha_answer}
-    //               onInput={linkEvent(
-    //                 this,
-    //                 this.handleRegisterCaptchaAnswerChange
-    //               )}
-    //               required
-    //             />
-    //           </div>
-    //         </div>
-    //       )}
-    //       {/* {this.state.site_view.site.enable_nsfw && (
-    //         <div class="form-group row">
-    //           <div class="col-sm-10">
-    //             <div class="form-check">
-    //               <input
-    //                 class="form-check-input"
-    //                 id="register-show-nsfw"
-    //                 type="checkbox"
-    //                 checked={this.state.registerForm.show_nsfw}
-    //                 onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
-    //               />
-    //               <label class="form-check-label" htmlFor="register-show-nsfw">
-    //                 {i18n.t("show_nsfw")}
-    //               </label>
-    //             </div>
-    //           </div>
-    //         </div>
-    //       )} */}
-    //       {/* {this.isWePi && (
-    //         <div class="mt-2 mb-0 alert alert-light" role="alert">
-    //           <T i18nKey="lemmy_ml_registration_message">
-    //             #<a href={joinPiUrl}>#</a>
-    //           </T>
-    //         </div>
-    //       )} */}
-    //       <div class="form-group row">
-    //         <div class="col-sm-10">
-    //           <button type="submit" class="btn btn-secondary">
-    //             {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
-    //           </button>
-    //         </div>
-    //       </div>
-    //     </form>
-    //   );
-    // } else {
-    //   return (
-    //     <form action="https://wepi.social/register">
-    //       <div class="form-group row">
-    //         <div class="col-sm-10">
-    //           <button type="submit" class="btn btn-secondary">
-    //             <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
-    //             {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
-
-    //           </button>
-    //         </div>
-    //       </div>
-
-    //     </form>
-    //   );
-    // }
-    return (
-      <form action="https://wepi.social/register">
-        <div class="form-group row">
-          <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">
-              <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
-              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
-
-            </button>
+            <div class="col-sm-10">
+              <input
+                type="text"
+                id="register-username"
+                class="form-control"
+                value={this.state.registerForm.username}
+                onInput={linkEvent(this, this.handleRegisterUsernameChange)}
+                required
+                minLength={3}
+                pattern="[a-zA-Z0-9_]+"
+              />
+            </div>
           </div>
-        </div>
 
-      </form>
-    );
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label" htmlFor="register-password">
+              {i18n.t("password")}
+            </label>
+            <div class="col-sm-10">
+              <input
+                type="password"
+                id="register-password"
+                value={this.state.registerForm.password}
+                autoComplete="new-password"
+                onInput={linkEvent(this, this.handleRegisterPasswordChange)}
+                maxLength={60}
+                class="form-control"
+                required
+              />
+            </div>
+          </div>
+
+          {this.state.captcha && (
+            <div class="form-group row">
+              <label class="col-sm-2" htmlFor="register-captcha">
+                <span class="mr-2">{i18n.t("enter_code")}</span>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={linkEvent(this, this.handleRegenCaptcha)}
+                  aria-label={i18n.t("captcha")}
+                >
+                  <Icon icon="refresh-cw" classes="icon-refresh-cw" />
+                </button>
+              </label>
+              {this.showCaptcha()}
+              <div class="col-sm-6">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="register-captcha"
+                  value={this.state.registerForm.captcha_answer}
+                  onInput={linkEvent(
+                    this,
+                    this.handleRegisterCaptchaAnswerChange
+                  )}
+                  required
+                />
+              </div>
+            </div>
+          )}
+          {/* {this.state.site_view.site.enable_nsfw && (
+            <div class="form-group row">
+              <div class="col-sm-10">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    id="register-show-nsfw"
+                    type="checkbox"
+                    checked={this.state.registerForm.show_nsfw}
+                    onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
+                  />
+                  <label class="form-check-label" htmlFor="register-show-nsfw">
+                    {i18n.t("show_nsfw")}
+                  </label>
+                </div>
+              </div>
+            </div>
+          )} */}
+          {/* {this.isWePi && (
+            <div class="mt-2 mb-0 alert alert-light" role="alert">
+              <T i18nKey="lemmy_ml_registration_message">
+                #<a href={joinPiUrl}>#</a>
+              </T>
+            </div>
+          )} */}
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <button type="submit" class="btn btn-secondary">
+                {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
+              </button>
+            </div>
+          </div>
+        </form>
+      );
+    } else {
+      return (
+        <form action="https://wepi.social/register">
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <button type="submit" class="btn btn-secondary">
+                <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
+                {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+
+              </button>
+            </div>
+          </div>
+
+        </form>
+      );
+    }
+
+
+    // return (
+    //   <form action="https://wepi.social/register">
+    //     <div class="form-group row">
+    //       <div class="col-sm-10">
+    //         <button type="submit" class="btn btn-secondary">
+    //           <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
+    //           {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+
+    //         </button>
+    //       </div>
+    //     </div>
+
+    //   </form>
+    // );
   }
 
   showCaptcha() {
@@ -360,7 +362,12 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
   
-  async handleRegisterSubmit1(i: Login, event: any) {
+  async handleRegisterSubmit(i: Login, event: any) {
+    if (!this.isPiBrowser)
+      return;
+      
+    var piUser;
+
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ['username','payments'];      
@@ -372,22 +379,12 @@ export class Login extends Component<any, State> {
           console.log(err)
       }
     };
-    var piUser = await authenticatePiUser();
-    const createPiRegister = async (info, config) => {
-      //piApiResult = null;
-          window.Pi.createPayment(config, {
-          // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletionRegister(payment_id, txid, info, config),
-          onCancel: onCancel,
-          onError: onError,
-        });
-    };
+
     const onIncompletePaymentFound = async (payment) => { 
       //do something with incompleted payment
       console.log('incomplete payment found: ', payment) 
       alert("Incomplete payment found" + JSON.stringify(payment));
-      const { data, status } = await axios.post('/pi/found', {
+      const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
@@ -395,13 +392,7 @@ export class Login extends Component<any, State> {
           dto: null
       });
 
-      if (status === 500) {
-          //there was a problem approving this payment show user body.message from server
-          //alert(`${data.status}: ${data.message}`);
-          return false;
-      } 
-
-      if (status === 200) {
+      if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
           //alert(payment);
           return data;
@@ -410,21 +401,15 @@ export class Login extends Component<any, State> {
 
     const onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
-      const { data, status } = await axios.post('/pi/agree', {
+      const { data } = await axios.post('/pi/agree', {
         paymentid: payment_id,
         pi_username: this.piUser.user.username,
         pi_uid: this.piUser.user.uid,
         info,
         paymentConfig
       })
-
-      if (status === 500) {
-          //there was a problem approving this payment show user body.message from server
-          //alert(`${body.status}: ${body.message}`);
-          return false;
-      } 
-
-      if (status === 200) {
+      alert("WePi approved payment:" + JSON.stringify(data));
+      if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
           return data;
       }
@@ -433,7 +418,7 @@ export class Login extends Component<any, State> {
     // Update or change password
     const onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-      const { data, status } = await axios.post('/pi/register', {
+      const { data } = await axios.post('/pi/register', {
           paymentid: payment_id,
           pi_username: this.piUser.user.username,
           pi_uid: this.piUser.user.uid,
@@ -441,14 +426,8 @@ export class Login extends Component<any, State> {
           info,
           paymentConfig,
       })
-
-      if (status === 500) {
-          //there was a problem completing this payment show user body.message from server
-          alert(`${data.status}: ${data.message}`);
-          return false;
-      } 
-
-      if (status === 200) {
+      alert("WePi register payment:" + JSON.stringify(data));
+      if (data.status === 200) {
           //payment was completed continue with flow
           //piApiResult["success"] = true;
           //piApiResult["type"] = "account";
@@ -460,9 +439,23 @@ export class Login extends Component<any, State> {
     const onCancel = (paymentId) => {
         console.log('Register payment cancelled', paymentId)
     }
+    
     const onError = (error, paymentId) => { 
         console.log('Register error', error, paymentId) 
+        alert("WePi onError:" + JSON.stringify(error));
     }
+
+    const createPiRegister = async (info, config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletionRegister(payment_id, txid, info, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+        
     var config = {
       amount: 0.01,
       memo: 'wepi:account',
@@ -473,121 +466,129 @@ export class Login extends Component<any, State> {
     var info = i.state.registerForm;
     info.password_verify = info.password;
     info.show_nsfw = true;
-    await createPiRegister(info, config);
+
+    try {
+      piUser = await authenticatePiUser();
+      
+      await createPiRegister(info, config);
+    } catch(err) {
+      alert("WePi register catch error:" + JSON.stringify(err));
+    }
   }
+
   // Hàm này cần access piUser từ PiSdk, nhưng nó không gọi Authenticate nữa
-  async handleRegisterSubmit(i: Login, event: any) {    
-    event.preventDefault();
-    this.piUser = await this.authenticatePiUser();
-    i.state.registerLoading = true;
-    i.setState(i.state);
+  // async handleRegisterSubmit(i: Login, event: any) {    
+  //   event.preventDefault();
+  //   this.piUser = await this.authenticatePiUser();
+  //   i.state.registerLoading = true;
+  //   i.setState(i.state);
     
-    var config = {
-      amount: 0.01,
-      memo: 'wepi:acc:'+i.state.registerForm.username,
-      metadata: {
-          ref_id: "",
-      }
-    };
-  // create user register info
-  // var info = {
-  //     username: usernameToTransfer,
-  //     password: passwordToTransfer,
-  //     password_verify: passwordToTransfer,
-  //     show_nsfw: true,
-  //     email: null,
-  //     captcha_uuid: null,
-  //     captcha_answer: null,
-  // };
-  var info = i.state.registerForm;
-  info.password_verify = info.password;
-  info.show_nsfw = true;
-   await this.createPiRegister(info, config);   // Call use copy function.
-    //  await createPiRegister(info, config); // Call use wrapper 
-    //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
-  }
+  //   var config = {
+  //     amount: 0.01,
+  //     memo: 'wepi:acc:'+i.state.registerForm.username,
+  //     metadata: {
+  //         ref_id: "",
+  //     }
+  //   };
+  // // create user register info
+  // // var info = {
+  // //     username: usernameToTransfer,
+  // //     password: passwordToTransfer,
+  // //     password_verify: passwordToTransfer,
+  // //     show_nsfw: true,
+  // //     email: null,
+  // //     captcha_uuid: null,
+  // //     captcha_answer: null,
+  // // };
+  // var info = i.state.registerForm;
+  // info.password_verify = info.password;
+  // info.show_nsfw = true;
+  //  await createPiRegister(info, config);   // Call use copy function.
+  //   //  await createPiRegister(info, config); // Call use wrapper 
+  //   //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
+  // }
 
   /// BEGIN FUNCTIONS COPIED 
   ///  Goi truc tiep, copy tu wrapper sang day
 
-  authenticatePiUser = async () => {
-      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-      const scopes = ['username','payments'];      
-      try {
-          /// HOW TO CALL Pi.authenticate Global/Init
-          this.piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-          return this.piUser;
-      } catch(err) {
-          console.log(err)
-      }
-  }
+  // authenticatePiUser = async () => {
+  //     // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+  //     const scopes = ['username','payments'];      
+  //     try {
+  //         /// HOW TO CALL Pi.authenticate Global/Init
+  //         this.piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+  //         return this.piUser;
+  //     } catch(err) {
+  //         console.log(err)
+  //     }
+  // }
 
-  createPiRegister = async (info, config) => {
-    //piApiResult = null;
-        window.Pi.createPayment(config, {
-        // Callbacks you need to implement - read more about those in the detailed docs linked below:
-        onReadyForServerApproval: (payment_id) => this.onReadyForApprovalRegister(payment_id, info, config),
-        onReadyForServerCompletion:(payment_id, txid) => this.onReadyForCompletionRegister(payment_id, txid, info, config),
-        onCancel: this.onCancel,
-        onError:this.onError,
-      });
-  }
+  // createPiRegister = async (info, config) => {
+  //   //piApiResult = null;
+  //       window.Pi.createPayment(config, {
+  //       // Callbacks you need to implement - read more about those in the detailed docs linked below:
+  //       onReadyForServerApproval: (payment_id) => this.onReadyForApprovalRegister(payment_id, info, config),
+  //       onReadyForServerCompletion:(payment_id, txid) => this.onReadyForCompletionRegister(payment_id, txid, info, config),
+  //       onCancel: this.onCancel,
+  //       onError:this.onError,
+  //     });
+  // }
   
-  onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
-    //make POST request to your app server /payments/approve endpoint with paymentId in the body    
-    const { data, status } = await axios.post('/pi/agree', {
-	    paymentid: payment_id,
-	    pi_username: this.piUser.user.username,
-	    pi_uid: this.piUser.user.uid,
-	    info,
-      paymentConfig
-    })
+  // onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
+  //   //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+  //   const { data, status } = await axios.post('/pi/agree', {
+	//     paymentid: payment_id,
+	//     pi_username: this.piUser.user.username,
+	//     pi_uid: this.piUser.user.uid,
+	//     info,
+  //     paymentConfig
+  //   })
 
-    if (status === 500) {
-        //there was a problem approving this payment show user body.message from server
-        //alert(`${body.status}: ${body.message}`);
-        return false;
-    } 
+  //   if (status === 500) {
+  //       //there was a problem approving this payment show user body.message from server
+  //       //alert(`${body.status}: ${body.message}`);
+  //       return false;
+  //   } 
 
-    if (status === 200) {
-        //payment was approved continue with flow
-        return data;
-    }
-  }
+  //   if (status === 200) {
+  //       //payment was approved continue with flow
+  //       return data;
+  //   }
+  // }
 
-  // Update or change password
-  onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
-    //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-    const { data, status } = await axios.post('/pi/register', {
-        paymentid: payment_id,
-        pi_username: this.piUser.user.username,
-        pi_uid: this.piUser.user.uid,
-        txid,
-	    info,
-	    paymentConfig,
-    })
+  // // Update or change password
+  // onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
+  //   //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+  //   const { data, status } = await axios.post('/pi/register', {
+  //       paymentid: payment_id,
+  //       pi_username: this.piUser.user.username,
+  //       pi_uid: this.piUser.user.uid,
+  //       txid,
+	//     info,
+	//     paymentConfig,
+  //   })
 
-    if (status === 500) {
-        //there was a problem completing this payment show user body.message from server
-        alert(`${data.status}: ${data.message}`);
-        return false;
-    } 
+  //   if (status === 500) {
+  //       //there was a problem completing this payment show user body.message from server
+  //       alert(`${data.status}: ${data.message}`);
+  //       return false;
+  //   } 
 
-    if (status === 200) {
-        //payment was completed continue with flow
-        //piApiResult["success"] = true;
-        //piApiResult["type"] = "account";
-        return true;
-    }
-    return false;
-  }
+  //   if (status === 200) {
+  //       //payment was completed continue with flow
+  //       //piApiResult["success"] = true;
+  //       //piApiResult["type"] = "account";
+  //       return true;
+  //   }
+  //   return false;
+  // }
 
-  onCancel = (paymentId) => {
-      console.log('Register payment cancelled', paymentId)
-  }
-  onError = (error, paymentId) => { 
-      console.log('Register onError', error, paymentId) 
-  }
+  // onCancel = (paymentId) => {
+  //     console.log('Register payment cancelled', paymentId)
+  // }
+  // onError = (error, paymentId) => { 
+  //     console.log('Register onError', error, paymentId) 
+  // }
   /// END 
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
