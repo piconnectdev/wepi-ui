@@ -1340,7 +1340,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: web3AnchorAddress,
-              //gasPrice: gasPrice,
+              gasPrice: gasPrice,
               value: eth001,
               data: '0x' + str,
             },
@@ -1380,7 +1380,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {
               from: accounts[0],
               to: i.props.node.comment_view.creator.web3_address||web3TipAddress,
-              //gasPrice: gasPrice,
+              gasPrice: gasPrice,
               value: eth01,
               data: '0x' + str,
             },

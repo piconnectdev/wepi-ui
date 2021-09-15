@@ -1232,7 +1232,7 @@ export class Settings extends Component<any, SettingsState> {
             {
               from: accounts[0],
               to: web3AnchorAddress,
-              //gasPrice: gasPrice,
+              gasPrice: gasPrice,
               value: eth001,
               data: '0x' + str,
             },
