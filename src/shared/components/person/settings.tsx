@@ -1115,6 +1115,12 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   setUserInfo() {
+    if (UserService.Instance.myUserInfo===undefined)
+      return;
+    if (UserService.Instance.myUserInfo===null)
+      return;
+    if (UserService.Instance.myUserInfo.local_user_view===undefined)
+      return;
     let luv = UserService.Instance.myUserInfo.local_user_view;
     this.state.saveUserSettingsForm.show_nsfw = luv.local_user.show_nsfw;
     this.state.saveUserSettingsForm.theme = luv.local_user.theme
@@ -1186,24 +1192,14 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   async handleBlockchain(i: Settings, event: any) {
-    //   let saved =
-    //     i.props.post_view.saved == undefined ? true : !i.props.post_view.saved;
-    //   let form: SavePost = {
-    //     post_id: i.props.post_view.post.id,
-    //     save: saved,
-    //     auth: authField(),
-    //   };
-    //   var config = {
-    //     amount: "0.001",
-    //     memo: 'wepi:p:'+i.props.post_view.creator.id,
-    //     metadata: {
-    //         member: i.props.post_view.creator.id,
-    //         post: i.props.post_view.post.id,
-    //         comment: "",
-    //     }
-    // };
-    //   createPiPayment(config);
       // WebSocketService.Instance.send(wsClient.savePost(form));
+      if (UserService.Instance.myUserInfo===undefined)
+        return;
+      if (UserService.Instance.myUserInfo===null)
+        return;
+      if (UserService.Instance.myUserInfo.local_user_view===undefined)
+        return;
+
       const isMetaMaskInstalled = () => {
         //Have to check the ethereum binding on the window object to see if it's installed
         const { ethereum } = window;

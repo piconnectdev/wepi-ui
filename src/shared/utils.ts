@@ -169,6 +169,7 @@ export const themes = [
   "vaporwave-dark",
   "i386",
   "litely",
+  "wepi",
 ];
 
 const DEFAULT_ALPHABET =
