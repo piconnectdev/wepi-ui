@@ -491,7 +491,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             })}
           </Link>
         </button>
-        { !this.isPiBrowser && !mobile && (
         <button
           class="btn btn-link btn-animate text-muted py-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -512,9 +511,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           />
           </small>
           )}
-        </button>)
-        }
-        { !this.isPiBrowser && !mobile && (
+        </button>
         <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleBlockchainClick)}
@@ -525,8 +522,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             icon="zap"
             classes={`icon-inline mr-1`}
           />
-        </button>)
-        }
+        </button>
         { this.isPiBrowser && ( <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleTipPiPostClick)}
@@ -537,7 +533,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               icon="heart"
               classes={`icon-inline mr-1`}
             />
-        </button>) }        
+        </button>)}        
         {/* <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -1435,6 +1431,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handleBlockchainClick(i: PostListing) {
 
+    if (this.isPiBrowser)
+      return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1484,6 +1482,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handleTipPostClick(i: PostListing) {
     if (!i.props.post_view.creator.web3_address)
+      return;
+    if (this.isPiBrowser)
       return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed

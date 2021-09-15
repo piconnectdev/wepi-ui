@@ -211,7 +211,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 )}
               </button>
               {this.linkBtn(true)}
-              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleTipComment)}
@@ -233,8 +232,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               </small>
               )}
               </button>
-              )}
-              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleBlockchainComment)}
@@ -242,8 +239,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 data-tippy-content={i18n.t("to blockchain")}
               >
               <Icon icon="zap" classes="icon-inline" />
-              </button>
-              )}
+              </button>              
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               {showScores() && (
@@ -1310,6 +1306,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   async handleBlockchainComment(i: CommentNode) {
+    if (this.isPiBrowser)
+      return;
       const isMetaMaskInstalled = () => {
         //Have to check the ethereum binding on the window object to see if it's installed
         const { ethereum } = window;
@@ -1355,6 +1353,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   async handleTipComment(i: CommentNode) {
       if (!i.props.node.comment_view.creator.web3_address)
+        return;
+      if (this.isPiBrowser)
         return;
       const isMetaMaskInstalled = () => {
         //Have to check the ethereum binding on the window object to see if it's installed
