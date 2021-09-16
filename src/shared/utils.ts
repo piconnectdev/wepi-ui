@@ -103,8 +103,8 @@ export const elementUrl = "https://element.io/";
 
 export const web3AnchorAddress = "0x7ab111c7846b10e06963b2e6484a2462dc5851aa";
 export const web3TipAddress = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
-export const eth01="0x2386F26FC10000";
-export const eth001="0x38D7EA4C68000";
+export const eth01 = "0x2386F26FC10000";
+export const eth001 = "0x38D7EA4C68000";
 export const gasPrice = '0x174876E800'; // 0x200B20, 0x2E90EDD000=> 200Gwei, 0x174876E800=>100Gwei
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit = 20;
@@ -170,6 +170,7 @@ export const themes = [
   "i386",
   "litely",
   "wepi",
+  "pi-network"
 ];
 
 const DEFAULT_ALPHABET =
@@ -884,9 +885,9 @@ export function getListingTypeFromProps(props: any): ListingType {
   return props.match.params.listing_type
     ? routeListingTypeToEnum(props.match.params.listing_type)
     : UserService.Instance.myUserInfo
-    ? Object.values(ListingType)[
-        UserService.Instance.myUserInfo.local_user_view.local_user
-          .default_listing_type
+      ? Object.values(ListingType)[
+      UserService.Instance.myUserInfo.local_user_view.local_user
+        .default_listing_type
       ]
       : ListingType.Local;
 }
@@ -908,9 +909,9 @@ export function getSortTypeFromProps(props: any): SortType {
   return props.match.params.sort
     ? routeSortTypeToEnum(props.match.params.sort)
     : UserService.Instance.myUserInfo
-    ? Object.values(SortType)[
-        UserService.Instance.myUserInfo.local_user_view.local_user
-          .default_sort_type
+      ? Object.values(SortType)[
+      UserService.Instance.myUserInfo.local_user_view.local_user
+        .default_sort_type
       ]
       : SortType.Active;
 }
@@ -1436,8 +1437,8 @@ export function initializeSite(site: GetSiteResponse) {
 }
 
 export function utf8ToHex(str: string) {
-  return Array.from(str).map(c => 
-    c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) : 
-    encodeURIComponent(c).replace(/\%/g,'').toLowerCase()
+  return Array.from(str).map(c =>
+    c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) :
+      encodeURIComponent(c).replace(/\%/g, '').toLowerCase()
   ).join('');
 };
