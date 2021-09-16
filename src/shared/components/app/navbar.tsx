@@ -108,7 +108,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
       console.error(error);
     }
   };
-  
+  onClickInstall = async () => {
+    window.location.href = "https://metamask.io/download"
+  }
   initialize = () => {
     if (!this.isPiBrowser) {
       const onboardButton = document.getElementById('connectWallet');
@@ -124,14 +126,13 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
       //Now we check to see if MetaMask is installed
       if (!isMetaMaskInstalled()) {
         //If it isn't installed we ask the user to click to install it
-        onboardButton.innerText = 'Install MetaMask!';
-        onboardButton.disabled = true;
+        onboardButton.innerText = 'Install MetaMask';
+        onboardButton.onclick = this.onClickInstall;
       } else {
         //If it is installed we change our button text
         onboardButton.innerText = 'Connect MetaMask';
         onboardButton.onclick = this.onClickConnect;
         this.walletConnected  = false;
-        onboardButton.disabled = false;
       }
     };
     MetaMaskClientCheck();
