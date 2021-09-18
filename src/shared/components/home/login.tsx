@@ -428,11 +428,19 @@ export class Login extends Component<any, State> {
           info,
           paymentConfig,
       })
+      
       alert("WePi register payment:" + JSON.stringify(data));
-      if (data.status === 200) {
+      if (data.status >= 200 && data.status < 300) {
           //payment was completed continue with flow
           //piApiResult["success"] = true;
           //piApiResult["type"] = "account";
+          //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
+          event.preventDefault();
+          i.state.loginLoading = true;
+          i.setState(i.state);
+          i.state.loginForm.username_or_email = i.state.registerForm.username;
+          i.state.loginForm.password = i.state.registerForm.password;
+          WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
           return true;
       } else {
         alert("WePi complete register error:" + JSON.stringify(data));  

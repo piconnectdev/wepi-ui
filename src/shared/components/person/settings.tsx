@@ -61,6 +61,7 @@ import { MarkdownTextArea } from "../common/markdown-textarea";
 import { SortSelect } from "../common/sort-select";
 import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "./person-listing";
+import axios from '../../axios';
 
 var Choices: any;
 if (isBrowser()) {
@@ -764,9 +765,11 @@ export class Settings extends Component<any, SettingsState> {
               >
                 {i18n.t("Save to Pi Blockchain")}
               </button>
-              </div>
+              </div>            
             )}
-            <hr />  
+            { this.isPiBrowser &&
+            (<hr />)
+            }
           <div class="form-group">
             <button
               class="btn btn-block btn-danger"
@@ -1285,16 +1288,6 @@ export class Settings extends Component<any, SettingsState> {
               console.log(err)
           }
       };
-      const createPiPayment = async (config) => {
-        //piApiResult = null;
-            window.Pi.createPayment(config, {
-            // Callbacks you need to implement - read more about those in the detailed docs linked below:
-            onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-            onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
-            onCancel: onCancel,
-            onError: onError,
-          });
-      };
       const onIncompletePaymentFound = async (payment) => { 
         const { data } = await axios.post('/pi/found', {
             paymentid: payment.identifier,
@@ -1311,11 +1304,23 @@ export class Settings extends Component<any, SettingsState> {
         }
     }; // Read more about this in the SDK reference
   
+    const createPiPayment = async (config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+
     const onReadyForApproval = async (payment_id, paymentConfig) => {
         //make POST request to your app server /payments/approve endpoint with paymentId in the body    
         const { data } = await axios.post('/pi/approve', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
           paymentConfig
         })
         if (data.status >= 200 && data.status < 300) {
@@ -1332,6 +1337,7 @@ export class Settings extends Component<any, SettingsState> {
         axios.post('/pi/complete', {
             paymentid: payment_id,
             pi_username: piUser.user.username,
+            pi_uid: piUser.user.uid,
             txid,
             paymentConfig,
         }).then((data) => {

@@ -1553,6 +1553,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handlePiTipClick(i: PostListing) {   
+    if (!this.isPiBrowser)
+      return;
     var piUser;   
     var config = {
         amount: 0.1,
@@ -1577,16 +1579,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             console.log(err)
         }
     };
-    const createPiPayment = async (config) => {
-      //piApiResult = null;
-          window.Pi.createPayment(config, {
-          // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
-          onCancel: onCancel,
-          onError: onError,
-        });
-    };
     const onIncompletePaymentFound = async (payment) => { 
       const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
@@ -1601,13 +1593,25 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           //alert(payment);
           return data;
       }
-  }; // Read more about this in the SDK reference
+    }; // Read more about this in the SDK reference
 
-  const onReadyForApproval = async (payment_id, paymentConfig) => {
+    const createPiPayment = async (config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+
+    const onReadyForApproval = async (payment_id, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
         pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
         paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
@@ -1624,9 +1628,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       axios.post('/pi/complete', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
           txid,
           paymentConfig,
       }).then((data) => {
+        //alert("Payment complete error: " + JSON.stringify(data));  
+        
         if (data.status >= 200 && data.status < 300) {
             return true;
         } else {
@@ -1645,15 +1652,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
 
     try {
-      piUser = await authenticatePiUser();
-      
+      piUser = await authenticatePiUser();      
       await createPiPayment(config);
     } catch(err) {
-      alert("PiPayment error:" + JSON.stringify(err));
+        alert("PiPayment error:" + JSON.stringify(err));
     }
   }
   
-  async handlePiBlockchainClick(i: PostListing) {      
+  async handlePiBlockchainClick(i: PostListing) {    
+    if (!this.isPiBrowser)
+      return;  
     var config = {
       amount: 0.001,
       memo: ('wepi:post:'+i.props.post_view.post.id).substr(28),
@@ -1687,16 +1695,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             console.log(err)
         }
     };
-    const createPiPayment = async (config) => {
-      //piApiResult = null;
-          window.Pi.createPayment(config, {
-          // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
-          onCancel: onCancel,
-          onError: onError,
-        });
-    };
     const onIncompletePaymentFound = async (payment) => { 
       const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
@@ -1713,11 +1711,23 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       }
   }; // Read more about this in the SDK reference
 
+  const createPiPayment = async (config) => {
+    //piApiResult = null;
+        window.Pi.createPayment(config, {
+        // Callbacks you need to implement - read more about those in the detailed docs linked below:
+        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+        onCancel: onCancel,
+        onError: onError,
+      });
+  };
+
   const onReadyForApproval = async (payment_id, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
         pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
         paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
@@ -1734,9 +1744,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       axios.post('/pi/complete', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
           txid,
           paymentConfig,
       }).then((data) => {
+        //alert("Completing payment data: " + JSON.stringify(data)); 
+        
         if (data.status >= 200 && data.status < 300) {
             return true;
         } else {
