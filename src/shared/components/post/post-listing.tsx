@@ -525,9 +525,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </button>
         { this.isPiBrowser && ( <button
           class="btn btn-link btn-animate text-muted p-0"
-          onClick={linkEvent(this, this.handleTipPiPostClick)}
+          onClick={linkEvent(this, this.handlePiTipPostClick)}
           aria-label={i18n.t("tip pi")}
-          data-tippy-content={i18n.t("tip pi (working in progress)") }
+          data-tippy-content={i18n.t("tip pi") }
         >
         { post_view.creator.pi_address && (
 
@@ -545,7 +545,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           />
           </small>
         )}
-
+        </button>)}
+        { this.isPiBrowser && ( <button
+          class="btn btn-link btn-animate text-muted p-0"
+          onClick={linkEvent(this, this.handlePiBlockchainPostClick)}
+          aria-label={i18n.t("to pi blockchain")}
+          data-tippy-content={i18n.t("save to pi blockchain") }
+        >
+            <Icon
+              icon="zap"
+              classes={`icon-inline mr-1`}
+            />
         </button>)}        
         {/* <button
           class="btn btn-link btn-animate text-muted p-0"
@@ -1537,14 +1547,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  async handleTipPiPostClick(i: PostListing) {   
+  async handlePiTipPostClick(i: PostListing) {   
     var piUser;   
     var config = {
-        amount: "0.01",
+        amount: 0.1,
         memo: 'wepi:p:'+i.props.post_view.creator.id,
         metadata: {
           id: i.props.post_view.creator.id,
           post_id: i.props.post_view.post.id,
+          address: i.props.post_view.creator.pi_address,
           //post_name: i.props.post_view.post.name,
           t: i.props.post_view.post.published,
           u: i.props.post_view.post.updated,
@@ -1555,8 +1566,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         const scopes = ['username','payments'];      
         try {
             /// HOW TO CALL Pi.authenticate Global/Init
-            var piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-            return piUser;
+            var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return user;
         } catch(err) {
             alert("Pi.authenticate error:" + JSON.stringify(err));
             console.log(err)
@@ -1573,9 +1584,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         });
     };
     const onIncompletePaymentFound = async (payment) => { 
-      //do something with incompleted payment
-      //console.log('incomplete payment found: ', payment) 
-      //alert(payment);
       const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
@@ -1584,13 +1592,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           dto: null
       });
 
-      if (data.status === 500) {
-          //there was a problem approving this payment show user body.message from server
-          //alert(`${data.status}: ${data.message}`);
-          return false;
-      } 
-
-      if (data.status === 200) {
+      if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
           //alert(payment);
           return data;
@@ -1605,9 +1607,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         paymentConfig
       })
 
-      if (data.status === 200) {
+      if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
           return data;
+      } else {
+        //alert("Payment approve error: " + JSON.stringify(data));
       }
     }
 
@@ -1622,6 +1626,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       }).then((data) => {
         if (data.status >= 200 && data.status < 300) {
             return true;
+        } else {
+          alert("Payment complete error: " + JSON.stringify(data));  
         }
         return false;
       });
@@ -1629,21 +1635,24 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
 
     const onCancel = (paymentId) => {
-        console.log('Payment cancelled', paymentId)
+        console.log('Payment cancelled: ', paymentId)
     }
     const onError = (error, paymentId) => { 
-        console.log('Payment error', error, paymentId) 
+        console.log('Payment error: ', error, paymentId) 
     }
 
     try {
-    piUser = await authenticatePiUser();
-    
-    await createPiPayment(config);
+      piUser = await authenticatePiUser();
+      
+      await createPiPayment(config);
     } catch(err) {
-      alert("createPiPayment error:" + JSON.stringify(err));
+      alert("PiPayment error:" + JSON.stringify(err));
     }
   }
   
+  async handlePiBlockchainPostClick(i: PostListing) {
+
+  }
 
   get crossPostParams(): string {
     let post = this.props.post_view.post;
