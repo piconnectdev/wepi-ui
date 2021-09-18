@@ -426,35 +426,36 @@ export class Login extends Component<any, State> {
     }
 
     // Update or change password
-    const onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
+    const onReadyForCompletionRegister = (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-      const { data } = await axios.post('/pi/register', {
+      axios.post('/pi/register', {
           paymentid: payment_id,
           pi_username: this.piUser.user.username,
           pi_uid: this.piUser.user.uid,
           txid,
           info,
           paymentConfig,
-      })
-      
-      //alert("WePi register payment:" + JSON.stringify(data));
-      if (data.status >= 200 && data.status < 300) {
-          event.preventDefault();
-          i.state.loginLoading = true;
-          i.setState(i.state);          
-          //i.state.loginForm.username_or_email = i.state.registerForm.username;
-          //i.state.loginForm.password = i.state.registerForm.password;
-          //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
-          var lf: LoginForm;
-          lf.username_or_email = i.state.registerForm.username;
-          lf.password = i.state.registerForm.password;          
-          WebSocketService.Instance.send(wsClient.login(lf));
-          return true;
-      } else {
-        alert("WePi complete register error:" + JSON.stringify(data));  
-      }
-      return false;
-    }
+      }).then((data) => {      
+        alert("WePi register payment:" + JSON.stringify(data));
+        if (data.status >= 200 && data.status < 300) {
+            event.preventDefault();
+            i.state.loginLoading = true;
+            i.setState(i.state);          
+            //i.state.loginForm.username_or_email = i.state.registerForm.username;
+            //i.state.loginForm.password = i.state.registerForm.password;
+            //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
+            var lf: LoginForm;
+            lf.username_or_email = i.state.registerForm.username;
+            lf.password = i.state.registerForm.password;          
+            WebSocketService.Instance.send(wsClient.login(lf));
+            return true;
+        } else {
+          alert("WePi complete register error:" + JSON.stringify(data));  
+          return false;
+        };
+      });
+      return false;      
+    };
 
     const onCancel = (paymentId) => {
         console.log('Register payment cancelled', paymentId)
@@ -483,13 +484,14 @@ export class Login extends Component<any, State> {
           ref_id: "",
       }
     };
+
     var info = i.state.registerForm;
     info.password_verify = info.password;
     info.show_nsfw = true;
 
     try {
       piUser = await authenticatePiUser();
-      
+      alert("Pi user:" + JSON.stringify(piUser.user.username));
       await createPiRegister(info, config);
     } catch(err) {
       alert("WePi register catch error:" + JSON.stringify(err));
