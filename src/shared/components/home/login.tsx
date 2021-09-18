@@ -368,14 +368,14 @@ export class Login extends Component<any, State> {
 
     var piUser;
 
-    alert("Start handleRegisterSubmit");
+    //alert("Start handleRegisterSubmit");
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ['username','payments'];      
       try {
           /// HOW TO CALL Pi.authenticate Global/Init
-          var piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-          return piUser;
+          var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+          return user;
       } catch(err) {
           console.log(err)
       }
@@ -409,10 +409,11 @@ export class Login extends Component<any, State> {
         info,
         paymentConfig
       })
-      alert("WePi approved payment:" + JSON.stringify(data));
       if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
           return data;
+      } else {
+        alert("WePi approved register error:" + JSON.stringify(data));      
       }
     }
 
@@ -433,6 +434,8 @@ export class Login extends Component<any, State> {
           //piApiResult["success"] = true;
           //piApiResult["type"] = "account";
           return true;
+      } else {
+        alert("WePi complete register error:" + JSON.stringify(data));  
       }
       return false;
     }

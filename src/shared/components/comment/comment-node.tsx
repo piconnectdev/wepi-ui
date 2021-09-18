@@ -47,6 +47,7 @@ import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
 import { CommentForm } from "./comment-form";
 import { CommentNodes } from "./comment-nodes";
+import axios from '../../axios';
 
 interface CommentNodeState {
   showReply: boolean;
@@ -239,7 +240,38 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 data-tippy-content={i18n.t("to blockchain")}
               >
               <Icon icon="zap" classes="icon-inline" />
-              </button>              
+              </button>
+
+              <button
+                class="btn btn-sm text-muted"
+                onClick={linkEvent(this, this.handlePiTipClick)}
+                aria-label={i18n.t("tip pi")}
+                data-tippy-content={i18n.t("tip 0.1 test-π to @") + cv.creator.name}
+              >
+              { cv.creator.pi_address && (
+              <Icon
+                icon="heart"
+                classes={`icon-inline mr-1}`}
+              />          
+              )}
+              { !cv.creator.pi_address && (
+                <small>
+                <Icon
+                icon="heart"
+                classes={`icon-inline mr-1}`}
+              />
+              </small>
+              )}
+              </button>
+              <button
+                class="btn btn-sm text-muted"
+                onClick={linkEvent(this, this.handlePiBlockchainClick)}
+                aria-label={i18n.t("to pi blockchain")}
+                data-tippy-content={i18n.t("save comment to pi blockchain")}
+              >
+              <Icon icon="zap" classes="icon-inline" />
+              </button>  
+
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               {showScores() && (
@@ -1305,6 +1337,48 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     setupTippy();
   }
 
+
+  handleViewSource(i: CommentNode) {
+    i.state.viewSource = !i.state.viewSource;
+    i.setState(i.state);
+  }
+
+  handleShowAdvanced(i: CommentNode) {
+    i.state.showAdvanced = !i.state.showAdvanced;
+    i.setState(i.state);
+    setupTippy();
+  }
+
+  get scoreColor() {
+    if (this.state.my_vote == 1) {
+      return "text-info";
+    } else if (this.state.my_vote == -1) {
+      return "text-danger";
+    } else {
+      return "text-muted";
+    }
+  }
+
+  get pointsTippy(): string {
+    let points = i18n.t("number_of_points", {
+      count: this.state.score,
+    });
+
+    let upvotes = i18n.t("number_of_upvotes", {
+      count: this.state.upvotes,
+    });
+
+    let downvotes = i18n.t("number_of_downvotes", {
+      count: this.state.downvotes,
+    });
+
+    return `${points} • ${upvotes} • ${downvotes}`;
+  }
+
+  get expandText(): string {
+    return this.state.collapsed ? i18n.t("expand") : i18n.t("collapse");
+  }
+
   async handleBlockchainComment(i: CommentNode) {
     if (this.isPiBrowser)
       return;
@@ -1393,44 +1467,214 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       }
     }
 
-  handleViewSource(i: CommentNode) {
-    i.state.viewSource = !i.state.viewSource;
-    i.setState(i.state);
-  }
 
-  handleShowAdvanced(i: CommentNode) {
-    i.state.showAdvanced = !i.state.showAdvanced;
-    i.setState(i.state);
-    setupTippy();
-  }
+  async handlePiTipClick(i: CommentNode) {   
+    var config = {
+      amount: 0.1,
+      memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
+      metadata: {
+          id: i.props.node.comment_view.creator.id,
+          post_id: i.props.node.comment_view.post.id,
+          comment_id: i.props.node.comment_view.comment.id,
+          address: i.props.node.comment_view.creator.pi_address,
+          t: i.props.node.comment_view.comment.published,
+          u: i.props.node.comment_view.comment.updated,
+      }
+    };
+    var piUser;
+    const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ['username','payments'];      
+        try {
+            /// HOW TO CALL Pi.authenticate Global/Init
+            var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return user;
+        } catch(err) {
+            alert("Pi.authenticate error:" + JSON.stringify(err));
+            console.log(err)
+        }
+    };
+    const createPiPayment = async (config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
 
-  get scoreColor() {
-    if (this.state.my_vote == 1) {
-      return "text-info";
-    } else if (this.state.my_vote == -1) {
-      return "text-danger";
-    } else {
-      return "text-muted";
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+  }; // Read more about this in the SDK reference
+
+  const onReadyForApproval = async (payment_id, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data } = await axios.post('/pi/approve', {
+        paymentid: payment_id,
+        pi_username: piUser.user.username,
+        paymentConfig
+      })
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          return data;
+      } else {
+        //alert("Payment approve error: " + JSON.stringify(data));
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      axios.post('/pi/complete', {
+          paymentid: payment_id,
+          pi_username: piUser.user.username,
+          txid,
+          paymentConfig,
+      }).then((data) => {
+        if (data.status >= 200 && data.status < 300) {
+            return true;
+        } else {
+          //alert("Payment complete error: " + JSON.stringify(data));  
+        }
+        return false;
+      });
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Payment cancelled: ', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Payment error: ', error, paymentId) 
+    }
+
+    try {
+      piUser = await authenticatePiUser();
+      
+      await createPiPayment(config);
+    } catch(err) {
+      alert("PiPayment error:" + JSON.stringify(err));
+    }
+  }
+  
+  async handlePiBlockchainClick(i: CommentNode) {      
+    var config = {
+      amount: 0.001,
+      memo: ('wepi:cmnt:'+i.props.node.comment_view.comment.id).substr(28),
+        metadata: {
+          own: i.props.node.comment_view.comment.creator_id,
+          post_id: i.props.node.comment_view.comment.post_id,
+          id: i.props.node.comment_view.comment.id,
+          parent_id: i.props.node.comment_view.comment.parent_id,
+          ap_id: i.props.node.comment_view.comment.ap_id,            
+          content: i.props.node.comment_view.comment.content,
+          t: i.props.node.comment_view.comment.published,
+          u: i.props.node.comment_view.comment.updated,
+          sign: i.props.node.comment_view.comment.cert,
+      }
+    };
+
+    var piUser;   
+    
+    const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ['username','payments'];      
+        try {
+            /// HOW TO CALL Pi.authenticate Global/Init
+            var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return user;
+        } catch(err) {
+            alert("Pi.authenticate error:" + JSON.stringify(err));
+            console.log(err)
+        }
+    };
+    const createPiPayment = async (config) => {
+      //piApiResult = null;
+          window.Pi.createPayment(config, {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onCancel: onCancel,
+          onError: onError,
+        });
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+  }; // Read more about this in the SDK reference
+
+  const onReadyForApproval = async (payment_id, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data } = await axios.post('/pi/approve', {
+        paymentid: payment_id,
+        pi_username: piUser.user.username,
+        paymentConfig
+      })
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          return data;
+      } else {
+        //alert("Payment approve error: " + JSON.stringify(data));
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      axios.post('/pi/complete', {
+          paymentid: payment_id,
+          pi_username: piUser.user.username,
+          txid,
+          paymentConfig,
+      }).then((data) => {
+        if (data.status >= 200 && data.status < 300) {
+            return true;
+        } else {
+          //alert("Completing payment error: " + JSON.stringify(data));  
+        }
+        return false;
+      });
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Payment cancelled: ', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Payment error: ', error, paymentId) 
+    }
+
+    try {
+      piUser = await authenticatePiUser();
+      
+      await createPiPayment(config);
+    } catch(err) {
+      alert("PiPayment error:" + JSON.stringify(err));
     }
   }
 
-  get pointsTippy(): string {
-    let points = i18n.t("number_of_points", {
-      count: this.state.score,
-    });
-
-    let upvotes = i18n.t("number_of_upvotes", {
-      count: this.state.upvotes,
-    });
-
-    let downvotes = i18n.t("number_of_downvotes", {
-      count: this.state.downvotes,
-    });
-
-    return `${points} • ${upvotes} • ${downvotes}`;
-  }
-
-  get expandText(): string {
-    return this.state.collapsed ? i18n.t("expand") : i18n.t("collapse");
-  }
 }
