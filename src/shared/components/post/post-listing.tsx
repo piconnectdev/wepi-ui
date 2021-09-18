@@ -1553,8 +1553,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handlePiTipClick(i: PostListing) {   
-    if (!this.isPiBrowser)
-      return;
     var piUser;   
     var config = {
         amount: 0.1,
@@ -1660,11 +1658,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
   
   async handlePiBlockchainClick(i: PostListing) {    
-    if (!this.isPiBrowser)
-      return;  
     var config = {
       amount: 0.001,
-      memo: ('wepi:post:'+i.props.post_view.post.id).substr(28),
+      memo: 'wepi:post:'+(i.props.post_view.post.id).substr(0,13),
       metadata: {
           own: i.props.post_view.creator.id,
           cid: i.props.post_view.community.id,

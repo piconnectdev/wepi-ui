@@ -183,6 +183,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     }
 
     if (this.isPiBrowser) {
+      /*
       var piUser;
       const authenticatePiUser = async () => {
           // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
@@ -214,6 +215,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         piUser = authenticatePiUser();
       } catch(err) {
       }
+      */
     }
   }
 

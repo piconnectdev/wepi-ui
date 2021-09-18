@@ -242,6 +242,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <Icon icon="zap" classes="icon-inline" />
               </button>
 
+              { this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handlePiTipClick)}
@@ -263,14 +264,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               </small>
               )}
               </button>
+              )}
+              { this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handlePiBlockchainClick)}
                 aria-label={i18n.t("to pi blockchain")}
-                data-tippy-content={i18n.t("save comment to pi blockchain")}
+                data-tippy-content={i18n.t("save this to pi blockchain")}
               >
               <Icon icon="zap" classes="icon-inline" />
               </button>  
+              )}
 
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
@@ -1469,8 +1473,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
 
   async handlePiTipClick(i: CommentNode) {  
-    if (!this.isPiBrowser)
-      return; 
     var config = {
       amount: 0.1,
       memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
@@ -1574,11 +1576,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
   
   async handlePiBlockchainClick(i: CommentNode) {
-    if (!this.isPiBrowser)
-      return;      
     var config = {
       amount: 0.001,
-      memo: ('wepi:cmnt:'+i.props.node.comment_view.comment.id).substr(28),
+      memo: 'wepi:cmnt:'+(i.props.node.comment_view.comment.id).substr(0,13),
         metadata: {
           own: i.props.node.comment_view.comment.creator_id,
           post_id: i.props.node.comment_view.comment.post_id,
