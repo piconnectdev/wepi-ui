@@ -178,110 +178,121 @@ export class Login extends Component<any, State> {
 
   registerForm() {    
     // if (this.isPiBrowser) {
-    //   return (
-    //   <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-    //       <h5>{i18n.t("sign_up")}</h5>
+      return (
+      <form onSubmit={linkEvent(this, this.handleRegisterSubmitPi)}>
+          <h5>{i18n.t("sign_up")}</h5>
 
-    //       <div class="form-group row">
-    //         <label class="col-sm-2 col-form-label" htmlFor="register-username">
-    //           {i18n.t("username")}
-    //         </label>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label" htmlFor="register-username">
+              {i18n.t("username")}
+            </label>
 
-    //         <div class="col-sm-10">
-    //           <input
-    //             type="text"
-    //             id="register-username"
-    //             class="form-control"
-    //             value={this.state.registerForm.username}
-    //             onInput={linkEvent(this, this.handleRegisterUsernameChange)}
-    //             required
-    //             minLength={3}
-    //             pattern="[a-zA-Z0-9_]+"
-    //           />
-    //         </div>
-    //       </div>
+            <div class="col-sm-10">
+              <input
+                type="text"
+                id="register-username"
+                class="form-control"
+                value={this.state.registerForm.username}
+                onInput={linkEvent(this, this.handleRegisterUsernameChange)}
+                required
+                minLength={3}
+                pattern="[a-zA-Z0-9_]+"
+              />
+            </div>
+          </div>
 
-    //       <div class="form-group row">
-    //         <label class="col-sm-2 col-form-label" htmlFor="register-password">
-    //           {i18n.t("password")}
-    //         </label>
-    //         <div class="col-sm-10">
-    //           <input
-    //             type="password"
-    //             id="register-password"
-    //             value={this.state.registerForm.password}
-    //             autoComplete="new-password"
-    //             onInput={linkEvent(this, this.handleRegisterPasswordChange)}
-    //             maxLength={60}
-    //             class="form-control"
-    //             required
-    //           />
-    //         </div>
-    //       </div>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label" htmlFor="register-password">
+              {i18n.t("password")}
+            </label>
+            <div class="col-sm-10">
+              <input
+                type="password"
+                id="register-password"
+                value={this.state.registerForm.password}
+                autoComplete="new-password"
+                onInput={linkEvent(this, this.handleRegisterPasswordChange)}
+                maxLength={60}
+                class="form-control"
+                required
+              />
+            </div>
+          </div>
 
-    //       {this.state.captcha && (
-    //         <div class="form-group row">
-    //           <label class="col-sm-2" htmlFor="register-captcha">
-    //             <span class="mr-2">{i18n.t("enter_code")}</span>
-    //             <button
-    //               type="button"
-    //               class="btn btn-secondary"
-    //               onClick={linkEvent(this, this.handleRegenCaptcha)}
-    //               aria-label={i18n.t("captcha")}
-    //             >
-    //               <Icon icon="refresh-cw" classes="icon-refresh-cw" />
-    //             </button>
-    //           </label>
-    //           {this.showCaptcha()}
-    //           <div class="col-sm-6">
-    //             <input
-    //               type="text"
-    //               class="form-control"
-    //               id="register-captcha"
-    //               value={this.state.registerForm.captcha_answer}
-    //               onInput={linkEvent(
-    //                 this,
-    //                 this.handleRegisterCaptchaAnswerChange
-    //               )}
-    //               required
-    //             />
-    //           </div>
-    //         </div>
-    //       )}
-    //       {/* {this.state.site_view.site.enable_nsfw && (
-    //         <div class="form-group row">
-    //           <div class="col-sm-10">
-    //             <div class="form-check">
-    //               <input
-    //                 class="form-check-input"
-    //                 id="register-show-nsfw"
-    //                 type="checkbox"
-    //                 checked={this.state.registerForm.show_nsfw}
-    //                 onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
-    //               />
-    //               <label class="form-check-label" htmlFor="register-show-nsfw">
-    //                 {i18n.t("show_nsfw")}
-    //               </label>
-    //             </div>
-    //           </div>
-    //         </div>
-    //       )} */}
-    //       {/* {this.isWePi && (
-    //         <div class="mt-2 mb-0 alert alert-light" role="alert">
-    //           <T i18nKey="lemmy_ml_registration_message">
-    //             #<a href={joinPiUrl}>#</a>
-    //           </T>
-    //         </div>
-    //       )} */}
-    //       <div class="form-group row">
-    //         <div class="col-sm-10">
-    //           <button type="submit" class="btn btn-secondary">
-    //             {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
-    //           </button>
-    //         </div>
-    //       </div>
-    //     </form>
-    //   );
+          {this.state.captcha && (
+            <div class="form-group row">
+              <label class="col-sm-2" htmlFor="register-captcha">
+                <span class="mr-2">{i18n.t("enter_code")}</span>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={linkEvent(this, this.handleRegenCaptcha)}
+                  aria-label={i18n.t("captcha")}
+                >
+                  <Icon icon="refresh-cw" classes="icon-refresh-cw" />
+                </button>
+              </label>
+              {this.showCaptcha()}
+              <div class="col-sm-6">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="register-captcha"
+                  value={this.state.registerForm.captcha_answer}
+                  onInput={linkEvent(
+                    this,
+                    this.handleRegisterCaptchaAnswerChange
+                  )}
+                  required
+                />
+              </div>
+            </div>
+          )}
+          {/* {this.state.site_view.site.enable_nsfw && (
+            <div class="form-group row">
+              <div class="col-sm-10">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    id="register-show-nsfw"
+                    type="checkbox"
+                    checked={this.state.registerForm.show_nsfw}
+                    onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
+                  />
+                  <label class="form-check-label" htmlFor="register-show-nsfw">
+                    {i18n.t("show_nsfw")}
+                  </label>
+                </div>
+              </div>
+            </div>
+          )} */}
+          { this.isPiBrowser && (
+              <div class="mt-2 mb-0 alert alert-light" role="alert">
+              This will transfer 0.01 test-π to our development test wallet for registration.
+              <hr/>
+              WePi’s username and password do not need to match Pi’s username and password.                          
+            </div>
+          )}
+          { !this.isPiBrowser && (
+           <div class="mt-2 mb-0 alert alert-light" role="alert">
+              USE PI BROWSER FOR REGISTRATION   
+              <hr/>
+              This will transfer 0.01 test-π to our development test wallet for registration.
+              <hr/>
+              Please use in the Pi Browser. Any payments made will not be processed and this is just a simulation when ran outside of the Pi Browser.
+              <hr/>
+              WePi’s username and password do not need to match Pi’s username and password.                          
+            </div>
+          )}
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <button type="submit" class="btn btn-secondary">
+                {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
+              </button>
+            </div>
+          </div>
+        </form>
+      );
     // } else {
     //   return (
     //     <form action="https://wepi.social/register">
@@ -300,20 +311,20 @@ export class Login extends Component<any, State> {
     // }
 
 
-    return (
-      <form action="https://wepi.social/register">
-        <div class="form-group row">
-          <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">
-              <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
-              {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+    // return (
+    //   <form action="https://wepi.social/register">
+    //     <div class="form-group row">
+    //       <div class="col-sm-10">
+    //         <button type="submit" class="btn btn-secondary">
+    //           <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
+    //           {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
 
-            </button>
-          </div>
-        </div>
+    //         </button>
+    //       </div>
+    //     </div>
 
-      </form>
-    );
+    //   </form>
+    // );
   }
 
   showCaptcha() {
@@ -362,7 +373,7 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
   
-  async handleRegisterSubmit(i: Login, event: any) {
+  async handleRegisterSubmitPi(i: Login, event: any) {
     if (!this.isPiBrowser)
       return;
 
@@ -373,7 +384,6 @@ export class Login extends Component<any, State> {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ['username','payments'];      
       try {
-          /// HOW TO CALL Pi.authenticate Global/Init
           var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
           return user;
       } catch(err) {
@@ -383,8 +393,6 @@ export class Login extends Component<any, State> {
 
     const onIncompletePaymentFound = async (payment) => { 
       //do something with incompleted payment
-      console.log('incomplete payment found: ', payment) 
-      alert("Incomplete payment found" + JSON.stringify(payment));
       const { data } = await axios.post('/pi/found', {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
@@ -413,7 +421,7 @@ export class Login extends Component<any, State> {
           //payment was approved continue with flow
           return data;
       } else {
-        alert("WePi approved register error:" + JSON.stringify(data));      
+        alert("WePi approve register error:" + JSON.stringify(data));      
       }
     }
 
@@ -429,18 +437,18 @@ export class Login extends Component<any, State> {
           paymentConfig,
       })
       
-      alert("WePi register payment:" + JSON.stringify(data));
+      //alert("WePi register payment:" + JSON.stringify(data));
       if (data.status >= 200 && data.status < 300) {
-          //payment was completed continue with flow
-          //piApiResult["success"] = true;
-          //piApiResult["type"] = "account";
-          //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
           event.preventDefault();
           i.state.loginLoading = true;
-          i.setState(i.state);
-          i.state.loginForm.username_or_email = i.state.registerForm.username;
-          i.state.loginForm.password = i.state.registerForm.password;
-          WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
+          i.setState(i.state);          
+          //i.state.loginForm.username_or_email = i.state.registerForm.username;
+          //i.state.loginForm.password = i.state.registerForm.password;
+          //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
+          var lf: LoginForm;
+          lf.username_or_email = i.state.registerForm.username;
+          lf.password = i.state.registerForm.password;          
+          WebSocketService.Instance.send(wsClient.login(lf));
           return true;
       } else {
         alert("WePi complete register error:" + JSON.stringify(data));  
