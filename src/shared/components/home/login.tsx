@@ -28,6 +28,7 @@ import {
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
+import axios from '../../axios';
 
 interface State {
   loginForm: LoginForm;
@@ -38,16 +39,12 @@ interface State {
   captchaPlaying: boolean;
   site_view: SiteView;
 }
-//import { createPiRegister, createPiPayment, authenticatePiUser, openPiShareDialog, piApiResponsee } from "../../pi";
-import { onIncompletePaymentFound, onReadyForApprovalRegister, onReadyForCompletionRegister, createPiRegister, authenticatePiUser, piApiResponsee } from "../../pisdk";
-import axios from '../../axios';
-//import pisdk from '../../axios';
 
 export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
   private subscription: Subscription;
   private audio: HTMLAudioElement;
-  private piUser;
+  //private piUser;
   //const Pi = window.Pi;
   emptyState: State = {
     loginForm: {
@@ -412,8 +409,8 @@ export class Login extends Component<any, State> {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/agree', {
         paymentid: payment_id,
-        pi_username: this.piUser.user.username,
-        pi_uid: this.piUser.user.uid,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
         info,
         paymentConfig
       })
@@ -430,8 +427,8 @@ export class Login extends Component<any, State> {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
       axios.post('/pi/register', {
           paymentid: payment_id,
-          pi_username: this.piUser.user.username,
-          pi_uid: this.piUser.user.uid,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
           txid,
           info,
           paymentConfig,
@@ -491,7 +488,6 @@ export class Login extends Component<any, State> {
 
     try {
       piUser = await authenticatePiUser();
-      alert("Pi user:" + JSON.stringify(piUser.user.username));
       await createPiRegister(info, config);
     } catch(err) {
       alert("WePi register catch error:" + JSON.stringify(err));
