@@ -1556,15 +1556,20 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     var piUser;   
     var config = {
         amount: 0.1,
-        memo: ('wepi:tip:'+i.props.post_view.creator.name).substr(0,28),
+        memo: 'wepi:tip',
         metadata: {
           id: i.props.post_view.creator.id,
+          //cid: i.props.post_view.community.id,
           post_id: i.props.post_view.post.id,
           address: i.props.post_view.creator.pi_address,
           t: i.props.post_view.post.published,
           u: i.props.post_view.post.updated,
         }
-    };  
+    };
+    var info = {
+      own: i.props.post_view.creator.id,
+      comment: i.props.post_view.post.id,
+    }  
     const authenticatePiUser = async () => {
         // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
         const scopes = ['username','payments'];      
@@ -1582,6 +1587,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: null,
+          comment: null,
           auth: null,
           dto: null
       });
@@ -1593,24 +1600,26 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       }
     }; // Read more about this in the SDK reference
 
-    const createPiPayment = async (config) => {
+    const createPiPayment = async (info, config) => {
       //piApiResult = null;
           window.Pi.createPayment(config, {
           // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
           onCancel: onCancel,
           onError: onError,
         });
     };
 
-    const onReadyForApproval = async (payment_id, paymentConfig) => {
+    const onReadyForApproval = async (payment_id, info, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
-        paymentConfig
+        person_id: info.own,
+        comment: info.comment,
+        //paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
@@ -1621,14 +1630,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
 
     // Update or change password
-    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
       axios.post('/pi/complete', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,
           txid,
-          paymentConfig,
+          //paymentConfig,
       }).then((data) => {
         //alert("Payment complete error: " + JSON.stringify(data));  
         
@@ -1651,7 +1662,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
     try {
       piUser = await authenticatePiUser();      
-      await createPiPayment(config);
+      await createPiPayment(info, config);
     } catch(err) {
         alert("PiPayment error:" + JSON.stringify(err));
     }
@@ -1660,7 +1671,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   async handlePiBlockchainClick(i: PostListing) {    
     var config = {
       amount: 0.001,
-      memo: 'wepi:post:'+(i.props.post_view.post.id).substr(0,13),
+      memo: 'wepi:post',
       metadata: {
           own: i.props.post_view.creator.id,
           cid: i.props.post_view.community.id,
@@ -1677,6 +1688,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           sign: i.props.post_view.post.cert,
       }
     };
+    var info= {
+      own: i.props.post_view.creator.id,
+      comment: i.props.post_view.post.id,
+    }
     var piUser;   
     
     const authenticatePiUser = async () => {
@@ -1696,6 +1711,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: payment.metadata.own!==undefined?payment.metadata.own:null,
+          comment: payment.metadata.comment!==undefined?payment.metadata.comment:null,
           auth: null,
           dto: null
       });
@@ -1705,25 +1722,27 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           //alert(payment);
           return data;
       }
-  }; // Read more about this in the SDK reference
+    }; // Read more about this in the SDK reference
 
-  const createPiPayment = async (config) => {
+  const createPiPayment = async (info, config) => {
     //piApiResult = null;
         window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
-        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
         onCancel: onCancel,
         onError: onError,
       });
   };
 
-  const onReadyForApproval = async (payment_id, paymentConfig) => {
+  const onReadyForApproval = async (payment_id, info, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
+        person_id: info.own,
+        comment: info.comment,
         paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
@@ -1735,12 +1754,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
 
     // Update or change password
-    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
       axios.post('/pi/complete', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,
           txid,
           paymentConfig,
       }).then((data) => {
@@ -1766,7 +1787,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     try {
       piUser = await authenticatePiUser();
       
-      await createPiPayment(config);
+      await createPiPayment(info, config);
     } catch(err) {
       alert("PiPayment error:" + JSON.stringify(err));
     }

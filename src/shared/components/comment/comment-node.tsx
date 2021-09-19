@@ -1475,7 +1475,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiTipClick(i: CommentNode) {  
     var config = {
       amount: 0.1,
-      memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
+      //memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
+      memo: 'wepi:tip',
       metadata: {
           id: i.props.node.comment_view.creator.id,
           post_id: i.props.node.comment_view.post.id,
@@ -1485,6 +1486,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           u: i.props.node.comment_view.comment.updated,
       }
     };
+    var info = {
+      own: i.props.node.comment_view.comment.creator_id,
+      comment: i.props.node.comment_view.comment.id,
+    }
     var piUser;
     const authenticatePiUser = async () => {
         // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
@@ -1503,6 +1508,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: null,
+          comment: null,
           auth: null,
           dto: null
       });
@@ -1513,12 +1520,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       }
     }; // Read more about this in the SDK reference
 
-    const createPiPayment = async (config) => {
+    const createPiPayment = async (info, config) => {
       //piApiResult = null;
           window.Pi.createPayment(config, {
           // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
           onCancel: onCancel,
           onError: onError,
         });
@@ -1530,7 +1537,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         paymentid: payment_id,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
-        paymentConfig
+        person_id: info.own,
+        comment: info.comment,  
+        //paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
@@ -1547,8 +1556,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           paymentid: payment_id,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,  
           txid,
-          paymentConfig,
+          //paymentConfig,
       }).then((data) => {
         if (data.status >= 200 && data.status < 300) {
             return true;
@@ -1569,7 +1580,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
     try {
       piUser = await authenticatePiUser();      
-      await createPiPayment(config);
+      await createPiPayment(info, config);
     } catch(err) {
       alert("PiPayment error:" + JSON.stringify(err));
     }
@@ -1578,7 +1589,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiBlockchainClick(i: CommentNode) {
     var config = {
       amount: 0.001,
-      memo: 'wepi:cmnt:'+(i.props.node.comment_view.comment.id).substr(0,13),
+      memo: 'wepi:comment',
         metadata: {
           own: i.props.node.comment_view.comment.creator_id,
           post_id: i.props.node.comment_view.comment.post_id,
@@ -1591,7 +1602,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           sign: i.props.node.comment_view.comment.cert,
       }
     };
-
+    var info = {
+      own: i.props.node.comment_view.comment.creator_id,
+      comment: i.props.node.comment_view.comment.id,
+    }
     var piUser;   
     
     const authenticatePiUser = async () => {
@@ -1611,6 +1625,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           paymentid: payment.identifier,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: null,
+          comment: null,
           auth: null,
           dto: null
       });
@@ -1622,23 +1638,25 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       }
   }; // Read more about this in the SDK reference
 
-  const createPiPayment = async (config) => {
+  const createPiPayment = async (info, config) => {
     //piApiResult = null;
         window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
-        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
         onCancel: onCancel,
         onError: onError,
       });
   };
 
-  const onReadyForApproval = async (payment_id, paymentConfig) => {
+  const onReadyForApproval = async (payment_id, info, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body    
       const { data } = await axios.post('/pi/approve', {
         paymentid: payment_id,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
+        person_id: info.own,
+        comment: info.comment,
         paymentConfig
       })
       if (data.status >= 200 && data.status < 300) {
@@ -1650,12 +1668,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     }
 
     // Update or change password
-    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
       axios.post('/pi/complete', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,  
           txid,
           paymentConfig,
       }).then((data) => {
@@ -1679,7 +1699,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     try {
       piUser = await authenticatePiUser();
       
-      await createPiPayment(config);
+      await createPiPayment(info, config);
     } catch(err) {
       alert("PiPayment error:" + JSON.stringify(err));
     }

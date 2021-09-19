@@ -44,8 +44,7 @@ export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
   private subscription: Subscription;
   private audio: HTMLAudioElement;
-  //private piUser;
-  //const Pi = window.Pi;
+
   emptyState: State = {
     loginForm: {
       username_or_email: undefined,
@@ -93,6 +92,11 @@ export class Login extends Component<any, State> {
   }
   get isPiBrowser(): boolean {
     return isBrowser() && navigator.userAgent.includes('PiBrowser');
+  }
+
+  get useExtSignUp(): boolean {
+    return true;
+    //return isBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
   render() {
@@ -173,7 +177,8 @@ export class Login extends Component<any, State> {
     );
   }
 
-  registerForm() {    
+  registerForm() {   
+    if (!this.useExtSignUp) { 
     // if (this.isPiBrowser) {
       return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmitPi)}>
@@ -307,21 +312,20 @@ export class Login extends Component<any, State> {
     //   );
     // }
 
-
-    // return (
-    //   <form action="https://wepi.social/register">
-    //     <div class="form-group row">
-    //       <div class="col-sm-10">
-    //         <button type="submit" class="btn btn-secondary">
-    //           <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
-    //           {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
-
-    //         </button>
-    //       </div>
-    //     </div>
-
-    //   </form>
-    // );
+    } else {
+      return (
+        <form action="https://wepi.social/register">
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <button type="submit" class="btn btn-secondary">
+                <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
+                {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
+              </button>
+            </div>
+          </div>
+        </form>
+      );
+    }
   }
 
   showCaptcha() {
@@ -374,9 +378,16 @@ export class Login extends Component<any, State> {
     if (!this.isPiBrowser)
       return;
 
+    var config = {
+      amount: 0.01,
+      memo: 'wepi:account',
+      metadata: {
+          ref_id: "",
+      }
+    };
+  
     var piUser;
 
-    //alert("Start handleRegisterSubmit");
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ['username','payments'];      
@@ -465,6 +476,7 @@ export class Login extends Component<any, State> {
 
     const createPiRegister = async (info, config) => {
       //piApiResult = null;
+      alert("WePi createPiRegister:" + JSON.stringify(config));
           window.Pi.createPayment(config, {
           // Callbacks you need to implement - read more about those in the detailed docs linked below:
           onReadyForServerApproval: (payment_id) => onReadyForApprovalRegister(payment_id, info, config),
@@ -474,13 +486,6 @@ export class Login extends Component<any, State> {
         });
     };
         
-    var config = {
-      amount: 0.01,
-      memo: 'wepi:account',
-      metadata: {
-          ref_id: "",
-      }
-    };
 
     var info = i.state.registerForm;
     info.password_verify = info.password;

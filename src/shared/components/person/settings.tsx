@@ -1261,7 +1261,8 @@ export class Settings extends Component<any, SettingsState> {
       let luv = UserService.Instance.myUserInfo.local_user_view;      
       var config = {
         amount: 0.001,
-        memo: ('wepi:profile:'+luv.person.name).substr(0,28),
+        //memo: ('wepi:profile:'+luv.person.name).substr(0,28),
+        memo: 'wepi:profile',
         metadata: {
             id: luv.person.id,
             name: luv.person.name,
@@ -1274,6 +1275,10 @@ export class Settings extends Component<any, SettingsState> {
             s: luv.person.cert,
         }
       };
+      var info = {
+        own: luv.person.id,
+        comment: luv.person.name,
+      }
       var piUser;   
       
       const authenticatePiUser = async () => {
@@ -1304,24 +1309,26 @@ export class Settings extends Component<any, SettingsState> {
         }
     }; // Read more about this in the SDK reference
   
-    const createPiPayment = async (config) => {
+    const createPiPayment = async (info, config) => {
       //piApiResult = null;
           window.Pi.createPayment(config, {
           // Callbacks you need to implement - read more about those in the detailed docs linked below:
-          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, config),
-          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, config),
+          onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+          onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
           onCancel: onCancel,
           onError: onError,
         });
     };
 
-    const onReadyForApproval = async (payment_id, paymentConfig) => {
+    const onReadyForApproval = async (payment_id, info, paymentConfig) => {
         //make POST request to your app server /payments/approve endpoint with paymentId in the body    
         const { data } = await axios.post('/pi/approve', {
           paymentid: payment_id,
           pi_username: piUser.user.username,
           pi_uid: piUser.user.uid,
-          paymentConfig
+          person_id: info.own,
+          comment: info.comment,
+          //paymentConfig
         })
         if (data.status >= 200 && data.status < 300) {
             //payment was approved continue with flow
@@ -1332,14 +1339,16 @@ export class Settings extends Component<any, SettingsState> {
       }
   
       // Update or change password
-      const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+      const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
         //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
         axios.post('/pi/complete', {
             paymentid: payment_id,
             pi_username: piUser.user.username,
             pi_uid: piUser.user.uid,
+            person_id: info.own,
+            comment: info.comment,
             txid,
-            paymentConfig,
+            //paymentConfig,
         }).then((data) => {
           if (data.status >= 200 && data.status < 300) {
               return true;
@@ -1361,7 +1370,7 @@ export class Settings extends Component<any, SettingsState> {
       try {
         piUser = await authenticatePiUser();
         
-        await createPiPayment(config);
+        await createPiPayment(info, config);
       } catch(err) {
         alert("PiPayment error:" + JSON.stringify(err));
       }
