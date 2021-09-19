@@ -1491,7 +1491,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     };
     var info = {
       own: i.props.node.comment_view.comment.creator_id,
-      comment: i.props.node.comment_view.comment.id,
+      comment: 'tip commentt;' + i.props.node.comment_view.creator.name + ';' + i.props.node.comment_view.comment.id,
     }
     var piUser;
     const authenticatePiUser = async () => {

@@ -25,6 +25,7 @@ import { Icon } from "../common/icon";
 import { CommunityForm } from "../community/community-form";
 import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
+import axios from '../../axios';
 
 interface SidebarProps {
   community_view: CommunityView;
@@ -305,6 +306,18 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 </button>
               </li>
             )}
+            { this.isPiBrowser && (
+            <li className="list-inline-item-action">
+                <button
+                  class="btn btn-link text-muted d-inline-block"
+                  onClick={linkEvent(this, this.handlePiBlockchainClick)}
+                  data-tippy-content={i18n.t("to pi blockchain")}
+                  aria-label={i18n.t("to pi blockchain")}
+                >
+                  <Icon icon="zap" classes="icon-inline" />
+                </button>
+              </li>
+            )}
               <li className="list-inline-item-action">
                 <button
                   class="btn btn-link text-muted d-inline-block"
@@ -572,8 +585,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     i.state.showRemoveDialog = false;
     i.setState(i.state);
   }
+  
   async handleBlockchainClick(i: Sidebar) {
 
+    if (this.isPiBrowser) {
+      await this.handlePiBlockchainClick(i);
+      return;
+    }
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -616,4 +634,126 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       }
     }
   }
+
+  async handlePiBlockchainClick(i: Sidebar) {    
+    var config = {
+      amount: 0.001,
+      memo: 'wepi:community',
+      metadata: {
+          id: i.props.community_view.community.actor_id,
+          name: i.props.community_view.community.name,
+          title: i.props.community_view.community.title,
+          desc: i.props.community_view.community.description,
+          banner: i.props.community_view.community.banner,
+          actor_id: i.props.community_view.community.actor_id,
+          t: i.props.community_view.community.published,
+          u: i.props.community_view.community.updated,
+          sign: i.props.community_view.community.cert,
+      }
+    };
+    var info= {
+      own: null,
+      comment: null,
+    }
+    var piUser;   
+    
+    const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ['username','payments'];      
+        try {
+            /// HOW TO CALL Pi.authenticate Global/Init
+            var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return user;
+        } catch(err) {
+            alert("Pi.authenticate error:" + JSON.stringify(err));
+            console.log(err)
+        }
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          person_id: null,
+          comment: null,
+          auth: null,
+          dto: null
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+    }; // Read more about this in the SDK reference
+
+  const createPiPayment = async (info, config) => {
+    //piApiResult = null;
+        window.Pi.createPayment(config, {
+        // Callbacks you need to implement - read more about those in the detailed docs linked below:
+        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
+        onCancel: onCancel,
+        onError: onError,
+      });
+  };
+
+  const onReadyForApproval = async (payment_id, info, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data } = await axios.post('/pi/approve', {
+        paymentid: payment_id,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
+        person_id: info.own,
+        comment: info.comment,
+        paymentConfig
+      })
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          return data;
+      } else {
+        //alert("Payment approve error: " + JSON.stringify(data));
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      axios.post('/pi/complete', {
+          paymentid: payment_id,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,
+          txid,
+          paymentConfig,
+      }).then((data) => {
+        //alert("Completing payment data: " + JSON.stringify(data)); 
+        
+        if (data.status >= 200 && data.status < 300) {
+            return true;
+        } else {
+          alert("Completing payment error: " + JSON.stringify(data));  
+        }
+        return false;
+      });
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Payment cancelled: ', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Payment error: ', error, paymentId) 
+    }
+
+    try {
+      piUser = await authenticatePiUser();
+      
+      await createPiPayment(info, config);
+    } catch(err) {
+      alert("PiPayment error:" + JSON.stringify(err));
+    }
+  }
+
 }

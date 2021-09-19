@@ -1571,7 +1571,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
     var info = {
       own: i.props.post_view.creator.id,
-      comment: i.props.post_view.post.id,
+      comment: 'tip post;' + i.props.post_view.creator.name + ';' + i.props.post_view.post.id,
     }  
     const authenticatePiUser = async () => {
         // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
