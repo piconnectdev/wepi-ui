@@ -491,6 +491,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             })}
           </Link>
         </button>
+        { !this.isPiBrowser && (
         <button
           class="btn btn-link btn-animate text-muted py-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -512,6 +513,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </small>
           )}
         </button>
+        )}
+        { !this.isPiBrowser && (
         <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleBlockchainClick)}
@@ -523,7 +526,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             classes={`icon-inline mr-1`}
           />
         </button>
-
+        )}
         { this.isPiBrowser && (
           <button
           class="btn btn-link btn-animate text-muted p-0"
@@ -1556,7 +1559,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     var piUser;   
     var config = {
         amount: 0.1,
-        memo: 'wepi:tip',
+        memo: 'wepi:tip:post',
         metadata: {
           id: i.props.post_view.creator.id,
           //cid: i.props.post_view.community.id,

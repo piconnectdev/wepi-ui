@@ -212,6 +212,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 )}
               </button>
               {this.linkBtn(true)}
+              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleTipComment)}
@@ -233,6 +234,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               </small>
               )}
               </button>
+              )}
+              { !this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleBlockchainComment)}
@@ -241,7 +244,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               >
               <Icon icon="zap" classes="icon-inline" />
               </button>
-
+              )}
               { this.isPiBrowser && (
               <button
                 class="btn btn-sm text-muted"
@@ -1476,7 +1479,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     var config = {
       amount: 0.1,
       //memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
-      memo: 'wepi:tip',
+      memo: 'wepi:tip:comment',
       metadata: {
           id: i.props.node.comment_view.creator.id,
           post_id: i.props.node.comment_view.post.id,
