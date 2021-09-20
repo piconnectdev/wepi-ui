@@ -2,7 +2,3 @@
 	path = lemmy-translations
 	url = https://github.com/lemmynet/lemmy-translations
 	branch = main
-[submodule "lemmy-js-client"]
-	path = lemmy-js-client
-	url = https://github.com/piconnectdev/lemmy-js-client
-	branch = uid
