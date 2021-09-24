@@ -4,6 +4,7 @@ import {
   GetCaptchaResponse,
   GetSiteResponse,
   Login as LoginForm,
+  PiLogin as PiLoginForm,
   LoginResponse,
   PasswordReset,
   Register,
@@ -32,6 +33,7 @@ import axios from '../../axios';
 
 interface State {
   loginForm: LoginForm;
+  piLoginForm: PiLoginForm;
   registerForm: Register;
   loginLoading: boolean;
   registerLoading: boolean;
@@ -50,6 +52,12 @@ export class Login extends Component<any, State> {
       username_or_email: undefined,
       password: undefined,
     },
+    piLoginForm: {
+      pi_username: undefined,
+      pi_uid: undefined,
+      pi_token: undefined,
+      info: undefined,
+    },    
     registerForm: {
       username: undefined,
       password: undefined,
@@ -90,8 +98,14 @@ export class Login extends Component<any, State> {
   get isWePi(): boolean {
     return isBrowser() && window.location.hostname == "wepi.social";
   }
+
   get isPiBrowser(): boolean {
     return isBrowser() && navigator.userAgent.includes('PiBrowser');
+  }
+
+  get isForcePiAuth(): boolean {
+    return true;
+    //return isPiBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
   get useExtSignUp(): boolean {
@@ -115,66 +129,84 @@ export class Login extends Component<any, State> {
   }
 
   loginForm() {
-    return (
-      <div>
-        <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
-          <h5>{i18n.t("login")}</h5>
-          <div class="form-group row">
-            <label
-              class="col-sm-2 col-form-label"
-              htmlFor="login-username"
-            >
-              {i18n.t("username")}
-            </label>
-            <div class="col-sm-10">
-              <input
-                type="text"
-                class="form-control"
-                id="login-email-or-username"
-                value={this.state.loginForm.username_or_email}
-                onInput={linkEvent(this, this.handleLoginUsernameChange)}
-                autoComplete="email"
-                required
-                minLength={3}
-              />
-            </div>
-          </div>
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label" htmlFor="login-password">
-              {i18n.t("password")}
-            </label>
-            <div class="col-sm-10">
-              <input
-                type="password"
-                id="login-password"
-                value={this.state.loginForm.password}
-                onInput={linkEvent(this, this.handleLoginPasswordChange)}
-                class="form-control"
-                autoComplete="current-password"
-                required
-                maxLength={60}
-              />
-              {/* <button
-                type="button"
-                className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
-                disabled={!validEmail(this.state.loginForm.username_or_email)}
-                title={i18n.t("no_password_reset")}
+    if (!this.isPiBrowser || !this.isForcePiAuth) {
+      return (
+        <div>
+          <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
+            <h5>{i18n.t("login")}</h5>
+            <div class="form-group row">
+              <label
+                class="col-sm-2 col-form-label"
+                htmlFor="login-username"
               >
-                <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
+                {i18n.t("username")}
+              </label>
+              <div class="col-sm-10">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="login-email-or-username"
+                  value={this.state.loginForm.username_or_email}
+                  onInput={linkEvent(this, this.handleLoginUsernameChange)}
+                  autoComplete="email"
+                  required
+                  minLength={3}
+                />
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-2 col-form-label" htmlFor="login-password">
+                {i18n.t("password")}
+              </label>
+              <div class="col-sm-10">
+                <input
+                  type="password"
+                  id="login-password"
+                  value={this.state.loginForm.password}
+                  onInput={linkEvent(this, this.handleLoginPasswordChange)}
+                  class="form-control"
+                  autoComplete="current-password"
+                  required
+                  maxLength={60}
+                />
+                {/* <button
+                  type="button"
+                  className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
+                  disabled={!validEmail(this.state.loginForm.username_or_email)}
+                  title={i18n.t("no_password_reset")}
+                >
+                  <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
 
-              </button> */}
+                </button> */}
+              </div>
             </div>
-          </div>
-          <div class="form-group row">
-            <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary">
-                {this.state.loginLoading ? <Spinner /> : i18n.t("login")}
-              </button>
+            <div class="form-group row">
+              <div class="col-sm-10">
+                <button type="submit" class="btn btn-secondary">
+                  {this.state.loginLoading ? <Spinner /> : i18n.t("login")}
+                </button>
+              </div>
+              <hr/>
+              
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
+      );
+    } 
+    else 
+    {
+      return (
+      <div class="col-sm-10">
+        <button 
+        type="button"
+         class="btn btn-secondary"
+         onClick={linkEvent(this, this.handlePiLoginSubmit)}
+        >
+          {this.state.loginLoading ? <Spinner /> : i18n.t("Login With Pi")}
+        </button>
       </div>
-    );
+      )
+    }
   }
 
   registerForm() {   
@@ -357,6 +389,7 @@ export class Login extends Component<any, State> {
     );
   }
 
+
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
     i.state.loginLoading = true;
@@ -374,6 +407,62 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
   
+  handlePiLoginSubmit(i: Login, event: any) {
+
+    //if (!this.isPiBrowser)
+    //  return;
+
+    var piUser;
+
+    const authenticatePiUser = async () => {
+      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+      const scopes = ['username','payments'];      
+      try {
+          var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+          return user;
+      } catch(err) {
+          console.log(err)
+      }
+    };
+
+    const onIncompletePaymentFound = async (payment) => { 
+      //do something with incompleted payment
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+    }; // Read more about this in the SDK reference
+
+    if (this.isPiBrowser) {
+      piUser = authenticatePiUser();
+      event.preventDefault();
+      i.state.loginLoading = true;
+      i.state.piLoginForm.pi_username = piUser.user.username;
+      i.state.piLoginForm.pi_uid = piUser.user.uid;
+      i.state.piLoginForm.pi_token = piUser.accessToken;
+      i.setState(i.state);
+    } else {
+      i.state.piLoginForm.pi_username = 'admin';
+      i.state.piLoginForm.pi_uid = '1ecb0489-01e2-421f-beca-59d200daf76e';
+      i.state.piLoginForm.pi_token = '';
+      i.setState(i.state);
+
+      console.log(i.state.piLoginForm);  
+      console.log(wsClient.piLogin(i.state.piLoginForm));  
+    }
+    WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+  }
+
+
   async handleRegisterSubmitPi(i: Login, event: any) {
     if (!this.isPiBrowser)
       return;

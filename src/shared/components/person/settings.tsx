@@ -836,7 +836,7 @@ export class Settings extends Component<any, SettingsState> {
         this.blockPersonChoices.passedElement.element.addEventListener(
           "choice",
           (e: any) => {
-            this.handleBlockPerson(Number(e.detail.choice.value));
+            this.handleBlockPerson(e.detail.choice.value);
           },
           false
         );
@@ -861,7 +861,7 @@ export class Settings extends Component<any, SettingsState> {
         this.blockCommunityChoices.passedElement.element.addEventListener(
           "choice",
           (e: any) => {
-            this.handleBlockCommunity(Number(e.detail.choice.value));
+            this.handleBlockCommunity(e.detail.choice.value);
           },
           false
         );
@@ -884,8 +884,8 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleBlockPerson(personId: number) {
-    if (personId != 0) {
+  handleBlockPerson(personId: string) {
+    if (personId != undefined) {
       let blockUserForm: BlockPerson = {
         person_id: personId,
         block: true,
@@ -895,7 +895,7 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleUnblockPerson(i: { ctx: Settings; recipientId: number }) {
+  handleUnblockPerson(i: { ctx: Settings; recipientId: string }) {
     let blockUserForm: BlockPerson = {
       person_id: i.recipientId,
       block: false,
@@ -904,8 +904,8 @@ export class Settings extends Component<any, SettingsState> {
     WebSocketService.Instance.send(wsClient.blockPerson(blockUserForm));
   }
 
-  handleBlockCommunity(community_id: number) {
-    if (community_id != 0) {
+  handleBlockCommunity(community_id: string) {
+    if (community_id != undefined) {
       let blockCommunityForm: BlockCommunity = {
         community_id,
         block: true,
@@ -917,7 +917,7 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleUnblockCommunity(i: { ctx: Settings; communityId: number }) {
+  handleUnblockCommunity(i: { ctx: Settings; communityId: string }) {
     let blockCommunityForm: BlockCommunity = {
       community_id: i.communityId,
       block: false,
