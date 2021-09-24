@@ -10,6 +10,7 @@ import {
   Register,
   SiteView,
   UserOperation,
+  LemmyHttp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import { i18n } from "../../i18next";
@@ -30,6 +31,7 @@ import {
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
 import axios from '../../axios';
+import {httpBase} from "../../../shared/env";
 
 interface State {
   loginForm: LoginForm;
@@ -459,10 +461,27 @@ export class Login extends Component<any, State> {
     i.state.piLoginForm.pi_uid = piUser.user.uid;
     i.state.piLoginForm.pi_token = piUser.accessToken;
     i.setState(i.state);    
-    WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+
+    var data = await this.PiLogin(i.state.piLoginForm);
+    this.state = this.emptyState;
+    this.setState(this.state);
+    UserService.Instance.login(data);
+    WebSocketService.Instance.send(
+      wsClient.userJoin({
+        auth: authField(),
+      })
+    );
+    toast(i18n.t("logged_in"));
+    this.props.history.push("/");
+
+    //WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
 
   }
 
+  async PiLogin(form: PiLoginForm) {
+    let client = new LemmyHttp(httpBase);
+    return  client.piLogin(form);
+  }
 
   async handlePiRegisterSubmit(i: Login, event: any) {
     if (!this.isPiBrowser)
