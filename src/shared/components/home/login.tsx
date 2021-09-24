@@ -212,7 +212,7 @@ export class Login extends Component<any, State> {
          class="btn btn-secondary"
          onClick={linkEvent(this, this.handlePiLoginSubmit)}
         >
-          {this.state.loginLoading ? <Spinner /> : i18n.t("Login With Pi")}
+          {this.state.loginLoading ? <Spinner /> : i18n.t("Login With Pi Account")}
         </button>
       </div>
       )
@@ -223,7 +223,7 @@ export class Login extends Component<any, State> {
     if (!this.useExtSignUp) { 
     // if (this.isPiBrowser) {
       return (
-      <form onSubmit={linkEvent(this, this.handleRegisterSubmitPi)}>
+      <form onSubmit={linkEvent(this, this.handlePiRegisterSubmit)}>
           <h5>{i18n.t("sign_up")}</h5>
 
           <div class="form-group row">
@@ -417,7 +417,7 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
   
-  handlePiLoginSubmit(i: Login, event: any) {
+  async handlePiLoginSubmit(i: Login, event: any) {
 
     //if (!this.isPiBrowser)
     //  return;
@@ -451,29 +451,20 @@ export class Login extends Component<any, State> {
           return data;
       }
     }; // Read more about this in the SDK reference
-
-    if (this.isPiBrowser) {
-      piUser = authenticatePiUser();
-      event.preventDefault();
-      i.state.loginLoading = true;
-      i.state.piLoginForm.pi_username = piUser.user.username;
-      i.state.piLoginForm.pi_uid = piUser.user.uid;
-      i.state.piLoginForm.pi_token = piUser.accessToken;
-      i.setState(i.state);
-    } else {
-      i.state.piLoginForm.pi_username = 'admin';
-      i.state.piLoginForm.pi_uid = '1ecb0489-01e2-421f-beca-59d200daf76e';
-      i.state.piLoginForm.pi_token = '';
-      i.setState(i.state);
-
-      console.log(i.state.piLoginForm);  
-      console.log(wsClient.piLogin(i.state.piLoginForm));  
-    }
+    
+    piUser = await authenticatePiUser();
+    event.preventDefault();
+    i.state.loginLoading = true;
+    i.state.piLoginForm.pi_username = piUser.user.username;
+    i.state.piLoginForm.pi_uid = piUser.user.uid;
+    i.state.piLoginForm.pi_token = piUser.accessToken;
+    i.setState(i.state);    
     WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+
   }
 
 
-  async handleRegisterSubmitPi(i: Login, event: any) {
+  async handlePiRegisterSubmit(i: Login, event: any) {
     if (!this.isPiBrowser)
       return;
 
@@ -585,7 +576,6 @@ export class Login extends Component<any, State> {
         });
     };
         
-
     var info = i.state.registerForm;
     info.password_verify = info.password;
     info.show_nsfw = true;
@@ -808,6 +798,18 @@ export class Login extends Component<any, State> {
         );
         toast(i18n.t("logged_in"));
         this.props.history.push("/");
+      } else if (op == UserOperation.PiLogin) {
+          let data = wsJsonToRes<LoginResponse>(msg).data;
+          this.state = this.emptyState;
+          this.setState(this.state);
+          UserService.Instance.login(data);
+          WebSocketService.Instance.send(
+            wsClient.userJoin({
+              auth: authField(),
+            })
+          );
+          toast(i18n.t("logged_in"));
+          this.props.history.push("/");
       } else if (op == UserOperation.Register) {
         let data = wsJsonToRes<LoginResponse>(msg).data;
         this.state = this.emptyState;
