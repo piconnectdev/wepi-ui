@@ -187,7 +187,17 @@ export class Login extends Component<any, State> {
                 </button>
               </div>
               <hr/>
-              
+              {/* {!this.isPiBrowser  && (
+                <div class="col-sm-10">
+                <button 
+                type="button"
+                 class="btn btn-secondary"
+                 onClick={linkEvent(this, this.handlePiLoginSubmit)}
+                >
+                  {this.state.loginLoading ? <Spinner /> : i18n.t("Login With Pi")}
+                </button>
+              </div>
+              )} */}
             </div>
           </form>
         </div>
