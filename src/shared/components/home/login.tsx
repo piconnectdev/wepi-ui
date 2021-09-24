@@ -214,7 +214,7 @@ export class Login extends Component<any, State> {
          class="btn btn-secondary"
          onClick={linkEvent(this, this.handlePiLoginSubmit)}
         >
-          {this.state.loginLoading ? <Spinner /> : i18n.t("Login With Pi Account")}
+          {this.state.loginLoading ? <Spinner /> : i18n.t("Login")}
         </button>
       </div>
       )
@@ -459,21 +459,15 @@ export class Login extends Component<any, State> {
       return  client.piLogin(form);
     };
 
-    if (this.isPiBrowser) {
-      piUser = await authenticatePiUser();
-      event.preventDefault();
-      i.state.loginLoading = true;
-      i.state.piLoginForm.pi_username = piUser.user.username;
-      i.state.piLoginForm.pi_uid = piUser.user.uid;
-      i.state.piLoginForm.pi_token = piUser.accessToken;
-      i.setState(i.state);    
-    } else {
-      i.state.piLoginForm.pi_username = 'admin';
-      i.state.piLoginForm.pi_uid = '017c1851-d087-1501-06fb-b9699d63c040';
-      i.state.piLoginForm.pi_token = '123456';
-    }
+    piUser = await authenticatePiUser();
+    event.preventDefault();
+    i.state.loginLoading = true;
+    i.state.piLoginForm.pi_username = piUser.user.username;
+    i.state.piLoginForm.pi_uid = piUser.user.uid;
+    i.state.piLoginForm.pi_token = piUser.accessToken;
+    i.setState(i.state);    
     let useHttp = false;
-    if (useHttp) {
+    if (useHttp===true) {
       console.log(JSON.stringify(i.state.piLoginForm));
       var data = await PiLogin(i.state.piLoginForm);
       this.state = this.emptyState;
