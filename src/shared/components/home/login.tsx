@@ -189,7 +189,7 @@ export class Login extends Component<any, State> {
                 </button>
               </div>
               <hr/>
-              {/* {!this.isPiBrowser  && (
+               {/* {!this.isPiBrowser  && (
                 <div class="col-sm-10">
                 <button 
                 type="button"
@@ -454,34 +454,44 @@ export class Login extends Component<any, State> {
       }
     }; // Read more about this in the SDK reference
     
-    piUser = await authenticatePiUser();
-    event.preventDefault();
-    i.state.loginLoading = true;
-    i.state.piLoginForm.pi_username = piUser.user.username;
-    i.state.piLoginForm.pi_uid = piUser.user.uid;
-    i.state.piLoginForm.pi_token = piUser.accessToken;
-    i.setState(i.state);    
+    const PiLogin =  async (form: PiLoginForm) => {
+      let client = new LemmyHttp(httpBase);
+      return  client.piLogin(form);
+    };
 
-    var data = await this.PiLogin(i.state.piLoginForm);
-    this.state = this.emptyState;
-    this.setState(this.state);
-    UserService.Instance.login(data);
-    WebSocketService.Instance.send(
-      wsClient.userJoin({
-        auth: authField(),
-      })
-    );
-    toast(i18n.t("logged_in"));
-    this.props.history.push("/");
-
-    //WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
-
+    if (this.isPiBrowser) {
+      piUser = await authenticatePiUser();
+      event.preventDefault();
+      i.state.loginLoading = true;
+      i.state.piLoginForm.pi_username = piUser.user.username;
+      i.state.piLoginForm.pi_uid = piUser.user.uid;
+      i.state.piLoginForm.pi_token = piUser.accessToken;
+      i.setState(i.state);    
+    } else {
+      i.state.piLoginForm.pi_username = 'admin';
+      i.state.piLoginForm.pi_uid = '017c1851-d087-1501-06fb-b9699d63c040';
+      i.state.piLoginForm.pi_token = '123456';
+    }
+    let useHttp = false;
+    if (useHttp) {
+      console.log(JSON.stringify(i.state.piLoginForm));
+      var data = await PiLogin(i.state.piLoginForm);
+      this.state = this.emptyState;
+      this.setState(this.state);
+      UserService.Instance.login(data);
+      WebSocketService.Instance.send(
+        wsClient.userJoin({
+          auth: authField(),
+        })
+      );
+      toast(i18n.t("logged_in"));
+      this.props.history.push("/");
+    } else {
+      WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+    }
   }
 
-  async PiLogin(form: PiLoginForm) {
-    let client = new LemmyHttp(httpBase);
-    return  client.piLogin(form);
-  }
+ 
 
   async handlePiRegisterSubmit(i: Login, event: any) {
     if (!this.isPiBrowser)
