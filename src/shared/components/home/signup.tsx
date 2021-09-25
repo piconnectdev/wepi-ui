@@ -4,10 +4,11 @@ import {
   GetCaptchaResponse,
   GetSiteResponse,
   LoginResponse,
-  PiLogin,
+  PiLogin as PiLoginForm,
   Register,
   SiteView,
   UserOperation,
+  LemmyHttp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import { i18n } from "../../i18next";
@@ -28,6 +29,8 @@ import {
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
 import {I18nKeys} from "i18next";
+import axios from '../../axios';
+import {httpBase} from "../../../shared/env";
 
 const passwordStrengthOptions: Options<string> = [
   {
@@ -57,7 +60,7 @@ const passwordStrengthOptions: Options<string> = [
 ];
 
 interface State {
-  piLoginForm: PiLogin;
+  piLoginForm: PiLoginForm;
   registerForm: Register;
   registerLoading: boolean;
   captcha: GetCaptchaResponse;
@@ -131,6 +134,10 @@ export class Signup extends Component<any, State> {
     //return isBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
+  get enableEmail(): boolean {
+    return false;
+    //return isBrowser() && navigator.userAgent.includes('PiBrowser');
+  }
 
   render() {
     return (
@@ -149,7 +156,7 @@ export class Signup extends Component<any, State> {
   registerForm() {
     if (!this.useExtSignUp) { 
     return (
-      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+      <form onSubmit={linkEvent(this, this.handlePiRegister)}>
         <h5>{i18n.t("sign_up")}</h5>
 
         <div class="form-group row">
@@ -172,29 +179,31 @@ export class Signup extends Component<any, State> {
           </div>
         </div>
 
-        {/* <div class="form-group row">
-          <label class="col-sm-2 col-form-label" htmlFor="register-email">
-            {i18n.t("email")}
-          </label>
-          <div class="col-sm-10">
-            <input
-              type="email"
-              id="register-email"
-              class="form-control"
-              placeholder={i18n.t("optional")}
-              value={this.state.registerForm.email}
-              autoComplete="email"
-              onInput={linkEvent(this, this.handleRegisterEmailChange)}
-              minLength={3}
-            />
-            {!validEmail(this.state.registerForm.email) && (
-              <div class="mt-2 mb-0 alert alert-light" role="alert">
-                <Icon icon="alert-triangle" classes="icon-inline mr-2" />
-                {i18n.t("no_password_reset")}
-              </div>
-            )}
-          </div>
-        </div> */}
+        {this.enableEmail && ( 
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label" htmlFor="register-email">
+              {i18n.t("email")}
+            </label>
+            <div class="col-sm-10">
+              <input
+                type="email"
+                id="register-email"
+                class="form-control"
+                placeholder={i18n.t("optional")}
+                value={this.state.registerForm.email}
+                autoComplete="email"
+                onInput={linkEvent(this, this.handleRegisterEmailChange)}
+                minLength={3}
+              />
+              {!validEmail(this.state.registerForm.email) && (
+                <div class="mt-2 mb-0 alert alert-light" role="alert">
+                  <Icon icon="alert-triangle" classes="icon-inline mr-2" />
+                  {i18n.t("no_password_reset")}
+                </div>
+              )}
+            </div>
+          </div> 
+        )}
 
         <div class="form-group row">
           <label class="col-sm-2 col-form-label" htmlFor="register-password">
@@ -492,11 +501,8 @@ export class Signup extends Component<any, State> {
       }
     }
   }
-
-
-
  
-  async handlePiRegister(i: Login, event: any) {
+  async handlePiRegister(i: Signup, event: any) {
 
     //if (!this.isPiBrowser)
     //  return;
@@ -538,7 +544,7 @@ export class Signup extends Component<any, State> {
 
     piUser = await authenticatePiUser();
     event.preventDefault();
-    i.state.loginLoading = true;
+    i.state.registerLoading = true;
     i.state.piLoginForm.pi_username = piUser.user.username;
     i.state.piLoginForm.pi_uid = piUser.user.uid;
     i.state.piLoginForm.pi_token = piUser.accessToken;
@@ -564,8 +570,7 @@ export class Signup extends Component<any, State> {
     }
   }
 
-
-  async handlePiRegisterSubmit(i: Login, event: any) {
+  async handlePiRegisterSubmit(i: Signup, event: any) {
     if (!this.isPiBrowser)
       return;
 
