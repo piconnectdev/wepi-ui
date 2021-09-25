@@ -396,7 +396,19 @@ export class Login extends Component<any, State> {
         );
         toast(i18n.t("logged_in"));
         this.props.history.push("/");
-      } else if (op == UserOperation.PasswordReset) {
+      } else if (op == UserOperation.PiLogin) {
+        let data = wsJsonToRes<LoginResponse>(msg).data;
+        this.state = this.emptyState;
+        this.setState(this.state);
+        UserService.Instance.login(data);
+        WebSocketService.Instance.send(
+          wsClient.userJoin({
+            auth: authField(),
+          })
+        );
+        toast(i18n.t("logged_in"));
+        this.props.history.push("/");
+    } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
         let data = wsJsonToRes<GetSiteResponse>(msg).data;
@@ -405,6 +417,7 @@ export class Login extends Component<any, State> {
       }
     }
   }
+
   async handlePiLoginSubmit(i: Login, event: any) {
 
     //if (!this.isPiBrowser)
