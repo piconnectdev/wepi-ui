@@ -92,10 +92,6 @@ export class Login extends Component<any, State> {
     //return isPiBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
-  get useExtSignUp(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes('PiBrowser');
-  }
 
   render() {
     return (
