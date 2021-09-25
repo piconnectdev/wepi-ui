@@ -2,6 +2,7 @@ import { isBrowser } from "./utils";
 
 const testHost = "localhost:8536";
 
+
 let internalHost =
   (!isBrowser() && process.env.LEMMY_INTERNAL_HOST) || testHost; // used for local dev
 export let externalHost: string;
@@ -37,9 +38,11 @@ export const httpBaseInternal = `http://${host}`; // Don't use secure here
 export const httpBase = `http${secure}://${host}`;
 export const wsUri = `ws${secure}://${wsHost}/api/v3/ws`;
 export const pictrsUri = `${httpBase}/pictrs/image`;
+export const isHttps = secure.endsWith("s");
 
 console.log(`httpbase: ${httpBase}`);
 console.log(`wsUri: ${wsUri}`);
+console.log(`isHttps: ${isHttps}`);
 
 // This is for html tags, don't include port
 const httpExternalUri = `http${secure}://${externalHost.split(":")[0]}`;

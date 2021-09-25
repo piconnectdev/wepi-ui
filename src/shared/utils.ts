@@ -25,6 +25,7 @@ import {
 } from "lemmy-js-client";
 import markdown_it from "markdown-it";
 import markdown_it_container from "markdown-it-container";
+import markdown_it_html5_embed from "markdown-it-html5-embed";
 import markdown_it_sub from "markdown-it-sub";
 import markdown_it_sup from "markdown-it-sup";
 import moment from "moment";
@@ -94,12 +95,13 @@ export const repoUrl = "https://github.com/piconnectdev/wepi";
 export const joinLemmyUrl = "https://join-lemmy.org";
 export const supportUrl = `https://wepi.social/`;
 export const supportLemmyUrl = `${joinLemmyUrl}/support`;
+export const donateLemmyUrl = `${joinLemmyUrl}/donate`;
 export const docsUrl = `${joinLemmyUrl}/docs/en/index.html`;
 export const helpGuideUrl = `${joinLemmyUrl}/docs/en/about/guide.html`; // TODO find a way to redirect to the non-en folder
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
 export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = "https://archive.is";
-export const elementUrl = "https://element.io/";
+export const elementUrl = "https://element.io";
 
 export const web3AnchorAddress = "0x7ab111c7846b10e06963b2e6484a2462dc5851aa";
 export const web3TipAddress = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
@@ -153,6 +155,7 @@ export const languages = [
   { code: "sk" },
   { code: "vi" },
   { code: "pt" },
+  { code: "ar" },
 ];
 
 export const themes = [
@@ -216,6 +219,16 @@ export const md = new markdown_it({
 })
   .use(markdown_it_sub)
   .use(markdown_it_sup)
+  .use(markdown_it_html5_embed, {
+    html5embed: {
+      useImageSyntax: true, // Enables video/audio embed with ![]() syntax (default)
+      attributes: {
+        audio: 'controls preload="metadata"',
+        video:
+          'width="100%" max-height="100%" controls loop preload="metadata"',
+      },
+    },
+  })
   .use(markdown_it_container, "spoiler", {
     validate: function (params: any) {
       return params.trim().match(/^spoiler\s+(.*)$/);
@@ -508,6 +521,8 @@ export function getMomentLanguage(): string {
     lang = "vi";
   } else if (lang.startsWith("pt")) {
     lang = "pt";
+  } else if (lang.startsWith("ar")) {
+    lang = "ar";
   } else {
     lang = "en";
   }
@@ -1442,3 +1457,14 @@ export function utf8ToHex(str: string) {
       encodeURIComponent(c).replace(/\%/g, '').toLowerCase()
   ).join('');
 };
+
+const SHORTNUM_SI_FORMAT = new Intl.NumberFormat("en-US", {
+  maximumSignificantDigits: 3,
+  //@ts-ignore
+  notation: "compact",
+  compactDisplay: "short",
+});
+
+export function numToSI(value: number): string {
+  return SHORTNUM_SI_FORMAT.format(value);
+}

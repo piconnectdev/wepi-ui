@@ -20,14 +20,15 @@ import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
   authField,
+  donateLemmyUrl,
   fetchLimit,
   getLanguage,
   isBrowser,
   notifyComment,
   notifyPrivateMessage,
+  numToSI,
   setTheme,
   showAvatars,
-  supportLemmyUrl,
   toast,
   wsClient,
   wsJsonToRes,
@@ -284,7 +285,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     "unread_messages"
                   )}`}
                 >
-                  {this.state.unreadCount}
+                  {numToSI(this.state.unreadCount)}
                 </span>
               )}
             </button>
@@ -335,7 +336,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 <a
                   className="nav-link"
                   title={i18n.t("support_lemmy")}
-                  href={supportLemmyUrl}
+                  href={donateLemmyUrl}
                 >
                   <Icon icon="heart" classes="small" />
                 </a>
@@ -358,7 +359,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               /^\/search/
             ) && (
               <form
-                class="form-inline"
+                class="form-inline mr-2"
                 onSubmit={linkEvent(this, this.handleSearchSubmit)}
               >
                 <input
@@ -404,7 +405,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                             "unread_messages"
                           )}`}
                         >
-                          {this.state.unreadCount}
+                          {numToSI(this.state.unreadCount)}
                         </span>
                       )}
                     </Link>
@@ -470,13 +471,22 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               </>
             ) : (
               <ul class="navbar-nav my-2">
-                <li className="ml-2 nav-item">
+                <li className="nav-item">
                   <button
-                    className="btn btn-success"
+                    className="nav-link btn btn-link"
                     onClick={linkEvent(this, this.handleGotoLogin)}
-                    title={i18n.t("login_sign_up")}
+                    title={i18n.t("login")}
                   >
-                    {i18n.t("login_sign_up")}
+                    {i18n.t("login")}
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className="nav-link btn btn-link"
+                    onClick={linkEvent(this, this.handleGotoSignup)}
+                    title={i18n.t("sign_up")}
+                  >
+                    {i18n.t("sign_up")}
                   </button>
                 </li>
               </ul>
@@ -537,7 +547,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   handleLogoutClick(i: Navbar) {
     i.setState({ showDropdown: false, expanded: false });
     UserService.Instance.logout();
-    i.context.router.history.push("/");
+    window.location.href = "/";
     location.reload();
   }
 
@@ -590,12 +600,11 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     i.context.router.history.push(`/login`);
   }
 
-  handleConnectWallet(i: Navbar) {
-    //i.setState({ showDropdown: false, expanded: false });
-    //i.context.router.history.push(`/login`);
-    if (typeof window.ethereum !== 'undefined') {
-      console.log('MetaMask is installed!');
-    }    
+  
+
+  handleGotoSignup(i: Navbar) {
+    i.setState({ showDropdown: false, expanded: false });
+    i.context.router.history.push(`/signup`);
   }
 
   handleShowDropdown(i: Navbar) {
@@ -778,5 +787,13 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           Notification.requestPermission();
       });
     }
+  }
+
+  handleConnectWallet(i: Navbar) {
+    //i.setState({ showDropdown: false, expanded: false });
+    //i.context.router.history.push(`/login`);
+    if (typeof window.ethereum !== 'undefined') {
+      console.log('MetaMask is installed!');
+    }    
   }
 }
