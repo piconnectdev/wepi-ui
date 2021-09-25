@@ -279,7 +279,7 @@ export class Signup extends Component<any, State> {
             </div>
           </div>
         )}
-        {this.state.site_view.site.enable_nsfw && (
+        {/* {this.state.site_view.site.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -296,14 +296,32 @@ export class Signup extends Component<any, State> {
               </div>
             </div>
           </div>
-        )}
-        {this.isLemmyMl && (
+        )} */}
+        {/* {this.isWePi && (
           <div class="mt-2 mb-0 alert alert-light" role="alert">
             <T i18nKey="lemmy_ml_registration_message">
               #<a href={joinLemmyUrl}>#</a>
             </T>
           </div>
-        )}
+        )} */}
+        { this.isPiBrowser && (
+              <div class="mt-2 mb-0 alert alert-light" role="alert">
+              This will transfer 0.01 test-π to our development test wallet for registration.
+              <hr/>
+              WePi’s username and password do not need to match Pi’s username and password.
+            </div>
+          )}
+          { !this.isPiBrowser && (
+           <div class="mt-2 mb-0 alert alert-light" role="alert">
+              USE PI BROWSER FOR REGISTRATION
+              <hr/>
+              This will transfer 0.01 test-π to our development test wallet for registration.
+              <hr/>
+              Please use in the Pi Browser. Any payments made will not be processed and this is just a simulation when ran outside of the Pi Browser.
+              <hr/>
+              WePi’s username and password do not need to match Pi’s username and password.
+            </div>
+          )}
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
