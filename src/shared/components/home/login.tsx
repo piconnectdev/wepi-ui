@@ -225,7 +225,7 @@ export class Login extends Component<any, State> {
     if (!this.useExtSignUp) { 
     // if (this.isPiBrowser) {
       return (
-      <form onSubmit={linkEvent(this, this.handlePiRegisterSubmit)}>
+      <form onSubmit={linkEvent(this, this.handlePiRegister)}>
           <h5>{i18n.t("sign_up")}</h5>
 
           <div class="form-group row">
@@ -486,6 +486,74 @@ export class Login extends Component<any, State> {
   }
 
  
+  async handlePiRegister(i: Login, event: any) {
+
+    //if (!this.isPiBrowser)
+    //  return;
+
+    var piUser;
+
+    const authenticatePiUser = async () => {
+      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+      const scopes = ['username','payments'];      
+      try {
+          var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+          return user;
+      } catch(err) {
+          console.log(err)
+      }
+    };
+
+    const onIncompletePaymentFound = async (payment) => { 
+      //do something with incompleted payment
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          auth: null,
+          dto: null
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+    }; // Read more about this in the SDK reference
+    
+    const PiLogin =  async (form: PiLoginForm) => {
+      let client = new LemmyHttp(httpBase);
+      return  client.piLogin(form);
+    };
+
+    piUser = await authenticatePiUser();
+    event.preventDefault();
+    i.state.loginLoading = true;
+    i.state.piLoginForm.pi_username = piUser.user.username;
+    i.state.piLoginForm.pi_uid = piUser.user.uid;
+    i.state.piLoginForm.pi_token = piUser.accessToken;
+    i.state.piLoginForm.info.username_or_email = i.state.registerForm.username;
+    i.state.piLoginForm.info.password = i.state.registerForm.password;
+    i.setState(i.state);    
+    let useHttp = false;
+    if (useHttp===true) {
+      console.log(JSON.stringify(i.state.piLoginForm));
+      var data = await PiLogin(i.state.piLoginForm);
+      this.state = this.emptyState;
+      this.setState(this.state);
+      UserService.Instance.login(data);
+      WebSocketService.Instance.send(
+        wsClient.userJoin({
+          auth: authField(),
+        })
+      );
+      toast(i18n.t("logged_in"));
+      this.props.history.push("/");
+    } else {
+      WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+    }
+  }
+
 
   async handlePiRegisterSubmit(i: Login, event: any) {
     if (!this.isPiBrowser)
