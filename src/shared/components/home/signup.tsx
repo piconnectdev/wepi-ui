@@ -131,13 +131,11 @@ export class Signup extends Component<any, State> {
   }
 
   get useExtSignUp(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes('PiBrowser');
+    return false;
   }
 
   get enableEmail(): boolean {
     return false;
-    //return isBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
   render() {
@@ -307,16 +305,14 @@ export class Signup extends Component<any, State> {
         )} */}
         { this.isPiBrowser && (
               <div class="mt-2 mb-0 alert alert-light" role="alert">
-              This will transfer 0.01 test-π to our development test wallet for registration.
-              <hr/>
+              {/* This will transfer 0.01 test-π to our development test wallet for registration.
+              <hr/> */}
               WePi’s username and password do not need to match Pi’s username and password.
             </div>
           )}
           { !this.isPiBrowser && (
            <div class="mt-2 mb-0 alert alert-light" role="alert">
               USE PI BROWSER FOR REGISTRATION
-              <hr/>
-              This will transfer 0.01 test-π to our development test wallet for registration.
               <hr/>
               Please use in the Pi Browser. Any payments made will not be processed and this is just a simulation when ran outside of the Pi Browser.
               <hr/>
@@ -493,7 +489,6 @@ export class Signup extends Component<any, State> {
         );
         this.props.history.push("/communities");      
       } else if (op == UserOperation.PiLogin) {
-        //alert("PiLogin Register response:" + JSON.stringify(msg));
         let data = wsJsonToRes<LoginResponse>(msg).data;
         this.state = this.emptyState;
         this.setState(this.state);
@@ -589,7 +584,6 @@ export class Signup extends Component<any, State> {
       toast(i18n.t("logged_in"));
       this.props.history.push("/");
     } else {
-      //alert("Start register:" + JSON.stringify(i.state.piLoginForm));
       WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
     }
   }
@@ -717,120 +711,4 @@ export class Signup extends Component<any, State> {
       alert("WePi register catch error:" + JSON.stringify(err));
     }
   }
-
-  // Hàm này cần access piUser từ PiSdk, nhưng nó không gọi Authenticate nữa
-  // async handleRegisterSubmit(i: Login, event: any) {    
-  //   event.preventDefault();
-  //   this.piUser = await this.authenticatePiUser();
-  //   i.state.registerLoading = true;
-  //   i.setState(i.state);
-    
-  //   var config = {
-  //     amount: 0.01,
-  //     memo: 'wepi:acc:'+i.state.registerForm.username,
-  //     metadata: {
-  //         ref_id: "",
-  //     }
-  //   };
-  // // create user register info
-  // // var info = {
-  // //     username: usernameToTransfer,
-  // //     password: passwordToTransfer,
-  // //     password_verify: passwordToTransfer,
-  // //     show_nsfw: true,
-  // //     email: null,
-  // //     captcha_uuid: null,
-  // //     captcha_answer: null,
-  // // };
-  // var info = i.state.registerForm;
-  // info.password_verify = info.password;
-  // info.show_nsfw = true;
-  //  await createPiRegister(info, config);   // Call use copy function.
-  //   //  await createPiRegister(info, config); // Call use wrapper 
-  //   //WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
-  // }
-
-  /// BEGIN FUNCTIONS COPIED 
-  ///  Goi truc tiep, copy tu wrapper sang day
-
-  // authenticatePiUser = async () => {
-  //     // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-  //     const scopes = ['username','payments'];      
-  //     try {
-  //         /// HOW TO CALL Pi.authenticate Global/Init
-  //         this.piUser = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-  //         return this.piUser;
-  //     } catch(err) {
-  //         console.log(err)
-  //     }
-  // }
-
-  // createPiRegister = async (info, config) => {
-  //   //piApiResult = null;
-  //       window.Pi.createPayment(config, {
-  //       // Callbacks you need to implement - read more about those in the detailed docs linked below:
-  //       onReadyForServerApproval: (payment_id) => this.onReadyForApprovalRegister(payment_id, info, config),
-  //       onReadyForServerCompletion:(payment_id, txid) => this.onReadyForCompletionRegister(payment_id, txid, info, config),
-  //       onCancel: this.onCancel,
-  //       onError:this.onError,
-  //     });
-  // }
-  
-  // onReadyForApprovalRegister = async (payment_id, info, paymentConfig) => {
-  //   //make POST request to your app server /payments/approve endpoint with paymentId in the body    
-  //   const { data, status } = await axios.post('/pi/agree', {
-	//     paymentid: payment_id,
-	//     pi_username: this.piUser.user.username,
-	//     pi_uid: this.piUser.user.uid,
-	//     info,
-  //     paymentConfig
-  //   })
-
-  //   if (status === 500) {
-  //       //there was a problem approving this payment show user body.message from server
-  //       //alert(`${body.status}: ${body.message}`);
-  //       return false;
-  //   } 
-
-  //   if (status === 200) {
-  //       //payment was approved continue with flow
-  //       return data;
-  //   }
-  // }
-
-  // // Update or change password
-  // onReadyForCompletionRegister = async (payment_id, txid, info, paymentConfig) => {
-  //   //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-  //   const { data, status } = await axios.post('/pi/register', {
-  //       paymentid: payment_id,
-  //       pi_username: this.piUser.user.username,
-  //       pi_uid: this.piUser.user.uid,
-  //       txid,
-	//     info,
-	//     paymentConfig,
-  //   })
-
-  //   if (status === 500) {
-  //       //there was a problem completing this payment show user body.message from server
-  //       alert(`${data.status}: ${data.message}`);
-  //       return false;
-  //   } 
-
-  //   if (status === 200) {
-  //       //payment was completed continue with flow
-  //       //piApiResult["success"] = true;
-  //       //piApiResult["type"] = "account";
-  //       return true;
-  //   }
-  //   return false;
-  // }
-
-  // onCancel = (paymentId) => {
-  //     console.log('Register payment cancelled', paymentId)
-  // }
-  // onError = (error, paymentId) => { 
-  //     console.log('Register onError', error, paymentId) 
-  // }
-  /// END 
-
 }
