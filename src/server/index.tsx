@@ -52,9 +52,9 @@ server.get("/*", async (req, res) => {
   const activeRoute = routes.find(route => matchPath(req.path, route)) || {};
   const context = {} as any;
   let auth: string = IsomorphicCookie.load("jwt", req);
-  if (auth == null) {
-    auth = Cookies.get("wepiJwt");
-  }
+  //if (auth == null) {
+  //  auth = Cookies.get("wepiJwt");
+  //}
   let getSiteForm: GetSite = {};
   setOptionalAuth(getSiteForm, auth);
 
