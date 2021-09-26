@@ -51,10 +51,9 @@ server.get("/robots.txt", async (_req, res) => {
 server.get("/*", async (req, res) => {
   const activeRoute = routes.find(route => matchPath(req.path, route)) || {};
   const context = {} as any;
-  let auth: string = IsomorphicCookie.load("jwt", req);
-  //if (auth == null) {
-  //  auth = Cookies.get("wepiJwt");
-  //}
+  //let auth: string = IsomorphicCookie.load("jwt", req);
+  let auth: string = Cookies.get("wepiJwt");
+  
   let getSiteForm: GetSite = {};
   setOptionalAuth(getSiteForm, auth);
 

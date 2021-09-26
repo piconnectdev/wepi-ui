@@ -282,6 +282,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <MarkdownTextArea
                 initialContent={this.state.postForm.body}
                 onContentChange={this.handlePostBodyChange}
+                maxLength = {100000}
               />
             </div>
           </div>

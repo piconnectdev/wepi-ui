@@ -1,4 +1,5 @@
 import emojiShortName from "emoji-short-name";
+import { unlink } from "fs";
 import {
   BlockCommunityResponse,
   BlockPersonResponse,
@@ -1307,7 +1308,7 @@ export function authField(
   throwErr = true,
   auth = UserService.Instance.auth
 ): string {
-  if (auth == null && throwErr) {
+  if ((auth == null || auth == undefined) && throwErr) {
     let jwt = UserService.Instance.jwt;
     if ( jwt == null || jwt == undefined || jwt === undefined) {
       toast(i18n.t("not_logged_in"), "danger");
