@@ -178,7 +178,7 @@ export class Login extends Component<any, State> {
                  class="btn btn-secondary"
                  onClick={linkEvent(this, this.handlePiLoginSubmit)}
                 >
-                  {this.state.loginLoading ? <Spinner /> : i18n.t("Login TEST (Do not use)")}
+                  {this.state.loginLoading ? <Spinner /> : "Login TEST (Do not use)"}
                 </button>
               </div>
               )}
@@ -277,7 +277,6 @@ export class Login extends Component<any, State> {
 
     //if (!this.isPiBrowser)
     //  return;
-
     var piUser;
 
     const authenticatePiUser = async () => {
@@ -303,7 +302,6 @@ export class Login extends Component<any, State> {
 
       if (data.status >= 200 && data.status < 300) {
           //payment was approved continue with flow
-          //alert(payment);
           return data;
       }
     }; // Read more about this in the SDK reference

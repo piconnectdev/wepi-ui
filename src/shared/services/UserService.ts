@@ -16,6 +16,7 @@ export class UserService {
   public myUserInfo: MyUserInfo;
   public claims: Claims;
   public jwtSub: Subject<string> = new Subject<string>();
+  public jwtString: string;
   public unreadCountSub: BehaviorSubject<number> = new BehaviorSubject<number>(
     0
   );
@@ -23,8 +24,10 @@ export class UserService {
   private constructor() {
     if (this.auth) {
       this.setClaims(this.auth);
+      this.jwtString = this.auth;
     } else {
       // setTheme();
+      this.jwtString = undefined
       console.log("No JWT cookie found.");
     }
   }
@@ -33,6 +36,7 @@ export class UserService {
     let expires = new Date();
     expires.setDate(expires.getDate() + 365);
     IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
+    this.jwtString = res.jwt;
     console.log("jwt cookie set");
     this.setClaims(res.jwt);
   }
@@ -42,6 +46,7 @@ export class UserService {
     this.myUserInfo = undefined;
     // setTheme();
     this.jwtSub.next("");
+    this.jwtString = undefined;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.host;
     console.log("Logged out.");
@@ -49,6 +54,10 @@ export class UserService {
 
   public get auth(): string {
     return IsomorphicCookie.load("jwt");
+  }
+
+  public get jwt(): string {
+    return this.jwtString;
   }
 
   private setClaims(jwt: string) {

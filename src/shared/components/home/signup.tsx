@@ -4,6 +4,7 @@ import {
   GetCaptchaResponse,
   GetSiteResponse,
   LoginResponse,
+  Login as LoginForm,
   PiLogin as PiLoginForm,
   Register,
   SiteView,
@@ -492,6 +493,7 @@ export class Signup extends Component<any, State> {
         );
         this.props.history.push("/communities");      
       } else if (op == UserOperation.PiLogin) {
+        //alert("PiLogin Register response:" + JSON.stringify(msg));
         let data = wsJsonToRes<LoginResponse>(msg).data;
         this.state = this.emptyState;
         this.setState(this.state);
@@ -584,6 +586,7 @@ export class Signup extends Component<any, State> {
       toast(i18n.t("logged_in"));
       this.props.history.push("/");
     } else {
+      //alert("Start register:" + JSON.stringify(i.state.piLoginForm));
       WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
     }
   }
@@ -661,14 +664,14 @@ export class Signup extends Component<any, State> {
         alert("WePi register payment:" + JSON.stringify(data));
         if (data.status >= 200 && data.status < 300) {
             event.preventDefault();
-            i.state.loginLoading = true;
+            i.state.registerLoading = true;
             i.setState(i.state);          
             //i.state.loginForm.username_or_email = i.state.registerForm.username;
             //i.state.loginForm.password = i.state.registerForm.password;
             //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
             var lf: LoginForm;
             lf.username_or_email = i.state.registerForm.username;
-            lf.password = i.state.registerForm.password;          
+            lf.password = i.state.registerForm.password;
             WebSocketService.Instance.send(wsClient.login(lf));
             return true;
         } else {

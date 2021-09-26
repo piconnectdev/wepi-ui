@@ -1308,8 +1308,13 @@ export function authField(
   auth = UserService.Instance.auth
 ): string {
   if (auth == null && throwErr) {
-    toast(i18n.t("not_logged_in"), "danger");
-    throw "Not logged in";
+    let jwt = UserService.Instance.jwt;
+    if ( jwt == null || jwt == undefined || jwt === undefined) {
+      toast(i18n.t("not_logged_in"), "danger");
+      throw "Not logged in";
+    } else {
+      return UserService.Instance.jwt;
+    }
   } else {
     return auth;
   }
