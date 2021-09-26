@@ -562,14 +562,17 @@ export class Signup extends Component<any, State> {
       return  client.piLogin(form);
     };
 
-    piUser = await authenticatePiUser();
     event.preventDefault();
     i.state.registerLoading = true;
+    i.setState(i.state);    
+    piUser = await authenticatePiUser();
     i.state.piLoginForm.pi_username = piUser.user.username;
     i.state.piLoginForm.pi_uid = piUser.user.uid;
     i.state.piLoginForm.pi_token = piUser.accessToken;
-    i.state.piLoginForm.info.username_or_email = i.state.registerForm.username;
-    i.state.piLoginForm.info.password = i.state.registerForm.password;
+    i.state.piLoginForm.info = {
+      username_or_email: i.state.registerForm.username,
+      password: i.state.registerForm.password,
+    };
     i.setState(i.state);    
     let useHttp = false;
     if (useHttp===true) {
