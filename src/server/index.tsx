@@ -18,6 +18,7 @@ import {
 } from "../shared/interfaces";
 import { routes } from "../shared/routes";
 import { initializeSite, setOptionalAuth } from "../shared/utils";
+import Cookies from 'js-cookie'
 
 const server = express();
 const [hostname, port] = process.env["LEMMY_UI_HOST"]
@@ -51,7 +52,9 @@ server.get("/*", async (req, res) => {
   const activeRoute = routes.find(route => matchPath(req.path, route)) || {};
   const context = {} as any;
   let auth: string = IsomorphicCookie.load("jwt", req);
-
+  if (auth == null) {
+    auth = Cookies.get("wepiJwt");
+  }
   let getSiteForm: GetSite = {};
   setOptionalAuth(getSiteForm, auth);
 

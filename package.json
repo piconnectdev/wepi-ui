@@ -32,6 +32,7 @@
     "inferno-router": "^7.4.10",
     "inferno-server": "^7.4.10",
     "isomorphic-cookie": "^1.2.4",
+    "js-cookie": "^3.0.1",
     "jwt-decode": "^3.1.2",
     "lemmy-js-client": "https://github.com/piconnectdev/lemmy-js-client",
     "markdown-it": "^12.1.0",
