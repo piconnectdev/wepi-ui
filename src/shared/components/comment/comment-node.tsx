@@ -279,7 +279,19 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <Icon icon="zap" classes="icon-inline" />
               </button>  
               )}
-
+              { cv.comment.tx && (
+              <button
+                class="btn btn-link btn-animate text-muted p-0"
+                onClick={linkEvent(this, this.handleLinkBlockchainClick)}
+                aria-label={i18n.t("blockchain")}
+                data-tippy-content={i18n.t("explorer blockchain") }
+              >
+                <Icon
+                  icon="external-link"
+                  classes={`icon-inline mr-1`}
+                />
+              </button>
+              )}
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-5 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               {showScores() && (
@@ -1394,6 +1406,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   get expandText(): string {
     return this.state.collapsed ? i18n.t("expand") : i18n.t("collapse");
   }
+  async handleLinkBlockchainClick(i: CommentNode) {
+    var url = i.props.node.comment_view.comment.tx;
+    window.open(url, "_blank");
+  }  
 
   async handleBlockchainComment(i: CommentNode) {
     if (this.isPiBrowser)

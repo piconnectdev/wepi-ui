@@ -90,6 +90,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {this.communityTitle()}
             {this.adminButtons()}
             {this.subscribe()}
+            {this.blockchain()}
             {this.createPost()}
           </div>
         </div>
@@ -288,6 +289,21 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {i18n.t("subscribe")}
           </a>
         )}
+      </div>
+    );
+  }
+
+  blockchain() {
+    //let community_view = this.props.community_view;
+    return (
+      <div class="mb-2">
+          <a
+            class="btn btn-secondary btn-block"
+            href="#"
+            onClick={linkEvent(this, this.handleBlockchainClick)}
+          >
+            {i18n.t("Blockchain")}
+          </a>
       </div>
     );
   }

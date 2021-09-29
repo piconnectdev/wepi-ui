@@ -92,7 +92,7 @@ export const favIconPngUrl = "/static/assets/icons/apple-touch-icon.png";
 // TODO
 // export const defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
 export const joinPiUrl = "https://minepi.com/";
-export const repoUrl = "https://github.com/LemmyNet/lemmy
+export const repoUrl = "https://github.com/LemmyNet/lemmy";
 export const joinLemmyUrl = "https://join-lemmy.org";
 export const supportUrl = `https://wepi.social/`;
 export const supportLemmyUrl = `${joinLemmyUrl}/support`;

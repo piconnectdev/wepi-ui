@@ -569,6 +569,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               />
           </button>
         )}
+        { post_view.post.tx && (
+        <button
+          class="btn btn-link btn-animate text-muted p-0"
+          onClick={linkEvent(this, this.handleLinkBlockchainClick)}
+          aria-label={i18n.t("explorer")}
+          data-tippy-content={i18n.t("explorer blockchain") }
+        >
+          <Icon
+            icon="external-link"
+            classes={`icon-inline mr-1`}
+          />
+        </button>
+        )}
         {/* <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleTipPostClick)}
@@ -1674,7 +1687,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         alert("PiPayment error:" + JSON.stringify(err));
     }
   }
-  
+
+  async handleLinkBlockchainClick(i: PostListing) {
+    var url = i.props.post_view.post.tx;
+    window.open(url, "_blank");
+  }  
+
   async handlePiBlockchainClick(i: PostListing) {    
     var config = {
       amount: 0.001,

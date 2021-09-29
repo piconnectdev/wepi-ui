@@ -41,6 +41,11 @@ import {
   wsJsonToRes,
   wsSubscribe,
   wsUserOp,
+  isBrowser,
+  utf8ToHex,
+  web3AnchorAddress,
+  eth001,
+  gasPrice,
 } from "../../utils";
 import { BannerIconHeader } from "../common/banner-icon-header";
 import { HtmlTags } from "../common/html-tags";
@@ -50,7 +55,7 @@ import { SortSelect } from "../common/sort-select";
 import { CommunityLink } from "../community/community-link";
 import { PersonDetails } from "./person-details";
 import { PersonListing } from "./person-listing";
-
+import axios from '../../axios';
 interface ProfileState {
   personRes: GetPersonDetailsResponse;
   userName: string;
@@ -392,7 +397,18 @@ export class Profile extends Component<any, ProfileState> {
                   </Link>
                 </>
               )}
+              <hr/>
+              <div class="mb-2">
+                <a
+                  class="btn btn-secondary btn-block  mr-2 "
+                  href="#"
+                  //onClick={linkEvent(this, this.handleBlockchainClick)}
+                >
+                  {i18n.t("Blockchain")}
+                </a>
             </div>
+            </div>
+            
             {pv.person.bio && (
               <div className="d-flex align-items-center mb-2">
                 <div
@@ -586,4 +602,176 @@ export class Profile extends Component<any, ProfileState> {
       updatePersonBlock(data);
     }
   }
+
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
+  }
+
+  async handleBlockchainClick(i: Profile) {
+
+    if (this.isPiBrowser) {
+      await this.handlePiBlockchainClick(i);
+      return;
+    }
+    const isMetaMaskInstalled = () => {
+      //Have to check the ethereum binding on the window object to see if it's installed
+      const { ethereum } = window;
+      return Boolean(ethereum && ethereum.isMetaMask);
+    };
+
+    var config = {
+      memo: 'wepi:profile:'+i.props.person.name,
+      metadata: {
+          id: i.props.person.id,
+          name: i.props.person.name,
+          display: i.props.person.display_name,
+          actor_id: i.props.person.actor_id,
+          t: i.props.person.published,
+          u: i.props.person.updated,
+          s: i.props.person.cert,
+      }
+    };
+
+    var str = utf8ToHex(JSON.stringify(config));
+    if (isMetaMaskInstalled()) {
+      try {
+        var accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [
+          {
+            from: accounts[0],
+            to: web3AnchorAddress,
+            gasPrice: gasPrice,
+            value: eth001,
+            data: '0x' + str,
+          },
+        ],
+        })
+        .then((txHash) => console.log(txHash))
+        .catch((error) => console.error);
+      } catch(error) {
+      }
+    }
+  }
+
+  async handlePiBlockchainClick(i: Profile) {    
+    var config = {
+      amount: 0.001,
+      memo: 'wepi:profile:'+i.props.person.name,
+      metadata: {
+          id: i.props.person.id,
+          name: i.props.person.name,
+          display: i.props.person.display_name,
+          actor_id: i.props.person.actor_id,
+          t: i.props.person.published,
+          u: i.props.person.updated,
+          s: i.props.person.cert,
+      }
+    };
+    var info= {
+      own: null,
+      comment: null,
+    }
+    var piUser;   
+    
+    const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ['username','payments'];      
+        try {
+            /// HOW TO CALL Pi.authenticate Global/Init
+            var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            return user;
+        } catch(err) {
+            alert("Pi.authenticate error:" + JSON.stringify(err));
+            console.log(err)
+        }
+    };
+    const onIncompletePaymentFound = async (payment) => { 
+      const { data } = await axios.post('/pi/found', {
+          paymentid: payment.identifier,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          person_id: null,
+          comment: null,
+          auth: null,
+          dto: null
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          //alert(payment);
+          return data;
+      }
+    }; // Read more about this in the SDK reference
+
+  const createPiPayment = async (info, config) => {
+    //piApiResult = null;
+        window.Pi.createPayment(config, {
+        // Callbacks you need to implement - read more about those in the detailed docs linked below:
+        onReadyForServerApproval: (payment_id) => onReadyForApproval(payment_id, info, config),
+        onReadyForServerCompletion:(payment_id, txid) => onReadyForCompletion(payment_id, txid, info, config),
+        onCancel: onCancel,
+        onError: onError,
+      });
+  };
+
+  const onReadyForApproval = async (payment_id, info, paymentConfig) => {
+      //make POST request to your app server /payments/approve endpoint with paymentId in the body    
+      const { data } = await axios.post('/pi/approve', {
+        paymentid: payment_id,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
+        person_id: info.own,
+        comment: info.comment,
+        paymentConfig
+      })
+      if (data.status >= 200 && data.status < 300) {
+          //payment was approved continue with flow
+          return data;
+      } else {
+        //alert("Payment approve error: " + JSON.stringify(data));
+      }
+    }
+
+    // Update or change password
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
+      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      axios.post('/pi/complete', {
+          paymentid: payment_id,
+          pi_username: piUser.user.username,
+          pi_uid: piUser.user.uid,
+          person_id: info.own,
+          comment: info.comment,
+          txid,
+          paymentConfig,
+      }).then((data) => {
+        //alert("Completing payment data: " + JSON.stringify(data)); 
+        
+        if (data.status >= 200 && data.status < 300) {
+            return true;
+        } else {
+          alert("Completing payment error: " + JSON.stringify(data));  
+        }
+        return false;
+      });
+      return false;
+    }
+
+    const onCancel = (paymentId) => {
+        console.log('Payment cancelled: ', paymentId)
+    }
+    const onError = (error, paymentId) => { 
+        console.log('Payment error: ', error, paymentId) 
+    }
+
+    try {
+      piUser = await authenticatePiUser();
+      
+      await createPiPayment(info, config);
+    } catch(err) {
+      alert("PiPayment error:" + JSON.stringify(err));
+    }
+  }
+
 }
