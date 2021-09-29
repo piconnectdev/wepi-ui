@@ -35,8 +35,8 @@ export class UserService {
   public login(res: LoginResponse) {
     let expires = new Date();
     expires.setDate(expires.getDate() + 30);
-    //IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
-    Cookies.set("wepiJwt", res.jwt, { expires: 365, domain:location.host, secure: true });
+    IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
+    //Cookies.set("wepiJwt", res.jwt, { expires: 365, domain:location.host, secure: true });
     this.jwtString = res.jwt;
     console.log("jwt cookie set");
     this.setClaims(res.jwt);
@@ -48,15 +48,15 @@ export class UserService {
     // setTheme();
     this.jwtSub.next("");
     this.jwtString = undefined;
-    //IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
-    Cookies.remove('wepiJwt');
-    document.cookie = "jwt=; Max-Age=0; path=/; wepiJwt=;domain=" + location.host;
+    IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
+    //Cookies.remove('wepiJwt');
+    document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.host;
     console.log("Logged out.");
   }
 
   public get auth(): string {
-    return  Cookies.get("wepiJwt");
-    //return IsomorphicCookie.load("jwt");
+    //return  Cookies.get("wepiJwt");
+    return IsomorphicCookie.load("jwt");
   }
 
   public get jwt(): string {
