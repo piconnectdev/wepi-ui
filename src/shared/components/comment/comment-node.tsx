@@ -241,7 +241,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handleBlockchainComment)}
                 aria-label={i18n.t("blockchain")}
-                data-tippy-content={i18n.t("to blockchain")}
+                data-tippy-content={i18n.t("save to blockchain")}
               >
               <Icon icon="zap" classes="icon-inline" />
               </button>
@@ -274,7 +274,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 class="btn btn-sm text-muted"
                 onClick={linkEvent(this, this.handlePiBlockchainClick)}
                 aria-label={i18n.t("to pi blockchain")}
-                data-tippy-content={i18n.t("save this to pi blockchain")}
+                data-tippy-content={i18n.t("save to pi blockchain")}
               >
               <Icon icon="zap" classes="icon-inline" />
               </button>  
@@ -284,7 +284,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 class="btn btn-link btn-animate text-muted p-0"
                 onClick={linkEvent(this, this.handleLinkBlockchainClick)}
                 aria-label={i18n.t("blockchain")}
-                data-tippy-content={i18n.t("explorer blockchain") }
+                data-tippy-content={i18n.t("link on blockchain") }
               >
                 <Icon
                   icon="external-link"
@@ -1423,9 +1423,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       var config = {
         memo: 'wepi:comment',
         metadata: {
+            id: i.props.node.comment_view.comment.id,
             own: i.props.node.comment_view.comment.creator_id,
             post_id: i.props.node.comment_view.comment.post_id,
-            id: i.props.node.comment_view.comment.id,
             parent_id: i.props.node.comment_view.comment.parent_id,
             ap_id: i.props.node.comment_view.comment.ap_id,            
             content: i.props.node.comment_view.comment.content,
@@ -1619,9 +1619,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       amount: 0.001,
       memo: 'wepi:comment',
         metadata: {
+          id: i.props.node.comment_view.comment.id,
           own: i.props.node.comment_view.comment.creator_id,
           post_id: i.props.node.comment_view.comment.post_id,
-          id: i.props.node.comment_view.comment.id,
           parent_id: i.props.node.comment_view.comment.parent_id,
           ap_id: i.props.node.comment_view.comment.ap_id,            
           content: i.props.node.comment_view.comment.content,

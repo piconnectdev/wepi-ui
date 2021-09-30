@@ -8,6 +8,7 @@ import {
   GetPersonDetails,
   GetPersonDetailsResponse,
   GetSiteResponse,
+  PersonViewSafe,
   PostResponse,
   SortType,
   UserOperation,
@@ -402,11 +403,11 @@ export class Profile extends Component<any, ProfileState> {
                 <a
                   class="btn btn-secondary btn-block  mr-2 "
                   href="#"
-                  //onClick={linkEvent(this, this.handleBlockchainClick)}
+                  onClick={linkEvent(pv, this.handleBlockchainClick)}
                 >
                   {i18n.t("Blockchain")}
                 </a>
-            </div>
+              </div>
             </div>
             
             {pv.person.bio && (
@@ -607,8 +608,7 @@ export class Profile extends Component<any, ProfileState> {
     return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
   }
 
-  async handleBlockchainClick(i: Profile) {
-
+  async handleBlockchainClick(i: PersonViewSafe) {
     if (this.isPiBrowser) {
       await this.handlePiBlockchainClick(i);
       return;
@@ -620,15 +620,15 @@ export class Profile extends Component<any, ProfileState> {
     };
 
     var config = {
-      memo: 'wepi:profile:'+i.props.person.name,
+      memo: 'wepi:profile:'+i.person.name,
       metadata: {
-          id: i.props.person.id,
-          name: i.props.person.name,
-          display: i.props.person.display_name,
-          actor_id: i.props.person.actor_id,
-          t: i.props.person.published,
-          u: i.props.person.updated,
-          s: i.props.person.cert,
+          id: i.person.id,
+          name: i.person.name,
+          display: i.person.display_name,
+          actor_id: i.person.actor_id,
+          t: i.person.published,
+          u: i.person.updated,
+          s: i.person.cert,
       }
     };
 
@@ -655,23 +655,23 @@ export class Profile extends Component<any, ProfileState> {
     }
   }
 
-  async handlePiBlockchainClick(i: Profile) {    
+  async handlePiBlockchainClick(i: PersonViewSafe) {    
     var config = {
       amount: 0.001,
-      memo: 'wepi:profile:'+i.props.person.name,
+      memo: 'wepi:profile',
       metadata: {
-          id: i.props.person.id,
-          name: i.props.person.name,
-          display: i.props.person.display_name,
-          actor_id: i.props.person.actor_id,
-          t: i.props.person.published,
-          u: i.props.person.updated,
-          s: i.props.person.cert,
+          id: i.person.id,
+          name: i.person.name,
+          display: i.person.display_name,
+          actor_id: i.person.actor_id,
+          t: i.person.published,
+          u: i.person.updated,
+          s: i.person.cert,
       }
     };
     var info= {
       own: null,
-      comment: null,
+      comment: i.person.id,
     }
     var piUser;   
     

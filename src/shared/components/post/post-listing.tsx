@@ -523,7 +523,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleBlockchainClick)}
           aria-label={i18n.t("blockchain")}
-          data-tippy-content={i18n.t("to blockchain") }
+          data-tippy-content={i18n.t("save to blockchain") }
         >
           <Icon
             icon="zap"
@@ -561,7 +561,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             class="btn btn-link btn-animate text-muted p-0"
             onClick={linkEvent(this, this.handlePiBlockchainClick)}
             aria-label={i18n.t("to pi blockchain")}
-            data-tippy-content={i18n.t("save post to pi blockchain") }
+            data-tippy-content={i18n.t("save to pi blockchain") }
           >
               <Icon
                 icon="zap"
@@ -573,8 +573,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         <button
           class="btn btn-link btn-animate text-muted p-0"
           onClick={linkEvent(this, this.handleLinkBlockchainClick)}
-          aria-label={i18n.t("explorer")}
-          data-tippy-content={i18n.t("explorer blockchain") }
+          aria-label={i18n.t("blockchain")}
+          data-tippy-content={i18n.t("link on blockchain") }
         >
           <Icon
             icon="external-link"
@@ -1490,9 +1490,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     var config = {
       memo: 'wepi:post',
       metadata: {
+          id: i.props.post_view.post.id,
           own: i.props.post_view.creator.id,
           cid: i.props.post_view.community.id,
-          id: i.props.post_view.post.id,
           url: i.props.post_view.post.url,
           name: i.props.post_view.post.name,
           body: i.props.post_view.post.body,
@@ -1688,19 +1688,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  async handleLinkBlockchainClick(i: PostListing) {
-    var url = i.props.post_view.post.tx;
-    window.open(url, "_blank");
-  }  
 
   async handlePiBlockchainClick(i: PostListing) {    
     var config = {
       amount: 0.001,
       memo: 'wepi:post',
       metadata: {
+          id: i.props.post_view.post.id,
           own: i.props.post_view.creator.id,
           cid: i.props.post_view.community.id,
-          id: i.props.post_view.post.id,
           url: i.props.post_view.post.url,
           name: i.props.post_view.post.name,
           body: i.props.post_view.post.body,
@@ -1817,6 +1813,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       alert("PiPayment error:" + JSON.stringify(err));
     }
   }
+
+  async handleLinkBlockchainClick(i: PostListing) {
+    var url = i.props.post_view.post.tx;
+    window.open(url, "_blank");
+  }  
 
   get crossPostParams(): string {
     let post = this.props.post_view.post;

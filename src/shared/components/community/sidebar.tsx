@@ -90,8 +90,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {this.communityTitle()}
             {this.adminButtons()}
             {this.subscribe()}
-            {this.blockchain()}
             {this.createPost()}
+            {this.blockchain()}
           </div>
         </div>
         <div class="card border-secondary mb-3">
@@ -327,7 +327,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         <ul class="list-inline mb-1 text-muted font-weight-bold">
           {this.canMod && (
             <>
-            { !this.isPiBrowser && (
+            {/* { !this.isPiBrowser && (
             <li className="list-inline-item-action">
                 <button
                   class="btn btn-link text-muted d-inline-block"
@@ -338,7 +338,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   <Icon icon="zap" classes="icon-inline" />
                 </button>
               </li>
-            )}
+            )} */}
             { this.isPiBrowser && (
             <li className="list-inline-item-action">
                 <button
@@ -634,7 +634,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     var config = {
       memo: 'wepi:community',
       metadata: {
-          id: i.props.community_view.community.actor_id,
+          id: i.props.community_view.community.id,
           name: i.props.community_view.community.name,
           title: i.props.community_view.community.title,
           desc: i.props.community_view.community.description,
@@ -673,7 +673,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       amount: 0.001,
       memo: 'wepi:community',
       metadata: {
-          id: i.props.community_view.community.actor_id,
+          id: i.props.community_view.community.id,
           name: i.props.community_view.community.name,
           title: i.props.community_view.community.title,
           desc: i.props.community_view.community.description,
@@ -686,7 +686,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     };
     var info= {
       own: null,
-      comment: null,
+      comment: i.props.community_view.community.id,
     }
     var piUser;   
     
