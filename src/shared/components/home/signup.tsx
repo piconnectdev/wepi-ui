@@ -135,7 +135,7 @@ export class Signup extends Component<any, State> {
   }
 
   get enableEmail(): boolean {
-    return false;
+    return true;
   }
 
   render() {
@@ -155,7 +155,7 @@ export class Signup extends Component<any, State> {
   registerForm() {
     if (!this.useExtSignUp) { 
     return (
-      <form onSubmit={linkEvent(this, this.handlePiRegister)}>
+      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
         <h5>{i18n.t("sign_up")}</h5>
 
         <div class="form-group row">
@@ -178,7 +178,7 @@ export class Signup extends Component<any, State> {
           </div>
         </div>
 
-        {this.enableEmail && ( 
+        {!this.isPiBrowser && this.enableEmail && ( 
           <div class="form-group row">
             <label class="col-sm-2 col-form-label" htmlFor="register-email">
               {i18n.t("email")}
@@ -228,7 +228,8 @@ export class Signup extends Component<any, State> {
           </div>
         </div>
 
-        {/* <div class="form-group row">
+        {!this.isPiBrowser && (
+        <div class="form-group row">
           <label
             class="col-sm-2 col-form-label"
             htmlFor="register-verify-password"
@@ -247,9 +248,9 @@ export class Signup extends Component<any, State> {
               required
             />
           </div>
-        </div> */}
+        </div> )}
 
-        {this.state.captcha && (
+        {!this.isPiBrowser && this.state.captcha && (
           <div class="form-group row">
             <label class="col-sm-2" htmlFor="register-captcha">
               <span class="mr-2">{i18n.t("enter_code")}</span>
@@ -278,7 +279,7 @@ export class Signup extends Component<any, State> {
             </div>
           </div>
         )}
-        {/* {this.state.site_view.site.enable_nsfw && (
+        {!this.isPiBrowser && this.state.site_view.site.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -295,7 +296,7 @@ export class Signup extends Component<any, State> {
               </div>
             </div>
           </div>
-        )} */}
+        )} 
         {/* {this.isWePi && (
           <div class="mt-2 mb-0 alert alert-light" role="alert">
             <T i18nKey="lemmy_ml_registration_message">
@@ -310,7 +311,7 @@ export class Signup extends Component<any, State> {
               WePi’s username and password do not need to match Pi’s username and password.
             </div>
           )}
-          { !this.isPiBrowser && (
+          {/* { !this.isPiBrowser && (
            <div class="mt-2 mb-0 alert alert-light" role="alert">
               USE PI BROWSER FOR REGISTRATION
               <hr/>
@@ -318,7 +319,7 @@ export class Signup extends Component<any, State> {
               <hr/>
               WePi’s username and password do not need to match Pi’s username and password.
             </div>
-          )}
+          )} */}
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
@@ -395,6 +396,13 @@ export class Signup extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Signup, event: any) {
+    if (this.isPiBrowser) {
+      this.handlePiRegisterSubmit(i, event).then(()=>{
+        
+      });
+      return;
+    }
+
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
@@ -517,11 +525,9 @@ export class Signup extends Component<any, State> {
     }
   }
  
-  async handlePiRegister(i: Signup, event: any) {
+  async handlePiRegisterSubmit(i: Signup, event: any) {
 
-    //if (!this.isPiBrowser)
-    //  return;
-
+    
     var piUser;
 
     const authenticatePiUser = async () => {
@@ -588,7 +594,7 @@ export class Signup extends Component<any, State> {
     }
   }
 
-  async handlePiRegisterSubmit(i: Signup, event: any) {
+  async handlePiRegister(i: Signup, event: any) {
     if (!this.isPiBrowser)
       return;
 
