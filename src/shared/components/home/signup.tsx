@@ -155,7 +155,7 @@ export class Signup extends Component<any, State> {
   registerForm() {
     if (!this.useExtSignUp) { 
     return (
-      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+      <form onSubmit={linkEvent(this, this.handlePiRegisterSubmit)}>
         <h5>{i18n.t("sign_up")}</h5>
 
         <div class="form-group row">
@@ -320,6 +320,7 @@ export class Signup extends Component<any, State> {
               WePi’s username and password do not need to match Pi’s username and password.
             </div>
           )} */}
+        { this.isPiBrowser && (
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">
@@ -327,6 +328,21 @@ export class Signup extends Component<any, State> {
             </button>
           </div>
         </div>
+        )}
+        {!this.isPiBrowser && (
+        <div class="form-group row">
+          <div class="col-sm-10">
+          <button
+                type="button"
+                class="btn btn-secondary"
+                onClick={linkEvent(this, this.handleRegisterSubmit)}
+              >
+                {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up")}
+              </button>
+          </div>
+        </div>
+        )}
+
       </form>
     );
     } else {
@@ -396,16 +412,15 @@ export class Signup extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Signup, event: any) {
-    if (this.isPiBrowser) {
-      this.handlePiRegisterSubmit(i, event).then(()=>{
-        
-      });
-      return;
-    }
 
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
+    if (this.isPiBrowser) {
+      // this.handlePiRegisterSubmit(i, event).then(()=>{        
+      // });
+      return;
+    }
     WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
   }
 
@@ -527,7 +542,6 @@ export class Signup extends Component<any, State> {
  
   async handlePiRegisterSubmit(i: Signup, event: any) {
 
-    
     var piUser;
 
     const authenticatePiUser = async () => {
