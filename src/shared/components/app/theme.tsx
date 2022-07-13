@@ -1,43 +1,63 @@
+import { Option } from "@sniptt/monads";
 import { Component } from "inferno";
 import { Helmet } from "inferno-helmet";
-import { MyUserInfo } from "lemmy-js-client";
+import { UserService } from "../../services";
 
 interface Props {
-  myUserInfo: MyUserInfo | undefined;
+  defaultTheme: Option<string>;
 }
 
 export class Theme extends Component<Props> {
   render() {
-    let user = this.props.myUserInfo;
-    let hasTheme = user && user.local_user_view.local_user.theme !== "browser";
+    let user = UserService.Instance.myUserInfo;
+    let hasTheme = user
+      .map(m => m.local_user_view.local_user.theme !== "browser")
+      .unwrapOr(false);
 
-    return (
-      <Helmet>
-        {hasTheme ? (
+    if (hasTheme) {
+      return (
+        <Helmet>
           <link
             rel="stylesheet"
             type="text/css"
-            href={`/static/assets/css/themes/${user.local_user_view.local_user.theme}.min.css`}
+            href={`/css/themes/${
+              user.unwrap().local_user_view.local_user.theme
+            }.css`}
           />
-        ) : (
-          [
-            <link
-              rel="stylesheet"
-              type="text/css"
-              href="/static/assets/css/themes/litely.min.css"
-              id="default-light"
-              media="(prefers-color-scheme: light)"
-            />,
-            <link
-              rel="stylesheet"
-              type="text/css"
-              href="/static/assets/css/themes/darkly.min.css"
-              id="default-dark"
-              media="(prefers-color-scheme: no-preference), (prefers-color-scheme: dark)"
-            />,
-          ]
-        )}
-      </Helmet>
-    );
+        </Helmet>
+      );
+    } else if (
+      this.props.defaultTheme.isSome() &&
+      this.props.defaultTheme.unwrap() != "browser"
+    ) {
+      return (
+        <Helmet>
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href={`/css/themes/${this.props.defaultTheme.unwrap()}.css`}
+          />
+        </Helmet>
+      );
+    } else {
+      return (
+        <Helmet>
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href="/css/themes/litely.css"
+            id="default-light"
+            media="(prefers-color-scheme: light)"
+          />
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href="/css/themes/darkly.css"
+            id="default-dark"
+            media="(prefers-color-scheme: no-preference), (prefers-color-scheme: dark)"
+          />
+        </Helmet>
+      );
+    }
   }
 }

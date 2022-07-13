@@ -1,66 +1,45 @@
+import { None } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
-import { T } from "inferno-i18next";
 import {
-  GetCaptchaResponse,
   GetSiteResponse,
   Login as LoginForm,
   LoginResponse,
   PasswordReset,
-  Register,
-  SiteView,
   UserOperation,
+  wsJsonToRes,
+  wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
-  authField,
   isBrowser,
-  joinLemmyUrl,
   setIsoData,
   toast,
   validEmail,
   wsClient,
-  wsJsonToRes,
   wsSubscribe,
-  wsUserOp,
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
-import { Icon, Spinner } from "../common/icon";
+import { Spinner } from "../common/icon";
 
 interface State {
   loginForm: LoginForm;
-  registerForm: Register;
   loginLoading: boolean;
-  registerLoading: boolean;
-  captcha: GetCaptchaResponse;
-  captchaPlaying: boolean;
-  site_view: SiteView;
+  siteRes: GetSiteResponse;
 }
 
 export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
   private subscription: Subscription;
-  private audio: HTMLAudioElement;
 
   emptyState: State = {
-    loginForm: {
+    loginForm: new LoginForm({
       username_or_email: undefined,
       password: undefined,
-    },
-    registerForm: {
-      username: undefined,
-      password: undefined,
-      password_verify: undefined,
-      show_nsfw: false,
-      captcha_uuid: undefined,
-      captcha_answer: undefined,
-    },
+    }),
     loginLoading: false,
-    registerLoading: false,
-    captcha: undefined,
-    captchaPlaying: false,
-    site_view: this.isoData.site_res.site_view,
+    siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
@@ -76,6 +55,13 @@ export class Login extends Component<any, State> {
     }
   }
 
+  componentDidMount() {
+    // Navigate to home if already logged in
+    if (UserService.Instance.myUserInfo.isSome()) {
+      this.context.router.history.push("/");
+    }
+  }
+
   componentWillUnmount() {
     if (isBrowser()) {
       this.subscription.unsubscribe();
@@ -83,7 +69,10 @@ export class Login extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    return `${i18n.t("login")} - ${this.state.site_view.site.name}`;
+    return this.state.siteRes.site_view.match({
+      some: siteView => `${i18n.t("login")} - ${siteView.site.name}`,
+      none: "",
+    });
   }
 
   get isLemmyMl(): boolean {
@@ -96,10 +85,11 @@ export class Login extends Component<any, State> {
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
+          description={None}
+          image={None}
         />
         <div class="row">
-          <div class="col-12 col-lg-6 mb-4">{this.loginForm()}</div>
-          <div class="col-12 col-lg-6">{this.registerForm()}</div>
+          <div class="col-12 col-lg-6 offset-lg-3">{this.loginForm()}</div>
         </div>
       </div>
     );
@@ -111,10 +101,7 @@ export class Login extends Component<any, State> {
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
           <h5>{i18n.t("login")}</h5>
           <div class="form-group row">
-            <label
-              class="col-sm-2 col-form-label"
-              htmlFor="login-username"
-            >
+            <label class="col-sm-2 col-form-label" htmlFor="login-username">
               {i18n.t("username")}
             </label>
             <div class="col-sm-10">
@@ -151,8 +138,9 @@ export class Login extends Component<any, State> {
                 disabled={!validEmail(this.state.loginForm.username_or_email)}
                 title={i18n.t("no_password_reset")}
               >
-                <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
-
+                <a href="https://wepi.social/register">
+                  {i18n.t("forgot_password")}
+                </a>
               </button>
             </div>
           </div>
@@ -188,11 +176,9 @@ export class Login extends Component<any, State> {
             <button type="submit" class="btn btn-secondary">
               <a href="https://wepi.social/register">{i18n.t("sign_up")}</a>
               {/* {this.state.registerLoading ? <Spinner /> : i18n.t("sign_up") formaction */}
-
             </button>
           </div>
         </div>
-
       </form>
     );
   }
@@ -243,83 +229,12 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
-  handleRegisterSubmit(i: Login, event: any) {
-    event.preventDefault();
-    i.state.registerLoading = true;
-    i.setState(i.state);
-    WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
-  }
-
-  handleRegisterUsernameChange(i: Login, event: any) {
-    i.state.registerForm.username = event.target.value;
-    i.setState(i.state);
-  }
-
-  handleRegisterEmailChange(i: Login, event: any) {
-    i.state.registerForm.email = event.target.value;
-    if (i.state.registerForm.email == "") {
-      i.state.registerForm.email = undefined;
-    }
-    i.setState(i.state);
-  }
-
-  handleRegisterPasswordChange(i: Login, event: any) {
-    i.state.registerForm.password = event.target.value;
-    i.setState(i.state);
-  }
-
-  handleRegisterPasswordVerifyChange(i: Login, event: any) {
-    i.state.registerForm.password_verify = event.target.value;
-    i.setState(i.state);
-  }
-
-  handleRegisterShowNsfwChange(i: Login, event: any) {
-    i.state.registerForm.show_nsfw = event.target.checked;
-    i.setState(i.state);
-  }
-
-  handleRegisterCaptchaAnswerChange(i: Login, event: any) {
-    i.state.registerForm.captcha_answer = event.target.value;
-    i.setState(i.state);
-  }
-
-  handleRegenCaptcha(i: Login) {
-    i.audio = null;
-    i.state.captchaPlaying = false;
-    i.setState(i.state);
-    WebSocketService.Instance.send(wsClient.getCaptcha());
-  }
-
   handlePasswordReset(i: Login, event: any) {
     event.preventDefault();
-    let resetForm: PasswordReset = {
+    let resetForm = new PasswordReset({
       email: i.state.loginForm.username_or_email,
-    };
-    WebSocketService.Instance.send(wsClient.passwordReset(resetForm));
-  }
-
-  handleCaptchaPlay(i: Login) {
-    // This was a bad bug, it should only build the new audio on a new file.
-    // Replays would stop prematurely if this was rebuilt every time.
-    if (i.audio == null) {
-      let base64 = `data:audio/wav;base64,${i.state.captcha.ok.wav}`;
-      i.audio = new Audio(base64);
-    }
-
-    i.audio.play();
-
-    i.state.captchaPlaying = true;
-    i.setState(i.state);
-
-    i.audio.addEventListener("ended", () => {
-      i.audio.currentTime = 0;
-      i.state.captchaPlaying = false;
-      i.setState(i.state);
     });
-  }
-
-  captchaPngSrc() {
-    return `data:image/png;base64,${this.state.captcha.ok.png}`;
+    WebSocketService.Instance.send(wsClient.passwordReset(resetForm));
   }
 
   parseMessage(msg: any) {
@@ -328,47 +243,19 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.state = this.emptyState;
-      this.state.registerForm.captcha_answer = undefined;
-      // Refetch another captcha
-      WebSocketService.Instance.send(wsClient.getCaptcha());
       this.setState(this.state);
       return;
     } else {
       if (op == UserOperation.Login) {
-        let data = wsJsonToRes<LoginResponse>(msg).data;
+        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
         this.state = this.emptyState;
         this.setState(this.state);
         UserService.Instance.login(data);
-        WebSocketService.Instance.send(
-          wsClient.userJoin({
-            auth: authField(),
-          })
-        );
-        toast(i18n.t("logged_in"));
-        this.props.history.push("/");
-      } else if (op == UserOperation.Register) {
-        let data = wsJsonToRes<LoginResponse>(msg).data;
-        this.state = this.emptyState;
-        this.setState(this.state);
-        UserService.Instance.login(data);
-        WebSocketService.Instance.send(
-          wsClient.userJoin({
-            auth: authField(),
-          })
-        );
-        this.props.history.push("/communities");
-      } else if (op == UserOperation.GetCaptcha) {
-        let data = wsJsonToRes<GetCaptchaResponse>(msg).data;
-        if (data.ok) {
-          this.state.captcha = data;
-          this.state.registerForm.captcha_uuid = data.ok.uuid;
-          this.setState(this.state);
-        }
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
-        let data = wsJsonToRes<GetSiteResponse>(msg).data;
-        this.state.site_view = data.site_view;
+        let data = wsJsonToRes<GetSiteResponse>(msg, GetSiteResponse);
+        this.state.siteRes = data;
         this.setState(this.state);
       }
     }

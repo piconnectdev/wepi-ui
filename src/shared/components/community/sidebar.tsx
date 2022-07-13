@@ -1,3 +1,4 @@
+import { None, Option, Some } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import { Link } from "inferno-router";
 import {
@@ -7,13 +8,25 @@ import {
   DeleteCommunity,
   FollowCommunity,
   PersonViewSafe,
+  PurgeCommunity,
   RemoveCommunity,
+  SubscribedType,
+  toUndefined,
 } from "lemmy-js-client";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
-import { authField, getUnixTime, mdToHtml, wsClient } from "../../utils";
+import {
+  amAdmin,
+  amMod,
+  amTopMod,
+  auth,
+  getUnixTime,
+  mdToHtml,
+  numToSI,
+  wsClient,
+} from "../../utils";
 import { BannerIconHeader } from "../common/banner-icon-header";
-import { Icon } from "../common/icon";
+import { Icon, PurgeWarning, Spinner } from "../common/icon";
 import { CommunityForm } from "../community/community-form";
 import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
@@ -23,15 +36,18 @@ interface SidebarProps {
   moderators: CommunityModeratorView[];
   admins: PersonViewSafe[];
   online: number;
-  enableNsfw: boolean;
+  enableNsfw?: boolean;
   showIcon?: boolean;
 }
 
 interface SidebarState {
+  removeReason: Option<string>;
+  removeExpires: Option<string>;
   showEdit: boolean;
   showRemoveDialog: boolean;
-  removeReason: string;
-  removeExpires: string;
+  showPurgeDialog: boolean;
+  purgeReason: Option<string>;
+  purgeLoading: boolean;
   showConfirmLeaveModTeam: boolean;
 }
 
@@ -39,8 +55,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   private emptyState: SidebarState = {
     showEdit: false,
     showRemoveDialog: false,
-    removeReason: null,
-    removeExpires: null,
+    removeReason: None,
+    removeExpires: None,
+    showPurgeDialog: false,
+    purgeReason: None,
+    purgeLoading: false,
     showConfirmLeaveModTeam: false,
   };
 
@@ -58,7 +77,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           this.sidebar()
         ) : (
           <CommunityForm
-            community_view={this.props.community_view}
+            community_view={Some(this.props.community_view)}
             onEdit={this.handleEditCommunity}
             onCancel={this.handleEditCancel}
             enableNsfw={this.props.enableNsfw}
@@ -76,7 +95,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {this.communityTitle()}
             {this.adminButtons()}
             {this.subscribe()}
-            {this.createPost()}
+            {this.canPost && this.createPost()}
           </div>
         </div>
         <div class="card border-secondary mb-3">
@@ -100,7 +119,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             <BannerIconHeader icon={community.icon} banner={community.banner} />
           )}
           <span class="mr-2">{community.title}</span>
-          {subscribed && (
+          {subscribed == SubscribedType.Subscribed && (
             <a
               class="btn btn-secondary btn-sm mr-2"
               href="#"
@@ -109,6 +128,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               <Icon icon="check" classes="icon-inline text-success mr-1" />
               {i18n.t("joined")}
             </a>
+          )}
+          {subscribed == SubscribedType.Pending && (
+            <div class="badge badge-warning mr-2">
+              {i18n.t("subscribe_pending")}
+            </div>
           )}
           {community.removed && (
             <small className="mr-2 text-muted font-italic">
@@ -143,72 +167,84 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return (
       <ul class="my-1 list-inline">
         <li className="list-inline-item badge badge-secondary">
-          {i18n.t("number_online", { count: this.props.online })}
+          {i18n.t("number_online", {
+            count: this.props.online,
+            formattedCount: numToSI(this.props.online),
+          })}
         </li>
         <li
           className="list-inline-item badge badge-secondary pointer"
-          data-tippy-content={`${i18n.t("number_of_users", {
+          data-tippy-content={i18n.t("active_users_in_the_last_day", {
             count: counts.users_active_day,
-          })} ${i18n.t("active_in_the_last")} ${i18n.t("day")}`}
+            formattedCount: counts.users_active_day,
+          })}
         >
           {i18n.t("number_of_users", {
             count: counts.users_active_day,
+            formattedCount: numToSI(counts.users_active_day),
           })}{" "}
           / {i18n.t("day")}
         </li>
         <li
           className="list-inline-item badge badge-secondary pointer"
-          data-tippy-content={`${i18n.t("number_of_users", {
+          data-tippy-content={i18n.t("active_users_in_the_last_week", {
             count: counts.users_active_week,
-          })} ${i18n.t("active_in_the_last")} ${i18n.t("week")}`}
+            formattedCount: counts.users_active_week,
+          })}
         >
           {i18n.t("number_of_users", {
             count: counts.users_active_week,
+            formattedCount: numToSI(counts.users_active_week),
           })}{" "}
           / {i18n.t("week")}
         </li>
         <li
           className="list-inline-item badge badge-secondary pointer"
-          data-tippy-content={`${i18n.t("number_of_users", {
+          data-tippy-content={i18n.t("active_users_in_the_last_month", {
             count: counts.users_active_month,
-          })} ${i18n.t("active_in_the_last")} ${i18n.t("month")}`}
+            formattedCount: counts.users_active_month,
+          })}
         >
           {i18n.t("number_of_users", {
             count: counts.users_active_month,
+            formattedCount: numToSI(counts.users_active_month),
           })}{" "}
           / {i18n.t("month")}
         </li>
         <li
           className="list-inline-item badge badge-secondary pointer"
-          data-tippy-content={`${i18n.t("number_of_users", {
+          data-tippy-content={i18n.t("active_users_in_the_last_six_months", {
             count: counts.users_active_half_year,
-          })} ${i18n.t("active_in_the_last")} ${i18n.t("number_of_months", {
-            count: 6,
-          })}`}
+            formattedCount: counts.users_active_half_year,
+          })}
         >
           {i18n.t("number_of_users", {
             count: counts.users_active_half_year,
+            formattedCount: numToSI(counts.users_active_half_year),
           })}{" "}
-          / {i18n.t("number_of_months", { count: 6 })}
+          / {i18n.t("number_of_months", { count: 6, formattedCount: 6 })}
         </li>
         <li className="list-inline-item badge badge-secondary">
           {i18n.t("number_of_subscribers", {
             count: counts.subscribers,
+            formattedCount: numToSI(counts.subscribers),
           })}
         </li>
         <li className="list-inline-item badge badge-secondary">
           {i18n.t("number_of_posts", {
             count: counts.posts,
+            formattedCount: numToSI(counts.posts),
           })}
         </li>
         <li className="list-inline-item badge badge-secondary">
           {i18n.t("number_of_comments", {
             count: counts.comments,
+            formattedCount: numToSI(counts.comments),
           })}
         </li>
         <li className="list-inline-item">
           <Link
-            className="badge badge-secondary"
+            className="badge badge-primary"
             to={`/modlog/community/${this.props.community_view.community.id}`}
           >
             {i18n.t("modlog")}
@@ -232,16 +268,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   createPost() {
-    let community_view = this.props.community_view;
+    let cv = this.props.community_view;
     return (
-      community_view.subscribed && (
+      cv.subscribed == SubscribedType.Subscribed && (
         <Link
           className={`btn btn-secondary btn-block mb-2 ${
-            community_view.community.deleted || community_view.community.removed
-              ? "no-click"
-              : ""
+            cv.community.deleted || cv.community.removed ? "no-click" : ""
           }`}
-          to={`/create_post?community_id=${community_view.community.id}`}
+          to={`/create_post?community_id=${cv.community.id}`}
         >
           {i18n.t("create_a_post")}
         </Link>
@@ -253,7 +287,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community_view = this.props.community_view;
     return (
       <div class="mb-2">
-        {!community_view.subscribed && (
+        {community_view.subscribed == SubscribedType.NotSubscribed && (
           <a
             class="btn btn-secondary btn-block"
             href="#"
@@ -268,14 +302,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   description() {
     let description = this.props.community_view.community.description;
-    return (
-      description && (
-        <div
-          className="md-div"
-          dangerouslySetInnerHTML={mdToHtml(description)}
-        />
-      )
-    );
+    return description.match({
+      some: desc => (
+        <div className="md-div" dangerouslySetInnerHTML={mdToHtml(desc)} />
+      ),
+      none: <></>,
+    });
   }
 
   adminButtons() {
@@ -283,7 +315,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return (
       <>
         <ul class="list-inline mb-1 text-muted font-weight-bold">
-          {this.canMod && (
+          {amMod(Some(this.props.moderators)) && (
             <>
               <li className="list-inline-item-action">
                 <button
@@ -295,7 +327,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   <Icon icon="edit" classes="icon-inline" />
                 </button>
               </li>
-              {!this.amTopMod &&
+              {!amTopMod(Some(this.props.moderators)) &&
                 (!this.state.showConfirmLeaveModTeam ? (
                   <li className="list-inline-item-action">
                     <button
@@ -334,7 +366,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                     </li>
                   </>
                 ))}
-              {this.amTopMod && (
+              {amTopMod(Some(this.props.moderators)) && (
                 <li className="list-inline-item-action">
                   <button
                     class="btn btn-link text-muted d-inline-block"
@@ -361,7 +393,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               )}
             </>
           )}
-          {this.canAdmin && (
+          {amAdmin(Some(this.props.admins)) && (
             <li className="list-inline-item">
               {!this.props.community_view.community.removed ? (
                 <button
@@ -378,12 +410,19 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   {i18n.t("restore")}
                 </button>
               )}
+              <button
+                class="btn btn-link text-muted d-inline-block"
+                onClick={linkEvent(this, this.handlePurgeCommunityShow)}
+                aria-label={i18n.t("purge_community")}
+              >
+                {i18n.t("purge_community")}
+              </button>
             </li>
           )}
         </ul>
         {this.state.showRemoveDialog && (
           <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
-            <div class="form-group row">
+            <div class="form-group">
               <label class="col-form-label" htmlFor="remove-reason">
                 {i18n.t("reason")}
               </label>
@@ -392,7 +431,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 id="remove-reason"
                 class="form-control mr-2"
                 placeholder={i18n.t("optional")}
-                value={this.state.removeReason}
+                value={toUndefined(this.state.removeReason)}
                 onInput={linkEvent(this, this.handleModRemoveReasonChange)}
               />
             </div>
@@ -401,10 +440,43 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {/*   <label class="col-form-label">Expires</label> */}
             {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
             {/* </div> */}
-            <div class="form-group row">
+            <div class="form-group">
               <button type="submit" class="btn btn-secondary">
                 {i18n.t("remove_community")}
               </button>
+            </div>
+          </form>
+        )}
+        {this.state.showPurgeDialog && (
+          <form onSubmit={linkEvent(this, this.handlePurgeSubmit)}>
+            <div class="form-group">
+              <PurgeWarning />
+            </div>
+            <div class="form-group">
+              <label class="sr-only" htmlFor="purge-reason">
+                {i18n.t("reason")}
+              </label>
+              <input
+                type="text"
+                id="purge-reason"
+                class="form-control mr-2"
+                placeholder={i18n.t("reason")}
+                value={toUndefined(this.state.purgeReason)}
+                onInput={linkEvent(this, this.handlePurgeReasonChange)}
+              />
+            </div>
+            <div class="form-group">
+              {this.state.purgeLoading ? (
+                <Spinner />
+              ) : (
+                <button
+                  type="submit"
+                  class="btn btn-secondary"
+                  aria-label={i18n.t("purge_community")}
+                >
+                  {i18n.t("purge_community")}
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -429,11 +501,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   handleDeleteClick(i: Sidebar, event: any) {
     event.preventDefault();
-    let deleteForm: DeleteCommunity = {
+    let deleteForm = new DeleteCommunity({
       community_id: i.props.community_view.community.id,
       deleted: !i.props.community_view.community.deleted,
-      auth: authField(),
-    };
+      auth: auth().unwrap(),
+    });
     WebSocketService.Instance.send(wsClient.deleteCommunity(deleteForm));
   }
 
@@ -443,15 +515,20 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleLeaveModTeamClick(i: Sidebar) {
-    let form: AddModToCommunity = {
-      person_id: UserService.Instance.myUserInfo.local_user_view.person.id,
-      community_id: i.props.community_view.community.id,
-      added: false,
-      auth: authField(),
-    };
-    WebSocketService.Instance.send(wsClient.addModToCommunity(form));
-    i.state.showConfirmLeaveModTeam = false;
-    i.setState(i.state);
+    UserService.Instance.myUserInfo.match({
+      some: mui => {
+        let form = new AddModToCommunity({
+          person_id: mui.local_user_view.person.id,
+          community_id: i.props.community_view.community.id,
+          added: false,
+          auth: auth().unwrap(),
+        });
+        WebSocketService.Instance.send(wsClient.addModToCommunity(form));
+        i.state.showConfirmLeaveModTeam = false;
+        i.setState(i.state);
+      },
+      none: void 0,
+    });
   }
 
   handleCancelLeaveModTeamClick(i: Sidebar) {
@@ -462,59 +539,47 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   handleUnsubscribe(i: Sidebar, event: any) {
     event.preventDefault();
     let community_id = i.props.community_view.community.id;
-    let form: FollowCommunity = {
+    let form = new FollowCommunity({
       community_id,
       follow: false,
-      auth: authField(),
-    };
+      auth: auth().unwrap(),
+    });
     WebSocketService.Instance.send(wsClient.followCommunity(form));
 
     // Update myUserInfo
-    UserService.Instance.myUserInfo.follows =
-      UserService.Instance.myUserInfo.follows.filter(
-        i => i.community.id != community_id
-      );
+    UserService.Instance.myUserInfo.match({
+      some: mui =>
+        (mui.follows = mui.follows.filter(i => i.community.id != community_id)),
+      none: void 0,
+    });
   }
 
   handleSubscribe(i: Sidebar, event: any) {
     event.preventDefault();
     let community_id = i.props.community_view.community.id;
-    let form: FollowCommunity = {
+    let form = new FollowCommunity({
       community_id,
       follow: true,
-      auth: authField(),
-    };
+      auth: auth().unwrap(),
+    });
     WebSocketService.Instance.send(wsClient.followCommunity(form));
 
     // Update myUserInfo
-    UserService.Instance.myUserInfo.follows.push({
-      community: i.props.community_view.community,
-      follower: UserService.Instance.myUserInfo.local_user_view.person,
+    UserService.Instance.myUserInfo.match({
+      some: mui =>
+        mui.follows.push({
+          community: i.props.community_view.community,
+          follower: mui.local_user_view.person,
+        }),
+      none: void 0,
     });
   }
 
-  private get amTopMod(): boolean {
+  get canPost(): boolean {
     return (
-      this.props.moderators[0].moderator.id ==
-      UserService.Instance.myUserInfo.local_user_view.person.id
-    );
-  }
-
-  get canMod(): boolean {
-    return (
-      UserService.Instance.myUserInfo &&
-      this.props.moderators
-        .map(m => m.moderator.id)
-        .includes(UserService.Instance.myUserInfo.local_user_view.person.id)
-    );
-  }
-
-  get canAdmin(): boolean {
-    return (
-      UserService.Instance.myUserInfo &&
-      this.props.admins
-        .map(a => a.person.id)
-        .includes(UserService.Instance.myUserInfo.local_user_view.person.id)
+      !this.props.community_view.community.posting_restricted_to_mods ||
+      amMod(Some(this.props.moderators)) ||
+      amAdmin(Some(this.props.admins))
     );
   }
 
@@ -524,28 +589,52 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleModRemoveReasonChange(i: Sidebar, event: any) {
-    i.state.removeReason = event.target.value;
+    i.state.removeReason = Some(event.target.value);
     i.setState(i.state);
   }
 
   handleModRemoveExpiresChange(i: Sidebar, event: any) {
-    console.log(event.target.value);
-    i.state.removeExpires = event.target.value;
+    i.state.removeExpires = Some(event.target.value);
     i.setState(i.state);
   }
 
   handleModRemoveSubmit(i: Sidebar, event: any) {
     event.preventDefault();
-    let removeForm: RemoveCommunity = {
+    let removeForm = new RemoveCommunity({
       community_id: i.props.community_view.community.id,
       removed: !i.props.community_view.community.removed,
       reason: i.state.removeReason,
-      expires: getUnixTime(i.state.removeExpires),
-      auth: authField(),
-    };
+      expires: i.state.removeExpires.map(getUnixTime),
+      auth: auth().unwrap(),
+    });
     WebSocketService.Instance.send(wsClient.removeCommunity(removeForm));
 
     i.state.showRemoveDialog = false;
+    i.setState(i.state);
+  }
+
+  handlePurgeCommunityShow(i: Sidebar) {
+    i.state.showPurgeDialog = true;
+    i.state.showRemoveDialog = false;
+    i.setState(i.state);
+  }
+
+  handlePurgeReasonChange(i: Sidebar, event: any) {
+    i.state.purgeReason = Some(event.target.value);
+    i.setState(i.state);
+  }
+
+  handlePurgeSubmit(i: Sidebar, event: any) {
+    event.preventDefault();
+
+    let form = new PurgeCommunity({
+      community_id: i.props.community_view.community.id,
+      reason: i.state.purgeReason,
+      auth: auth().unwrap(),
+    });
+    WebSocketService.Instance.send(wsClient.purgeCommunity(form));
+
+    i.state.purgeLoading = true;
     i.setState(i.state);
   }
 }
