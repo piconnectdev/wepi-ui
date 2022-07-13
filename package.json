@@ -34,7 +34,6 @@
     "inferno-server": "^7.4.11",
     "isomorphic-cookie": "^1.2.4",
     "jwt-decode": "^3.1.2",
-    "lemmy-js-client": "https://github.com/piconnectdev/lemmy-js-client",
     "markdown-it": "^13.0.0",
     "markdown-it-container": "^3.0.0",
     "markdown-it-footnote": "^3.0.3",
