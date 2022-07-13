@@ -245,7 +245,7 @@ export class Post extends Component<any, PostState> {
   }
 
   // TODO this needs some re-work
-  markScrolledAsRead(commentId: number) {
+  markScrolledAsRead(commentId: string) {
     this.state.postRes.match({
       some: res => {
         let found = res.comments.find(c => c.comment.id == commentId);

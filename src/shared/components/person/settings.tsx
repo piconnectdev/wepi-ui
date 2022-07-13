@@ -72,7 +72,7 @@ interface SettingsState {
   personBlocks: PersonBlockView[];
   blockPerson: Option<PersonViewSafe>;
   communityBlocks: CommunityBlockView[];
-  blockCommunityId: number;
+  blockCommunityId: string;
   blockCommunity?: CommunityView;
   currentTab: string;
   themeList: string[];
@@ -889,8 +889,8 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleBlockPerson(personId: number) {
-    if (personId != 0) {
+  handleBlockPerson(personId: string) {
+    if (personId != null && personId.length != 0) {
       let blockUserForm = new BlockPerson({
         person_id: personId,
         block: true,
@@ -900,7 +900,7 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleUnblockPerson(i: { ctx: Settings; recipientId: number }) {
+  handleUnblockPerson(i: { ctx: Settings; recipientId: string }) {
     let blockUserForm = new BlockPerson({
       person_id: i.recipientId,
       block: false,
@@ -909,8 +909,8 @@ export class Settings extends Component<any, SettingsState> {
     WebSocketService.Instance.send(wsClient.blockPerson(blockUserForm));
   }
 
-  handleBlockCommunity(community_id: number) {
-    if (community_id != 0) {
+  handleBlockCommunity(community_id: string) {
+    if (community_id != null && community_id.length != 0) {
       let blockCommunityForm = new BlockCommunity({
         community_id,
         block: true,
@@ -922,7 +922,7 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handleUnblockCommunity(i: { ctx: Settings; communityId: number }) {
+  handleUnblockCommunity(i: { ctx: Settings; communityId: string }) {
     let blockCommunityForm = new BlockCommunity({
       community_id: i.communityId,
       block: false,

@@ -42,7 +42,7 @@ export interface PostFormParams {
   name: Option<string>;
   url: Option<string>;
   body: Option<string>;
-  nameOrId: Option<Either<string, number>>;
+  nameOrId: Option<Either<string, string>>;
 }
 
 export enum CommentSortType {

@@ -68,7 +68,7 @@ enum ModlogEnum {
 }
 
 type ModlogType = {
-  id: number;
+  id: string;
   type_: ModlogEnum;
   moderator: PersonSafe;
   view:
@@ -630,7 +630,8 @@ export class Modlog extends Component<any, ModlogState> {
 
   static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
     let pathSplit = req.path.split("/");
-    let communityId = Some(pathSplit[3]).map(Number);
+    //let communityId = Some(pathSplit[3]).map(Number);
+    let communityId = Some(pathSplit[3]);
     let promises: Promise<any>[] = [];
 
     let modlogForm = new GetModlog({

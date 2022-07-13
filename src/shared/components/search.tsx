@@ -269,8 +269,8 @@ export class Search extends Component<any, SearchState> {
     let promises: Promise<any>[] = [];
 
     let communityId = this.getCommunityIdFromProps(pathSplit[11]);
-    let community_id: Option<number> =
-      communityId == 0 ? None : Some(communityId);
+    let community_id: Option<string> =
+      communityId == null || communityId.length == 0 ? None : Some(communityId);
     community_id.match({
       some: id => {
         let getCommunityForm = new GetCommunity({
@@ -295,7 +295,8 @@ export class Search extends Component<any, SearchState> {
     });
 
     let creatorId = this.getCreatorIdFromProps(pathSplit[13]);
-    let creator_id: Option<number> = creatorId == 0 ? None : Some(creatorId);
+    let creator_id: Option<string> =
+      creatorId == null || creatorId.length == 0 ? None : Some(creatorId);
     creator_id.match({
       some: id => {
         let getCreatorForm = new GetPersonDetails({
@@ -814,12 +815,16 @@ export class Search extends Component<any, SearchState> {
   }
 
   search() {
-    let community_id: Option<number> =
-      this.state.communityId == 0 ? None : Some(this.state.communityId);
-    let creator_id: Option<number> =
-      this.state.creatorId == 0 ? None : Some(this.state.creatorId);
+    let community_id: Option<string> =
+      this.state.communityId == null || this.state.communityId.length == 0
+        ? None
+        : Some(this.state.communityId);
+    let creator_id: Option<string> =
+      this.state.creatorId == null || this.state.creatorId.length == 0
+        ? None
+        : Some(this.state.creatorId);
 
-    console.log(community_id.unwrapOr(-22));
+    //console.log(community_id.unwrapOr(-22));
 
     let form = new SearchForm({
       q: this.state.q,

@@ -30,7 +30,7 @@ enum ItemEnum {
   Post,
 }
 type ItemType = {
-  id: number;
+  id: string;
   type_: ItemEnum;
   view: CommentView | PostView;
   published: string;

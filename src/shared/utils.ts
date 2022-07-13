@@ -221,7 +221,7 @@ export function canAdmin(
 
 export function isMod(
   mods: Option<CommunityModeratorView[]>,
-  creator_id: number
+  creator_id: string
 ): boolean {
   return mods.match({
     some: mods => mods.map(m => m.moderator.id).includes(creator_id),
@@ -241,7 +241,7 @@ export function amMod(
 
 export function isAdmin(
   admins: Option<PersonViewSafe[]>,
-  creator_id: number
+  creator_id: string
 ): boolean {
   return admins.match({
     some: admins => admins.map(a => a.person.id).includes(creator_id),
@@ -261,7 +261,7 @@ export function amAdmin(
 
 export function amCommunityCreator(
   mods: Option<CommunityModeratorView[]>,
-  creator_id: number,
+  creator_id: string,
   myUserInfo = UserService.Instance.myUserInfo
 ): boolean {
   return mods.match({
@@ -281,7 +281,7 @@ export function amCommunityCreator(
 
 export function amSiteCreator(
   admins: Option<PersonViewSafe[]>,
-  creator_id: number,
+  creator_id: string,
   myUserInfo = UserService.Instance.myUserInfo
 ): boolean {
   return admins.match({

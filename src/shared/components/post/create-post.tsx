@@ -164,9 +164,11 @@ export class CreatePost extends Component<any, CreatePostState> {
       this.prevCommunityName
     );
     // TODO: UUID
-    let id = toOption(urlParams.get("community_id"))
-      .map(number)
-      .or(this.prevCommunityId);
+    let id = toOption(urlParams.get("community_id")).or(
+      Some(this.prevCommunityId)
+    );
+    //.map(number)
+    //.or(this.prevCommunityId);
     let nameOrId: Option<Either<string, string>>;
     if (name.isSome()) {
       nameOrId = Some(Left(name.unwrap()));

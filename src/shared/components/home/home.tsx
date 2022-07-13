@@ -164,7 +164,7 @@ export class Home extends Component<any, HomeState> {
 
       if (isBrowser()) {
         WebSocketService.Instance.send(
-          wsClient.communityJoin({ community_id: 0 })
+          wsClient.communityJoin({ community_id: null })
         );
       }
       this.state.loading = false;
@@ -732,7 +732,7 @@ export class Home extends Component<any, HomeState> {
       this.state.loading = false;
       this.setState(this.state);
       WebSocketService.Instance.send(
-        wsClient.communityJoin({ community_id: 0 })
+        wsClient.communityJoin({ community_id: null })
       );
       restoreScrollPosition(this.context);
       setupTippy();
