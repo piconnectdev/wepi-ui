@@ -1,9 +1,7 @@
 import { Component } from "inferno";
-import { Link } from "inferno-router";
 import { GetSiteResponse } from "lemmy-js-client";
 import { i18n } from "../../i18next";
-import { docsUrl, joinLemmyUrl, repoUrl, joinPiUrl } from "../../utils";
-import { VERSION } from "../../version";
+import { joinLemmyUrl, joinPiUrl, repoUrl } from "../../utils";
 
 interface FooterProps {
   site: GetSiteResponse;
@@ -28,15 +26,24 @@ export class Footer extends Component<FooterProps, any> {
               <span class="nav-link">BE: {this.props.site.version}</span>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/modlog">
+              <NavLink className="nav-link" to="/modlog">
                 {i18n.t("modlog")}
-              </Link>
+              </NavLink>
             </li>
+            {this.props.site.site_view
+              .andThen(s => s.site.legal_information)
+              .isSome() && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/legal">
+                  {i18n.t("legal_information")}
+                </NavLink>
+              </li>
+            )}
             {this.props.site.federated_instances && (
               <li class="nav-item">
-                <Link className="nav-link" to="/instances">
+                <NavLink className="nav-link" to="/instances">
                   {i18n.t("instances")}
-                </Link>
+                </NavLink>
               </li>
             )}
             <li class="nav-item">
@@ -49,7 +56,7 @@ export class Footer extends Component<FooterProps, any> {
               <a className="nav-link" href={repoUrl}>
                 {i18n.t("code")}
               </a>
-            </li> 
+            </li>
             <li class="nav-item">
               <a className="nav-link" href={joinLemmyUrl}>
                 Fork from Lemmy
@@ -57,7 +64,7 @@ export class Footer extends Component<FooterProps, any> {
             </li>
             <li class="nav-item">
               <a className="nav-link" href={joinPiUrl}>
-               Join Pi Network
+                Join Pi Network
               </a>
             </li>
           </ul>

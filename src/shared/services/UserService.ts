@@ -1,72 +1,84 @@
 // import Cookies from 'js-cookie';
+import { Err, None, Ok, Option, Result, Some } from "@sniptt/monads";
 import IsomorphicCookie from "isomorphic-cookie";
 import jwt_decode from "jwt-decode";
 import { LoginResponse, MyUserInfo } from "lemmy-js-client";
-import { BehaviorSubject, Subject } from "rxjs";
+import { BehaviorSubject } from "rxjs";
 import { isHttps } from "../env";
-import Cookies from 'js-cookie'
+import { i18n } from "../i18next";
+import { isBrowser, toast } from "../utils";
+
 interface Claims {
   sub: string;
   iss: string;
   iat: number;
 }
 
+interface JwtInfo {
+  claims: Claims;
+  jwt: string;
+}
+
 export class UserService {
   private static _instance: UserService;
-  public myUserInfo: MyUserInfo;
-  public claims: Claims;
-  public jwtSub: Subject<string> = new Subject<string>();
-  public jwtString: string;
-  public unreadCountSub: BehaviorSubject<number> = new BehaviorSubject<number>(
-    0
-  );
+  public myUserInfo: Option<MyUserInfo> = None;
+  public jwtInfo: Option<JwtInfo> = None;
+  public unreadInboxCountSub: BehaviorSubject<number> =
+    new BehaviorSubject<number>(0);
+  public unreadReportCountSub: BehaviorSubject<number> =
+    new BehaviorSubject<number>(0);
+  public unreadApplicationCountSub: BehaviorSubject<number> =
+    new BehaviorSubject<number>(0);
 
   private constructor() {
-    if (this.auth) {
-      this.setClaims(this.auth);
-      this.jwtString = this.auth;
-    } else {
-      // setTheme();
-      this.jwtString = undefined
-      console.log("No JWT cookie found.");
-    }
+    this.setJwtInfo();
   }
 
   public login(res: LoginResponse) {
     let expires = new Date();
-    expires.setDate(expires.getDate() + 30);
-    IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
-    //Cookies.set("wepiJwt", res.jwt, { expires: 365, domain:location.host, secure: true });
-    this.jwtString = res.jwt;
-    console.log("jwt cookie set");
-    this.setClaims(res.jwt);
+    expires.setDate(expires.getDate() + 365);
+    res.jwt.match({
+      some: jwt => {
+        toast(i18n.t("logged_in"));
+        IsomorphicCookie.save("jwt", jwt, { expires, secure: isHttps });
+        this.setJwtInfo();
+        location.reload();
+      },
+      none: void 0,
+    });
   }
 
   public logout() {
-    this.claims = undefined;
-    this.myUserInfo = undefined;
-    // setTheme();
-    this.jwtSub.next("");
-    this.jwtString = undefined;
+    this.jwtInfo = None;
+    this.myUserInfo = None;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     //Cookies.remove('wepiJwt');
     document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.host;
-    console.log("Logged out.");
+    location.reload();
   }
 
-  public get auth(): string {
-    //return  Cookies.get("wepiJwt");
-    return IsomorphicCookie.load("jwt");
+  public auth(throwErr = true): Result<string, string> {
+    // Can't use match to convert to result for some reason
+    let jwt = this.jwtInfo.map(j => j.jwt);
+    if (jwt.isSome()) {
+      return Ok(jwt.unwrap());
+    } else {
+      let msg = "No JWT cookie found";
+      if (throwErr && isBrowser()) {
+        console.log(msg);
+        toast(i18n.t("not_logged_in"), "danger");
+      }
+      return Err(msg);
+    }
   }
 
-  public get jwt(): string {
-    //return Cookies.get('wepiJwt');
-    return this.jwtString;
-  }
+  private setJwtInfo() {
+    let jwt = IsomorphicCookie.load("jwt");
 
-  private setClaims(jwt: string) {
-    this.claims = jwt_decode(jwt);
-    this.jwtSub.next(jwt);
+    if (jwt) {
+      let jwtInfo: JwtInfo = { jwt, claims: jwt_decode(jwt) };
+      this.jwtInfo = Some(jwtInfo);
+    }
   }
 
   public static get Instance() {

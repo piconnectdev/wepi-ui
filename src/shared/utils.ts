@@ -1,10 +1,13 @@
+import { None, Option, Result, Some } from "@sniptt/monads";
+import { ClassConstructor, deserialize, serialize } from "class-transformer";
 import emojiShortName from "emoji-short-name";
-import { unlink } from "fs";
 import {
   BlockCommunityResponse,
   BlockPersonResponse,
+  CommentReportView,
   CommentView,
   CommunityBlockView,
+  CommunityModeratorView,
   CommunityView,
   GetSiteMetadata,
   GetSiteResponse,
@@ -13,65 +16,29 @@ import {
   ListingType,
   MyUserInfo,
   PersonBlockView,
+  PersonSafe,
   PersonViewSafe,
+  PostReportView,
   PostView,
   PrivateMessageView,
+  RegistrationApplicationView,
   Search,
-  SearchResponse,
   SearchType,
   SortType,
-  UserOperation,
-  WebSocketJsonResponse,
-  WebSocketResponse,
 } from "lemmy-js-client";
 import markdown_it from "markdown-it";
 import markdown_it_container from "markdown-it-container";
+import markdown_it_footnote from "markdown-it-footnote";
 import markdown_it_html5_embed from "markdown-it-html5-embed";
 import markdown_it_sub from "markdown-it-sub";
 import markdown_it_sup from "markdown-it-sup";
 import moment from "moment";
-import "moment/locale/bg";
-import "moment/locale/ca";
-import "moment/locale/cy";
-import "moment/locale/da";
-import "moment/locale/de";
-import "moment/locale/el";
-import "moment/locale/eo";
-import "moment/locale/es";
-import "moment/locale/eu";
-import "moment/locale/fa";
-import "moment/locale/fi";
-import "moment/locale/fr";
-import "moment/locale/ga";
-import "moment/locale/gl";
-import "moment/locale/hi";
-import "moment/locale/hr";
-import "moment/locale/hu";
-import "moment/locale/id";
-import "moment/locale/it";
-import "moment/locale/ja";
-import "moment/locale/ka";
-import "moment/locale/km";
-import "moment/locale/ko";
-import "moment/locale/nb";
-import "moment/locale/nl";
-import "moment/locale/pl";
-import "moment/locale/pt-br";
-import "moment/locale/ru";
-import "moment/locale/sk";
-import "moment/locale/sq";
-import "moment/locale/sr";
-import "moment/locale/sv";
-import "moment/locale/tr";
-import "moment/locale/uk";
-import "moment/locale/vi";
-import "moment/locale/zh-cn";
 import { Subscription } from "rxjs";
 import { delay, retryWhen, take } from "rxjs/operators";
 import tippy from "tippy.js";
 import Toastify from "toastify-js";
 import { httpBase } from "./env";
-import { i18n } from "./i18next";
+import { i18n, languages } from "./i18next";
 import {
   CommentNode as CommentNodeI,
   CommentSortType,
@@ -99,83 +66,24 @@ export const supportLemmyUrl = `${joinLemmyUrl}/support`;
 export const donateLemmyUrl = `${joinLemmyUrl}/donate`;
 export const docsUrl = `${joinLemmyUrl}/docs/en/index.html`;
 export const helpGuideUrl = `${joinLemmyUrl}/docs/en/about/guide.html`; // TODO find a way to redirect to the non-en folder
-export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
+export const markdownHelpUrl = `${helpGuideUrl}#using-markdown`;
 export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
-export const archiveUrl = "https://archive.is";
+export const archiveTodayUrl = "https://archive.today";
+export const ghostArchiveUrl = "https://ghostarchive.org";
+export const webArchiveUrl = "https://web.archive.org";
 export const elementUrl = "https://element.io";
 
 export const web3AnchorAddress = "0x7ab111c7846b10e06963b2e6484a2462dc5851aa";
 export const web3TipAddress = "0xAE579123F3d2bD2BA24f7e05E00AbA96AA318e75";
 export const eth01 = "0x2386F26FC10000";
 export const eth001 = "0x38D7EA4C68000";
-export const gasPrice = '0x174876E800'; // 0x200B20, 0x2E90EDD000=> 200Gwei, 0x174876E800=>100Gwei
+export const gasPrice = "0x174876E800"; // 0x200B20, 0x2E90EDD000=> 200Gwei, 0x174876E800=>100Gwei
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit = 20;
+export const trendingFetchLimit = 6;
 export const mentionDropdownFetchLimit = 10;
 
-export const languages = [
-  { code: "ca" },
-  { code: "en" },
-  { code: "el" },
-  { code: "eu" },
-  { code: "eo" },
-  { code: "es" },
-  { code: "da" },
-  { code: "de" },
-  { code: "ga" },
-  { code: "gl" },
-  { code: "hr" },
-  { code: "hu" },
-  { code: "id" },
-  { code: "ka" },
-  { code: "ko" },
-  { code: "km" },
-  { code: "hi" },
-  { code: "fa" },
-  { code: "ja" },
-  { code: "oc" },
-  { code: "nb_NO" },
-  { code: "pl" },
-  { code: "pt_BR" },
-  { code: "zh" },
-  { code: "fi" },
-  { code: "fr" },
-  { code: "sv" },
-  { code: "sq" },
-  { code: "sr_Latn" },
-  { code: "th" },
-  { code: "tr" },
-  { code: "uk" },
-  { code: "ru" },
-  { code: "nl" },
-  { code: "it" },
-  { code: "bg" },
-  { code: "zh_Hant" },
-  { code: "cy" },
-  { code: "mnc" },
-  { code: "sk" },
-  { code: "vi" },
-  { code: "pt" },
-  { code: "ar" },
-];
-
-export const themes = [
-  "litera",
-  "materia",
-  "minty",
-  "solar",
-  "united",
-  "cyborg",
-  "darkly",
-  "journal",
-  "sketchy",
-  "vaporwave",
-  "vaporwave-dark",
-  "i386",
-  "litely",
-  "wepi",
-  "pi-network"
-];
+export const relTags = "noopener nofollow";
 
 const DEFAULT_ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -199,20 +107,6 @@ export function randomStr(
     .join("");
 }
 
-export function wsJsonToRes<ResponseType>(
-  msg: WebSocketJsonResponse<ResponseType>
-): WebSocketResponse<ResponseType> {
-  return {
-    op: wsUserOp(msg),
-    data: msg.data,
-  };
-}
-
-export function wsUserOp(msg: any): UserOperation {
-  let opStr: string = msg.op;
-  return UserOperation[opStr];
-}
-
 export const md = new markdown_it({
   html: false,
   linkify: true,
@@ -220,6 +114,7 @@ export const md = new markdown_it({
 })
   .use(markdown_it_sub)
   .use(markdown_it_sup)
+  .use(markdown_it_footnote)
   .use(markdown_it_html5_embed, {
     html5embed: {
       useImageSyntax: true, // Enables video/audio embed with ![]() syntax (default)
@@ -283,37 +178,148 @@ export function getUnixTime(text: string): number {
   return text ? new Date(text).getTime() / 1000 : undefined;
 }
 
+export function futureDaysToUnixTime(days: number): number {
+  return days
+    ? Math.trunc(
+        new Date(Date.now() + 1000 * 60 * 60 * 24 * days).getTime() / 1000
+      )
+    : undefined;
+}
+
 export function canMod(
-  myUserInfo: MyUserInfo,
-  modIds: string[],
+  mods: Option<CommunityModeratorView[]>,
+  admins: Option<PersonViewSafe[]>,
   creator_id: string,
+  myUserInfo = UserService.Instance.myUserInfo,
   onSelf = false
 ): boolean {
   // You can do moderator actions only on the mods added after you.
-  if (myUserInfo) {
-    let yourIndex = modIds.findIndex(
-      id => id == myUserInfo.local_user_view.person.id
-    );
-    if (yourIndex == -1) {
-      return false;
-    } else {
-      // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
-      modIds = modIds.slice(0, yourIndex + (onSelf ? 0 : 1));
-      return !modIds.includes(creator_id);
-    }
-  } else {
-    return false;
-  }
+  let adminsThenMods = admins
+    .unwrapOr([])
+    .map(a => a.person.id)
+    .concat(mods.unwrapOr([]).map(m => m.moderator.id));
+
+  return myUserInfo.match({
+    some: me => {
+      let myIndex = adminsThenMods.findIndex(
+        id => id == me.local_user_view.person.id
+      );
+      if (myIndex == -1) {
+        return false;
+      } else {
+        // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
+        adminsThenMods = adminsThenMods.slice(0, myIndex + (onSelf ? 0 : 1));
+        return !adminsThenMods.includes(creator_id);
+      }
+    },
+    none: false,
+  });
 }
 
-export function isMod(modIds: string[], creator_id: string): boolean {
-  return modIds.includes(creator_id);
+export function canAdmin(
+  admins: Option<PersonViewSafe[]>,
+  creator_id: string,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return canMod(None, admins, creator_id, myUserInfo);
 }
 
-const imageRegex = new RegExp(
-  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg|webp))/
-);
-const videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
+export function isMod(
+  mods: Option<CommunityModeratorView[]>,
+  creator_id: string
+): boolean {
+  return mods.match({
+    some: mods => mods.map(m => m.moderator.id).includes(creator_id),
+    none: false,
+  });
+}
+
+export function amMod(
+  mods: Option<CommunityModeratorView[]>,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return myUserInfo.match({
+    some: mui => isMod(mods, mui.local_user_view.person.id),
+    none: false,
+  });
+}
+
+export function isAdmin(
+  admins: Option<PersonViewSafe[]>,
+  creator_id: string
+): boolean {
+  return admins.match({
+    some: admins => admins.map(a => a.person.id).includes(creator_id),
+    none: false,
+  });
+}
+
+export function amAdmin(
+  admins: Option<PersonViewSafe[]>,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return myUserInfo.match({
+    some: mui => isAdmin(admins, mui.local_user_view.person.id),
+    none: false,
+  });
+}
+
+export function amCommunityCreator(
+  mods: Option<CommunityModeratorView[]>,
+  creator_id: string,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return mods.match({
+    some: mods =>
+      myUserInfo
+        .map(mui => mui.local_user_view.person.id)
+        .match({
+          some: myId =>
+            myId == mods[0].moderator.id &&
+            // Don't allow mod actions on yourself
+            myId != creator_id,
+          none: false,
+        }),
+    none: false,
+  });
+}
+
+export function amSiteCreator(
+  admins: Option<PersonViewSafe[]>,
+  creator_id: string,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return admins.match({
+    some: admins =>
+      myUserInfo
+        .map(mui => mui.local_user_view.person.id)
+        .match({
+          some: myId =>
+            myId == admins[0].person.id &&
+            // Don't allow mod actions on yourself
+            myId != creator_id,
+          none: false,
+        }),
+    none: false,
+  });
+}
+
+export function amTopMod(
+  mods: Option<CommunityModeratorView[]>,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return mods.match({
+    some: mods =>
+      myUserInfo.match({
+        some: mui => mods[0].moderator.id == mui.local_user_view.person.id,
+        none: false,
+      }),
+    none: false,
+  });
+}
+
+const imageRegex = /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg|webp))/;
+const videoRegex = /(http)?s?:?(\/\/[^"']*\.(?:mp4|webm))/;
 
 export function isImage(url: string) {
   return imageRegex.test(url);
@@ -415,23 +421,23 @@ export function debounce(func: any, wait = 1000, immediate = false) {
   };
 }
 
-// TODO
-export function getLanguage(override?: string): string {
-  let myUserInfo = UserService.Instance.myUserInfo;
-  let lang =
-    override ||
-    (myUserInfo?.local_user_view.local_user.lang
-      ? myUserInfo.local_user_view.local_user.lang
-      : "browser");
+export function getLanguages(
+  override?: string,
+  myUserInfo = UserService.Instance.myUserInfo
+): string[] {
+  let myLang = myUserInfo
+    .map(m => m.local_user_view.local_user.lang)
+    .unwrapOr("browser");
+  let lang = override || myLang;
 
   if (lang == "browser" && isBrowser()) {
-    return getBrowserLanguage();
+    return getBrowserLanguages();
   } else {
-    return lang;
+    return [lang];
   }
 }
 
-export function getBrowserLanguage(): string {
+function getBrowserLanguages(): string[] {
   // Intersect lemmy's langs, with the browser langs
   let langs = languages ? languages.map(l => l.code) : ["en"];
 
@@ -439,98 +445,14 @@ export function getBrowserLanguage(): string {
   let allowedLangs = navigator.languages
     .concat("en")
     .filter(v => langs.includes(v));
-  return allowedLangs[0];
+  return allowedLangs;
 }
 
-export function getMomentLanguage(): string {
-  let lang = getLanguage();
-  if (lang.startsWith("zh")) {
-    lang = "zh-cn";
-  } else if (lang.startsWith("sv")) {
-    lang = "sv";
-  } else if (lang.startsWith("fr")) {
-    lang = "fr";
-  } else if (lang.startsWith("de")) {
-    lang = "de";
-  } else if (lang.startsWith("ru")) {
-    lang = "ru";
-  } else if (lang.startsWith("es")) {
-    lang = "es";
-  } else if (lang.startsWith("eo")) {
-    lang = "eo";
-  } else if (lang.startsWith("nl")) {
-    lang = "nl";
-  } else if (lang.startsWith("it")) {
-    lang = "it";
-  } else if (lang.startsWith("fi")) {
-    lang = "fi";
-  } else if (lang.startsWith("ca")) {
-    lang = "ca";
-  } else if (lang.startsWith("fa")) {
-    lang = "fa";
-  } else if (lang.startsWith("pl")) {
-    lang = "pl";
-  } else if (lang.startsWith("pt_BR")) {
-    lang = "pt-br";
-  } else if (lang.startsWith("ja")) {
-    lang = "ja";
-  } else if (lang.startsWith("ka")) {
-    lang = "ka";
-  } else if (lang.startsWith("hi")) {
-    lang = "hi";
-  } else if (lang.startsWith("el")) {
-    lang = "el";
-  } else if (lang.startsWith("eu")) {
-    lang = "eu";
-  } else if (lang.startsWith("gl")) {
-    lang = "gl";
-  } else if (lang.startsWith("tr")) {
-    lang = "tr";
-  } else if (lang.startsWith("hu")) {
-    lang = "hu";
-  } else if (lang.startsWith("uk")) {
-    lang = "uk";
-  } else if (lang.startsWith("sq")) {
-    lang = "sq";
-  } else if (lang.startsWith("km")) {
-    lang = "km";
-  } else if (lang.startsWith("ga")) {
-    lang = "ga";
-  } else if (lang.startsWith("sr")) {
-    lang = "sr";
-  } else if (lang.startsWith("ko")) {
-    lang = "ko";
-  } else if (lang.startsWith("da")) {
-    lang = "da";
-  } else if (lang.startsWith("oc")) {
-    lang = "oc";
-  } else if (lang.startsWith("hr")) {
-    lang = "hr";
-  } else if (lang.startsWith("th")) {
-    lang = "th";
-  } else if (lang.startsWith("bg")) {
-    lang = "bg";
-  } else if (lang.startsWith("id")) {
-    lang = "id";
-  } else if (lang.startsWith("nb")) {
-    lang = "nb";
-  } else if (lang.startsWith("cy")) {
-    lang = "cy";
-  } else if (lang.startsWith("sk")) {
-    lang = "sk";
-  } else if (lang.startsWith("vi")) {
-    lang = "vi";
-  } else if (lang.startsWith("pt")) {
-    lang = "pt";
-  } else if (lang.startsWith("ar")) {
-    lang = "ar";
-  } else {
-    lang = "en";
-  }
-  return lang;
+export async function fetchThemeList(): Promise<string[]> {
+  return fetch("/css/themelist").then(res => res.json());
 }
 
-export function setTheme(theme: string, forceReload = false) {
+export async function setTheme(theme: string, forceReload = false) {
   if (!isBrowser()) {
     return;
   }
@@ -542,9 +464,11 @@ export function setTheme(theme: string, forceReload = false) {
     theme = "darkly";
   }
 
+  let themeList = await fetchThemeList();
+
   // Unload all the other themes
-  for (var i = 0; i < themes.length; i++) {
-    let styleSheet = document.getElementById(themes[i]);
+  for (var i = 0; i < themeList.length; i++) {
+    let styleSheet = document.getElementById(themeList[i]);
     if (styleSheet) {
       styleSheet.setAttribute("disabled", "disabled");
     }
@@ -556,7 +480,8 @@ export function setTheme(theme: string, forceReload = false) {
   document.getElementById("default-dark")?.setAttribute("disabled", "disabled");
 
   // Load the theme dynamically
-  let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
+  let cssLoc = `/css/themes/${theme}.css`;
+
   loadCss(theme, cssLoc);
   document.getElementById(theme).removeAttribute("disabled");
 }
@@ -582,24 +507,26 @@ export function objectFlip(obj: any) {
   return ret;
 }
 
-export function showAvatars(): boolean {
-  return (
-    UserService.Instance.myUserInfo?.local_user_view.local_user.show_avatars ||
-    !UserService.Instance.myUserInfo
-  );
+export function showAvatars(
+  myUserInfo: Option<MyUserInfo> = UserService.Instance.myUserInfo
+): boolean {
+  return myUserInfo
+    .map(m => m.local_user_view.local_user.show_avatars)
+    .unwrapOr(true);
 }
 
-export function showScores(): boolean {
-  return (
-    UserService.Instance.myUserInfo?.local_user_view.local_user.show_scores ||
-    !UserService.Instance.myUserInfo
-  );
+export function showScores(
+  myUserInfo: Option<MyUserInfo> = UserService.Instance.myUserInfo
+): boolean {
+  return myUserInfo
+    .map(m => m.local_user_view.local_user.show_scores)
+    .unwrapOr(true);
 }
 
 export function isCakeDay(published: string): boolean {
   // moment(undefined) or moment.utc(undefined) returns the current date/time
   // moment(null) or moment.utc(null) returns null
-  const createDate = moment.utc(published || null).local();
+  const createDate = moment.utc(published).local();
   const currentDate = moment(new Date());
 
   return (
@@ -648,7 +575,7 @@ export function pictrsDeleteToast(
 
 interface NotifyInfo {
   name: string;
-  icon?: string;
+  icon: Option<string>;
   link: string;
   body: string;
 }
@@ -660,7 +587,7 @@ export function messageToastify(info: NotifyInfo, router: any) {
 
     let toast = Toastify({
       text: `${htmlBody}<br />${info.name}`,
-      avatar: info.icon ? info.icon : null,
+      avatar: info.icon,
       backgroundColor: backgroundColor,
       className: "text-dark",
       close: true,
@@ -760,9 +687,9 @@ export function setupTribute() {
           let it: PersonTribute = item.original;
           return `[${it.key}](${it.view.person.actor_id})`;
         },
-        values: (text: string, cb: (persons: PersonTribute[]) => any) => {
-          personSearch(text, (persons: PersonTribute[]) => cb(persons));
-        },
+        values: debounce(async (text: string, cb: any) => {
+          cb(await personSearch(text));
+        }),
         allowSpaces: false,
         autocompleteMode: true,
         // TODO
@@ -777,11 +704,9 @@ export function setupTribute() {
           let it: CommunityTribute = item.original;
           return `[${it.key}](${it.view.community.actor_id})`;
         },
-        values: (text: string, cb: any) => {
-          communitySearch(text, (communities: CommunityTribute[]) =>
-            cb(communities)
-          );
-        },
+        values: debounce(async (text: string, cb: any) => {
+          cb(await communitySearch(text));
+        }),
         allowSpaces: false,
         autocompleteMode: true,
         // TODO
@@ -813,42 +738,16 @@ interface PersonTribute {
   view: PersonViewSafe;
 }
 
-function personSearch(text: string, cb: (persons: PersonTribute[]) => any) {
-  if (text) {
-    let form: Search = {
-      q: text,
-      type_: SearchType.Users,
-      sort: SortType.TopAll,
-      listing_type: ListingType.All,
-      page: 1,
-      limit: mentionDropdownFetchLimit,
-      auth: authField(false),
+async function personSearch(text: string): Promise<PersonTribute[]> {
+  let users = (await fetchUsers(text)).users;
+  let persons: PersonTribute[] = users.map(pv => {
+    let tribute: PersonTribute = {
+      key: `@${pv.person.name}@${hostname(pv.person.actor_id)}`,
+      view: pv,
     };
-
-    WebSocketService.Instance.send(wsClient.search(form));
-
-    let personSub = WebSocketService.Instance.subject.subscribe(
-      msg => {
-        let res = wsJsonToRes(msg);
-        if (res.op == UserOperation.Search) {
-          let data = res.data as SearchResponse;
-          let persons: PersonTribute[] = data.users.map(pv => {
-            let tribute: PersonTribute = {
-              key: `@${pv.person.name}@${hostname(pv.person.actor_id)}`,
-              view: pv,
-            };
-            return tribute;
-          });
-          cb(persons);
-          personSub.unsubscribe();
-        }
-      },
-      err => console.error(err),
-      () => console.log("complete")
-    );
-  } else {
-    cb([]);
-  }
+    return tribute;
+  });
+  return persons;
 }
 
 interface CommunityTribute {
@@ -856,56 +755,32 @@ interface CommunityTribute {
   view: CommunityView;
 }
 
-function communitySearch(
-  text: string,
-  cb: (communities: CommunityTribute[]) => any
-) {
-  if (text) {
-    let form: Search = {
-      q: text,
-      type_: SearchType.Communities,
-      sort: SortType.TopAll,
-      listing_type: ListingType.All,
-      page: 1,
-      limit: mentionDropdownFetchLimit,
-      auth: authField(false),
+async function communitySearch(text: string): Promise<CommunityTribute[]> {
+  let comms = (await fetchCommunities(text)).communities;
+  let communities: CommunityTribute[] = comms.map(cv => {
+    let tribute: CommunityTribute = {
+      key: `!${cv.community.name}@${hostname(cv.community.actor_id)}`,
+      view: cv,
     };
-
-    WebSocketService.Instance.send(wsClient.search(form));
-
-    let communitySub = WebSocketService.Instance.subject.subscribe(
-      msg => {
-        let res = wsJsonToRes(msg);
-        if (res.op == UserOperation.Search) {
-          let data = res.data as SearchResponse;
-          let communities: CommunityTribute[] = data.communities.map(cv => {
-            let tribute: CommunityTribute = {
-              key: `!${cv.community.name}@${hostname(cv.community.actor_id)}`,
-              view: cv,
-            };
-            return tribute;
-          });
-          cb(communities);
-          communitySub.unsubscribe();
-        }
-      },
-      err => console.error(err),
-      () => console.log("complete")
-    );
-  } else {
-    cb([]);
-  }
+    return tribute;
+  });
+  return communities;
 }
 
-export function getListingTypeFromProps(props: any): ListingType {
+export function getListingTypeFromProps(
+  props: any,
+  defaultListingType: ListingType,
+  myUserInfo = UserService.Instance.myUserInfo
+): ListingType {
   return props.match.params.listing_type
     ? routeListingTypeToEnum(props.match.params.listing_type)
-    : UserService.Instance.myUserInfo
-      ? Object.values(ListingType)[
-      UserService.Instance.myUserInfo.local_user_view.local_user
-        .default_listing_type
-      ]
-      : ListingType.Local;
+    : myUserInfo.match({
+        some: me =>
+          Object.values(ListingType)[
+            me.local_user_view.local_user.default_listing_type
+          ],
+        none: defaultListingType,
+      });
 }
 
 export function getListingTypeFromPropsNoDefault(props: any): ListingType {
@@ -921,15 +796,19 @@ export function getDataTypeFromProps(props: any): DataType {
     : DataType.Post;
 }
 
-export function getSortTypeFromProps(props: any): SortType {
+export function getSortTypeFromProps(
+  props: any,
+  myUserInfo = UserService.Instance.myUserInfo
+): SortType {
   return props.match.params.sort
     ? routeSortTypeToEnum(props.match.params.sort)
-    : UserService.Instance.myUserInfo
-      ? Object.values(SortType)[
-      UserService.Instance.myUserInfo.local_user_view.local_user
-        .default_sort_type
-      ]
-      : SortType.Active;
+    : myUserInfo.match({
+        some: mui =>
+          Object.values(SortType)[
+            mui.local_user_view.local_user.default_sort_type
+          ],
+        none: SortType.Active,
+      });
 }
 
 export function getPageFromProps(props: any): number {
@@ -972,42 +851,53 @@ export function saveCommentRes(data: CommentView, comments: CommentView[]) {
   }
 }
 
+// TODO Should only use the return now, no state?
 export function updatePersonBlock(
-  data: BlockPersonResponse
-): PersonBlockView[] {
-  if (data.blocked) {
-    UserService.Instance.myUserInfo.person_blocks.push({
-      person: UserService.Instance.myUserInfo.local_user_view.person,
-      target: data.person_view.person,
-    });
-    toast(`${i18n.t("blocked")} ${data.person_view.person.name}`);
-  } else {
-    UserService.Instance.myUserInfo.person_blocks =
-      UserService.Instance.myUserInfo.person_blocks.filter(
-        i => i.target.id != data.person_view.person.id
-      );
-    toast(`${i18n.t("unblocked")} ${data.person_view.person.name}`);
-  }
-  return UserService.Instance.myUserInfo.person_blocks;
+  data: BlockPersonResponse,
+  myUserInfo = UserService.Instance.myUserInfo
+): Option<PersonBlockView[]> {
+  return myUserInfo.match({
+    some: (mui: MyUserInfo) => {
+      if (data.blocked) {
+        mui.person_blocks.push({
+          person: mui.local_user_view.person,
+          target: data.person_view.person,
+        });
+        toast(`${i18n.t("blocked")} ${data.person_view.person.name}`);
+      } else {
+        mui.person_blocks = mui.person_blocks.filter(
+          i => i.target.id != data.person_view.person.id
+        );
+        toast(`${i18n.t("unblocked")} ${data.person_view.person.name}`);
+      }
+      return Some(mui.person_blocks);
+    },
+    none: None,
+  });
 }
 
 export function updateCommunityBlock(
-  data: BlockCommunityResponse
-): CommunityBlockView[] {
-  if (data.blocked) {
-    UserService.Instance.myUserInfo.community_blocks.push({
-      person: UserService.Instance.myUserInfo.local_user_view.person,
-      community: data.community_view.community,
-    });
-    toast(`${i18n.t("blocked")} ${data.community_view.community.name}`);
-  } else {
-    UserService.Instance.myUserInfo.community_blocks =
-      UserService.Instance.myUserInfo.community_blocks.filter(
-        i => i.community.id != data.community_view.community.id
-      );
-    toast(`${i18n.t("unblocked")} ${data.community_view.community.name}`);
-  }
-  return UserService.Instance.myUserInfo.community_blocks;
+  data: BlockCommunityResponse,
+  myUserInfo = UserService.Instance.myUserInfo
+): Option<CommunityBlockView[]> {
+  return myUserInfo.match({
+    some: (mui: MyUserInfo) => {
+      if (data.blocked) {
+        mui.community_blocks.push({
+          person: mui.local_user_view.person,
+          community: data.community_view.community,
+        });
+        toast(`${i18n.t("blocked")} ${data.community_view.community.name}`);
+      } else {
+        mui.community_blocks = mui.community_blocks.filter(
+          i => i.community.id != data.community_view.community.id
+        );
+        toast(`${i18n.t("unblocked")} ${data.community_view.community.name}`);
+      }
+      return Some(mui.community_blocks);
+    },
+    none: None,
+  });
 }
 
 export function createCommentLikeRes(
@@ -1064,6 +954,40 @@ export function editPostRes(data: PostView, post: PostView) {
   }
 }
 
+export function updatePostReportRes(
+  data: PostReportView,
+  reports: PostReportView[]
+) {
+  let found = reports.find(p => p.post_report.id == data.post_report.id);
+  if (found) {
+    found.post_report = data.post_report;
+  }
+}
+
+export function updateCommentReportRes(
+  data: CommentReportView,
+  reports: CommentReportView[]
+) {
+  let found = reports.find(c => c.comment_report.id == data.comment_report.id);
+  if (found) {
+    found.comment_report = data.comment_report;
+  }
+}
+
+export function updateRegistrationApplicationRes(
+  data: RegistrationApplicationView,
+  applications: RegistrationApplicationView[]
+) {
+  let found = applications.find(
+    ra => ra.registration_application.id == data.registration_application.id
+  );
+  if (found) {
+    found.registration_application = data.registration_application;
+    found.admin = data.admin;
+    found.creator_local_user = data.creator_local_user;
+  }
+}
+
 export function commentsToFlatNodes(comments: CommentView[]): CommentNodeI[] {
   let nodes: CommentNodeI[] = [];
   for (let comment of comments) {
@@ -1104,7 +1028,8 @@ function commentSort(tree: CommentNodeI[], sort: CommentSortType) {
       (a, b) =>
         +a.comment_view.comment.removed - +b.comment_view.comment.removed ||
         +a.comment_view.comment.deleted - +b.comment_view.comment.deleted ||
-        hotRankComment(b.comment_view) - hotRankComment(a.comment_view)
+        hotRankComment(b.comment_view as CommentView) -
+          hotRankComment(a.comment_view as CommentView)
     );
   }
 
@@ -1147,6 +1072,7 @@ export function buildCommentsTree(
     let node: CommentNodeI = {
       comment_view: comment_view,
       children: [],
+      depth: 0,
     };
     map.set(comment_view.comment.id, { ...node });
   }
@@ -1154,15 +1080,18 @@ export function buildCommentsTree(
   for (let comment_view of comments) {
     let child = map.get(comment_view.comment.id);
     let parent_id = comment_view.comment.parent_id;
-    if (parent_id) {
-      let parent = map.get(parent_id);
-      // Necessary because blocked comment might not exist
-      if (parent) {
-        parent.children.push(child);
-      }
-    } else {
-      tree.push(child);
-    }
+    parent_id.match({
+      some: parentId => {
+        let parent = map.get(parentId);
+        // Necessary because blocked comment might not exist
+        if (parent) {
+          parent.children.push(child);
+        }
+      },
+      none: () => {
+        tree.push(child);
+      },
+    });
 
     setDepth(child);
   }
@@ -1187,35 +1116,41 @@ export function insertCommentIntoTree(tree: CommentNodeI[], cv: CommentView) {
     depth: 0,
   };
 
-  if (cv.comment.parent_id) {
-    let parentComment = searchCommentTree(tree, cv.comment.parent_id);
-    if (parentComment) {
-      node.depth = parentComment.depth + 1;
-      parentComment.children.unshift(node);
-    }
-  } else {
-    tree.unshift(node);
-  }
+  cv.comment.parent_id.match({
+    some: parentId => {
+      let parentComment = searchCommentTree(tree, parentId);
+      parentComment.match({
+        some: pComment => {
+          node.depth = pComment.depth + 1;
+          pComment.children.unshift(node);
+        },
+        none: void 0,
+      });
+    },
+    none: () => {
+      tree.unshift(node);
+    },
+  });
 }
 
 export function searchCommentTree(
   tree: CommentNodeI[],
   id: string
-): CommentNodeI {
+): Option<CommentNodeI> {
   for (let node of tree) {
     if (node.comment_view.comment.id === id) {
-      return node;
+      return Some(node);
     }
 
     for (const child of node.children) {
-      const res = searchCommentTree([child], id);
+      let res = searchCommentTree([child], id);
 
-      if (res) {
+      if (res.isSome()) {
         return res;
       }
     }
   }
-  return null;
+  return None;
 }
 
 export const colorList: string[] = [
@@ -1231,21 +1166,6 @@ function hsl(num: number) {
   return `hsla(${num}, 35%, 50%, 1)`;
 }
 
-export function previewLines(
-  text: string,
-  maxChars = 300,
-  maxLines = 1
-): string {
-  return (
-    text
-      .slice(0, maxChars)
-      .split("\n")
-      // Use lines * 2 because markdown requires 2 lines
-      .slice(0, maxLines * 2)
-      .join("\n") + "..."
-  );
-}
-
 export function hostname(url: string): string {
   let cUrl = new URL(url);
   return cUrl.port ? `${cUrl.hostname}:${cUrl.port}` : `${cUrl.hostname}`;
@@ -1253,7 +1173,7 @@ export function hostname(url: string): string {
 
 export function validTitle(title?: string): boolean {
   // Initial title is null, minimum length is taken care of by textarea's minLength={3}
-  if (title === null || title.length < 3) return true;
+  if (!title || title.length < 3) return true;
 
   const regex = new RegExp(/.*\S.*/, "g");
 
@@ -1277,11 +1197,52 @@ export function isBrowser() {
   return typeof window !== "undefined";
 }
 
-export function setIsoData(context: any): IsoData {
-  let isoData: IsoData = isBrowser()
-    ? window.isoData
-    : context.router.staticContext;
-  return isoData;
+export function setIsoData<Type1, Type2, Type3, Type4, Type5>(
+  context: any,
+  cls1?: ClassConstructor<Type1>,
+  cls2?: ClassConstructor<Type2>,
+  cls3?: ClassConstructor<Type3>,
+  cls4?: ClassConstructor<Type4>,
+  cls5?: ClassConstructor<Type5>
+): IsoData {
+  // If its the browser, you need to deserialize the data from the window
+  if (isBrowser()) {
+    let json = window.isoData;
+    let routeData = json.routeData;
+    let routeDataOut: any[] = [];
+
+    // Can't do array looping because of specific type constructor required
+    if (routeData[0]) {
+      routeDataOut[0] = convertWindowJson(cls1, routeData[0]);
+    }
+    if (routeData[1]) {
+      routeDataOut[1] = convertWindowJson(cls2, routeData[1]);
+    }
+    if (routeData[2]) {
+      routeDataOut[2] = convertWindowJson(cls3, routeData[2]);
+    }
+    if (routeData[3]) {
+      routeDataOut[3] = convertWindowJson(cls4, routeData[3]);
+    }
+    if (routeData[4]) {
+      routeDataOut[4] = convertWindowJson(cls5, routeData[4]);
+    }
+    let site_res = convertWindowJson(GetSiteResponse, json.site_res);
+
+    let isoData: IsoData = {
+      path: json.path,
+      site_res,
+      routeData: routeDataOut,
+    };
+    return isoData;
+  } else return context.router.staticContext;
+}
+
+/**
+ * Necessary since window ISOData can't store function types like Option
+ */
+export function convertWindowJson<T>(cls: ClassConstructor<T>, data: any): T {
+  return deserialize(cls, serialize(data));
 }
 
 export function wsSubscribe(parseMessage: any): Subscription {
@@ -1295,29 +1256,6 @@ export function wsSubscribe(parseMessage: any): Subscription {
       );
   } else {
     return null;
-  }
-}
-
-export function setOptionalAuth(obj: any, auth = UserService.Instance.auth) {
-  if (auth) {
-    obj.auth = auth;
-  }
-}
-
-export function authField(
-  throwErr = true,
-  auth = UserService.Instance.auth
-): string {
-  if ((auth == null || auth == undefined) && throwErr) {
-    let jwt = UserService.Instance.jwt;
-    if ( jwt == null || jwt == undefined || jwt === undefined) {
-      toast(i18n.t("not_logged_in"), "danger");
-      throw "Not logged in";
-    } else {
-      return UserService.Instance.jwt;
-    }
-  } else {
-    return auth;
   }
 }
 
@@ -1355,7 +1293,9 @@ export function restoreScrollPosition(context: any) {
 }
 
 export function showLocal(isoData: IsoData): boolean {
-  return isoData.site_res.federated_instances?.linked.length > 0;
+  return isoData.site_res.federated_instances
+    .map(f => f.linked.length > 0)
+    .unwrapOr(false);
 }
 
 interface ChoicesValue {
@@ -1382,12 +1322,15 @@ export function personToChoice(pvs: PersonViewSafe): ChoicesValue {
 export async function fetchCommunities(q: string) {
   let form: Search = {
     q,
-    type_: SearchType.Communities,
-    sort: SortType.TopAll,
-    listing_type: ListingType.All,
-    page: 1,
-    limit: fetchLimit,
-    auth: authField(false),
+    type_: Some(SearchType.Communities),
+    sort: Some(SortType.TopAll),
+    listing_type: Some(ListingType.All),
+    page: Some(1),
+    limit: Some(fetchLimit),
+    community_id: None,
+    community_name: None,
+    creator_id: None,
+    auth: auth(false).ok(),
   };
   let client = new LemmyHttp(httpBase);
   return client.search(form);
@@ -1396,12 +1339,15 @@ export async function fetchCommunities(q: string) {
 export async function fetchUsers(q: string) {
   let form: Search = {
     q,
-    type_: SearchType.Users,
-    sort: SortType.TopAll,
-    listing_type: ListingType.All,
-    page: 1,
-    limit: fetchLimit,
-    auth: authField(false),
+    type_: Some(SearchType.Users),
+    sort: Some(SortType.TopAll),
+    listing_type: Some(ListingType.All),
+    page: Some(1),
+    limit: Some(fetchLimit),
+    community_id: None,
+    community_name: None,
+    creator_id: None,
+    auth: auth(false).ok(),
   };
   let client = new LemmyHttp(httpBase);
   return client.search(form);
@@ -1442,27 +1388,29 @@ export const choicesConfig = {
 
 export function communitySelectName(cv: CommunityView): string {
   return cv.community.local
-    ? cv.community.name
-    : `${hostname(cv.community.actor_id)}/${cv.community.name}`;
+    ? cv.community.title
+    : `${hostname(cv.community.actor_id)}/${cv.community.title}`;
 }
 
 export function personSelectName(pvs: PersonViewSafe): string {
-  return pvs.person.local
-    ? pvs.person.name
-    : `${hostname(pvs.person.actor_id)}/${pvs.person.name}`;
+  let pName = pvs.person.display_name.unwrapOr(pvs.person.name);
+  return pvs.person.local ? pName : `${hostname(pvs.person.actor_id)}/${pName}`;
 }
 
 export function initializeSite(site: GetSiteResponse) {
   UserService.Instance.myUserInfo = site.my_user;
-  i18n.changeLanguage(getLanguage());
+  i18n.changeLanguage(getLanguages()[0]);
 }
 
 export function utf8ToHex(str: string) {
-  return Array.from(str).map(c =>
-    c.charCodeAt(0) < 128 ? c.charCodeAt(0).toString(16) :
-      encodeURIComponent(c).replace(/\%/g, '').toLowerCase()
-  ).join('');
-};
+  return Array.from(str)
+    .map(c =>
+      c.charCodeAt(0) < 128
+        ? c.charCodeAt(0).toString(16)
+        : encodeURIComponent(c).replace(/\%/g, "").toLowerCase()
+    )
+    .join("");
+}
 
 const SHORTNUM_SI_FORMAT = new Intl.NumberFormat("en-US", {
   maximumSignificantDigits: 3,
@@ -1473,4 +1421,37 @@ const SHORTNUM_SI_FORMAT = new Intl.NumberFormat("en-US", {
 
 export function numToSI(value: number): string {
   return SHORTNUM_SI_FORMAT.format(value);
+}
+
+export function isBanned(ps: PersonSafe): boolean {
+  let expires = ps.ban_expires;
+  // Add Z to convert from UTC date
+  // TODO this check probably isn't necessary anymore
+  if (expires.isSome()) {
+    if (ps.banned && new Date(expires.unwrap() + "Z") > new Date()) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return ps.banned;
+  }
+}
+
+export function pushNotNull(array: any[], new_item?: any) {
+  if (new_item) {
+    array.push(...new_item);
+  }
+}
+
+export function auth(throwErr = true): Result<string, string> {
+  return UserService.Instance.auth(throwErr);
+}
+
+export function enableDownvotes(siteRes: GetSiteResponse): boolean {
+  return siteRes.site_view.map(s => s.site.enable_downvotes).unwrapOr(true);
+}
+
+export function enableNsfw(siteRes: GetSiteResponse): boolean {
+  return siteRes.site_view.map(s => s.site.enable_nsfw).unwrapOr(false);
 }

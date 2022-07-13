@@ -1,11 +1,17 @@
+import { None, Option, Some } from "@sniptt/monads";
 import { Component } from "inferno";
 import { Link } from "inferno-router";
 import {
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
   CommunityModeratorView,
   GetCommunity,
   GetCommunityResponse,
   GetModlog,
   GetModlogResponse,
+  GetSiteResponse,
   ModAddCommunityView,
   ModAddView,
   ModBanFromCommunityView,
@@ -16,23 +22,26 @@ import {
   ModRemovePostView,
   ModStickyPostView,
   ModTransferCommunityView,
-  SiteView,
+  PersonSafe,
   UserOperation,
+  wsJsonToRes,
+  wsUserOp,
 } from "lemmy-js-client";
 import moment from "moment";
 import { Subscription } from "rxjs";
 import { i18n } from "../i18next";
 import { InitialFetchRequest } from "../interfaces";
-import { UserService, WebSocketService } from "../services";
+import { WebSocketService } from "../services";
 import {
+  amAdmin,
+  amMod,
+  auth,
   fetchLimit,
   isBrowser,
   setIsoData,
   toast,
   wsClient,
-  wsJsonToRes,
   wsSubscribe,
-  wsUserOp,
 } from "../utils";
 import { HtmlTags } from "./common/html-tags";
 import { Spinner } from "./common/icon";
@@ -52,11 +61,16 @@ enum ModlogEnum {
   ModTransferCommunity,
   ModAdd,
   ModBan,
+  AdminPurgePerson,
+  AdminPurgeCommunity,
+  AdminPurgePost,
+  AdminPurgeComment,
 }
 
 type ModlogType = {
   id: number;
   type_: ModlogEnum;
+  moderator: PersonSafe;
   view:
     | ModRemovePostView
     | ModLockPostView
@@ -67,39 +81,37 @@ type ModlogType = {
     | ModBanView
     | ModAddCommunityView
     | ModTransferCommunityView
-    | ModAddView;
+    | ModAddView
+    | AdminPurgePersonView
+    | AdminPurgeCommunityView
+    | AdminPurgePostView
+    | AdminPurgeCommentView;
   when_: string;
 };
 
 interface ModlogState {
-  res: GetModlogResponse;
-  communityId?: string;
-  communityName?: string;
-  communityMods?: CommunityModeratorView[];
+  res: Option<GetModlogResponse>;
+  communityId: Option<string>;
+  communityMods: Option<CommunityModeratorView[]>;
   page: number;
-  site_view: SiteView;
+  siteRes: GetSiteResponse;
   loading: boolean;
 }
 
 export class Modlog extends Component<any, ModlogState> {
-  private isoData = setIsoData(this.context);
+  private isoData = setIsoData(
+    this.context,
+    GetModlogResponse,
+    GetCommunityResponse
+  );
   private subscription: Subscription;
   private emptyState: ModlogState = {
-    res: {
-      removed_posts: [],
-      locked_posts: [],
-      stickied_posts: [],
-      removed_comments: [],
-      removed_communities: [],
-      banned_from_community: [],
-      banned: [],
-      added_to_community: [],
-      transferred_to_community: [],
-      added: [],
-    },
+    res: None,
+    communityId: None,
+    communityMods: None,
     page: 1,
     loading: true,
-    site_view: this.isoData.site_res.site_view,
+    siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
@@ -109,22 +121,25 @@ export class Modlog extends Component<any, ModlogState> {
     this.handlePageChange = this.handlePageChange.bind(this);
 
     this.state.communityId = this.props.match.params.community_id
-      ? this.props.match.params.community_id
-      : undefined;
+      ? Some(this.props.match.params.community_id)
+      : None;
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
 
     // Only fetch the data if coming from another route
     if (this.isoData.path == this.context.router.route.match.url) {
-      let data = this.isoData.routeData[0];
-      this.state.res = data;
-      this.state.loading = false;
+      this.state.res = Some(this.isoData.routeData[0] as GetModlogResponse);
 
-      // Getting the moderators
       if (this.isoData.routeData[1]) {
-        this.state.communityMods = this.isoData.routeData[1].moderators;
+        // Getting the moderators
+        let communityRes = Some(
+          this.isoData.routeData[1] as GetCommunityResponse
+        );
+        this.state.communityMods = communityRes.map(c => c.moderators);
       }
+
+      this.state.loading = false;
     } else {
       this.refetch();
     }
@@ -141,6 +156,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_remove_post.id,
       type_: ModlogEnum.ModRemovePost,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_remove_post.when_,
     }));
 
@@ -148,6 +164,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_lock_post.id,
       type_: ModlogEnum.ModLockPost,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_lock_post.when_,
     }));
 
@@ -155,6 +172,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_sticky_post.id,
       type_: ModlogEnum.ModStickyPost,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_sticky_post.when_,
     }));
 
@@ -162,6 +180,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_remove_comment.id,
       type_: ModlogEnum.ModRemoveComment,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_remove_comment.when_,
     }));
 
@@ -169,6 +188,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_remove_community.id,
       type_: ModlogEnum.ModRemoveCommunity,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_remove_community.when_,
     }));
 
@@ -177,6 +197,7 @@ export class Modlog extends Component<any, ModlogState> {
         id: r.mod_ban_from_community.id,
         type_: ModlogEnum.ModBanFromCommunity,
         view: r,
+        moderator: r.moderator,
         when_: r.mod_ban_from_community.when_,
       })
     );
@@ -185,6 +206,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_add_community.id,
       type_: ModlogEnum.ModAddCommunity,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_add_community.when_,
     }));
 
@@ -193,6 +215,7 @@ export class Modlog extends Component<any, ModlogState> {
         id: r.mod_transfer_community.id,
         type_: ModlogEnum.ModTransferCommunity,
         view: r,
+        moderator: r.moderator,
         when_: r.mod_transfer_community.when_,
       }));
 
@@ -200,6 +223,7 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_add.id,
       type_: ModlogEnum.ModAdd,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_add.when_,
     }));
 
@@ -207,7 +231,42 @@ export class Modlog extends Component<any, ModlogState> {
       id: r.mod_ban.id,
       type_: ModlogEnum.ModBan,
       view: r,
+      moderator: r.moderator,
       when_: r.mod_ban.when_,
+    }));
+
+    let purged_persons: ModlogType[] = res.admin_purged_persons.map(r => ({
+      id: r.admin_purge_person.id,
+      type_: ModlogEnum.AdminPurgePerson,
+      view: r,
+      moderator: r.admin,
+      when_: r.admin_purge_person.when_,
+    }));
+
+    let purged_communities: ModlogType[] = res.admin_purged_communities.map(
+      r => ({
+        id: r.admin_purge_community.id,
+        type_: ModlogEnum.AdminPurgeCommunity,
+        view: r,
+        moderator: r.admin,
+        when_: r.admin_purge_community.when_,
+      })
+    );
+
+    let purged_posts: ModlogType[] = res.admin_purged_posts.map(r => ({
+      id: r.admin_purge_post.id,
+      type_: ModlogEnum.AdminPurgePost,
+      view: r,
+      moderator: r.admin,
+      when_: r.admin_purge_post.when_,
+    }));
+
+    let purged_comments: ModlogType[] = res.admin_purged_comments.map(r => ({
+      id: r.admin_purge_comment.id,
+      type_: ModlogEnum.AdminPurgeComment,
+      view: r,
+      moderator: r.admin,
+      when_: r.admin_purge_comment.when_,
     }));
 
     let combined: ModlogType[] = [];
@@ -222,12 +281,10 @@ export class Modlog extends Component<any, ModlogState> {
     combined.push(...transferred_to_community);
     combined.push(...added);
     combined.push(...banned);
-
-    if (this.state.communityId && combined.length > 0) {
-      this.state.communityName = (
-        combined[0].view as ModRemovePostView
-      ).community.name;
-    }
+    combined.push(...purged_persons);
+    combined.push(...purged_communities);
+    combined.push(...purged_posts);
+    combined.push(...purged_comments);
 
     // Sort them by time
     combined.sort((a, b) => b.when_.localeCompare(a.when_));
@@ -240,18 +297,22 @@ export class Modlog extends Component<any, ModlogState> {
       case ModlogEnum.ModRemovePost: {
         let mrpv = i.view as ModRemovePostView;
         return [
-          mrpv.mod_remove_post.removed ? "Removed " : "Restored ",
+          mrpv.mod_remove_post.removed.unwrapOr(false)
+            ? "Removed "
+            : "Restored ",
           <span>
             Post <Link to={`/post/${mrpv.post.id}`}>{mrpv.post.name}</Link>
           </span>,
-          mrpv.mod_remove_post.reason &&
-          ` reason: ${mrpv.mod_remove_post.reason}`,
+          mrpv.mod_remove_post.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
         ];
       }
       case ModlogEnum.ModLockPost: {
         let mlpv = i.view as ModLockPostView;
         return [
-          mlpv.mod_lock_post.locked ? "Locked " : "Unlocked ",
+          mlpv.mod_lock_post.locked.unwrapOr(false) ? "Locked " : "Unlocked ",
           <span>
             Post <Link to={`/post/${mlpv.post.id}`}>{mlpv.post.name}</Link>
           </span>,
@@ -260,7 +321,9 @@ export class Modlog extends Component<any, ModlogState> {
       case ModlogEnum.ModStickyPost: {
         let mspv = i.view as ModStickyPostView;
         return [
-          mspv.mod_sticky_post.stickied ? "Stickied " : "Unstickied ",
+          mspv.mod_sticky_post.stickied.unwrapOr(false)
+            ? "Stickied "
+            : "Unstickied ",
           <span>
             Post <Link to={`/post/${mspv.post.id}`}>{mspv.post.name}</Link>
           </span>,
@@ -269,7 +332,9 @@ export class Modlog extends Component<any, ModlogState> {
       case ModlogEnum.ModRemoveComment: {
         let mrc = i.view as ModRemoveCommentView;
         return [
-          mrc.mod_remove_comment.removed ? "Removed " : "Restored ",
+          mrc.mod_remove_comment.removed.unwrapOr(false)
+            ? "Removed "
+            : "Restored ",
           <span>
             Comment{" "}
             <Link to={`/post/${mrc.post.id}/comment/${mrc.comment.id}`}>
@@ -280,30 +345,40 @@ export class Modlog extends Component<any, ModlogState> {
             {" "}
             by <PersonListing person={mrc.commenter} />
           </span>,
-          mrc.mod_remove_comment.reason &&
-          ` reason: ${mrc.mod_remove_comment.reason}`,
+          mrc.mod_remove_comment.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
         ];
       }
       case ModlogEnum.ModRemoveCommunity: {
         let mrco = i.view as ModRemoveCommunityView;
         return [
-          mrco.mod_remove_community.removed ? "Removed " : "Restored ",
+          mrco.mod_remove_community.removed.unwrapOr(false)
+            ? "Removed "
+            : "Restored ",
           <span>
             Community <CommunityLink community={mrco.community} />
           </span>,
-          mrco.mod_remove_community.reason &&
-          ` reason: ${mrco.mod_remove_community.reason}`,
-          mrco.mod_remove_community.expires &&
-          ` expires: ${moment
-            .utc(mrco.mod_remove_community.expires)
-            .fromNow()}`,
+          mrco.mod_remove_community.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+          mrco.mod_remove_community.expires.match({
+            some: expires => (
+              <div>expires: {moment.utc(expires).fromNow()}</div>
+            ),
+            none: <></>,
+          }),
         ];
       }
       case ModlogEnum.ModBanFromCommunity: {
         let mbfc = i.view as ModBanFromCommunityView;
         return [
           <span>
-            {mbfc.mod_ban_from_community.banned ? "Banned " : "Unbanned "}{" "}
+            {mbfc.mod_ban_from_community.banned.unwrapOr(false)
+              ? "Banned "
+              : "Unbanned "}{" "}
           </span>,
           <span>
             <PersonListing person={mbfc.banned_person} />
@@ -312,23 +387,25 @@ export class Modlog extends Component<any, ModlogState> {
           <span>
             <CommunityLink community={mbfc.community} />
           </span>,
-          <div>
-            {mbfc.mod_ban_from_community.reason &&
-              ` reason: ${mbfc.mod_ban_from_community.reason}`}
-          </div>,
-          <div>
-            {mbfc.mod_ban_from_community.expires &&
-              ` expires: ${moment
-                .utc(mbfc.mod_ban_from_community.expires)
-                .fromNow()}`}
-          </div>,
+          mbfc.mod_ban_from_community.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+          mbfc.mod_ban_from_community.expires.match({
+            some: expires => (
+              <div>expires: {moment.utc(expires).fromNow()}</div>
+            ),
+            none: <></>,
+          }),
         ];
       }
       case ModlogEnum.ModAddCommunity: {
         let mac = i.view as ModAddCommunityView;
         return [
           <span>
-            {mac.mod_add_community.removed ? "Removed " : "Appointed "}{" "}
+            {mac.mod_add_community.removed.unwrapOr(false)
+              ? "Removed "
+              : "Appointed "}{" "}
           </span>,
           <span>
             <PersonListing person={mac.modded_person} />
@@ -343,7 +420,9 @@ export class Modlog extends Component<any, ModlogState> {
         let mtc = i.view as ModTransferCommunityView;
         return [
           <span>
-            {mtc.mod_transfer_community.removed ? "Removed " : "Transferred "}{" "}
+            {mtc.mod_transfer_community.removed.unwrapOr(false)
+              ? "Removed "
+              : "Transferred "}{" "}
           </span>,
           <span>
             <CommunityLink community={mtc.community} />
@@ -357,25 +436,78 @@ export class Modlog extends Component<any, ModlogState> {
       case ModlogEnum.ModBan: {
         let mb = i.view as ModBanView;
         return [
-          <span>{mb.mod_ban.banned ? "Banned " : "Unbanned "} </span>,
+          <span>
+            {mb.mod_ban.banned.unwrapOr(false) ? "Banned " : "Unbanned "}{" "}
+          </span>,
           <span>
             <PersonListing person={mb.banned_person} />
           </span>,
-          <div>{mb.mod_ban.reason && ` reason: ${mb.mod_ban.reason}`}</div>,
-          <div>
-            {mb.mod_ban.expires &&
-              ` expires: ${moment.utc(mb.mod_ban.expires).fromNow()}`}
-          </div>,
+          mb.mod_ban.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+          mb.mod_ban.expires.match({
+            some: expires => (
+              <div>expires: {moment.utc(expires).fromNow()}</div>
+            ),
+            none: <></>,
+          }),
         ];
       }
       case ModlogEnum.ModAdd: {
         let ma = i.view as ModAddView;
         return [
-          <span>{ma.mod_add.removed ? "Removed " : "Appointed "} </span>,
+          <span>
+            {ma.mod_add.removed.unwrapOr(false) ? "Removed " : "Appointed "}{" "}
+          </span>,
           <span>
             <PersonListing person={ma.modded_person} />
           </span>,
           <span> as an admin </span>,
+        ];
+      }
+      case ModlogEnum.AdminPurgePerson: {
+        let ap = i.view as AdminPurgePersonView;
+        return [
+          <span>Purged a Person</span>,
+          ap.admin_purge_person.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+        ];
+      }
+      case ModlogEnum.AdminPurgeCommunity: {
+        let ap = i.view as AdminPurgeCommunityView;
+        return [
+          <span>Purged a Community</span>,
+          ap.admin_purge_community.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+        ];
+      }
+      case ModlogEnum.AdminPurgePost: {
+        let ap = i.view as AdminPurgePostView;
+        return [
+          <span>Purged a Post from from </span>,
+          <CommunityLink community={ap.community} />,
+          ap.admin_purge_post.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
+        ];
+      }
+      case ModlogEnum.AdminPurgeComment: {
+        let ap = i.view as AdminPurgeCommentView;
+        return [
+          <span>
+            Purged a Comment from{" "}
+            <Link to={`/post/${ap.post.id}`}>{ap.post.name}</Link>
+          </span>,
+          ap.admin_purge_comment.reason.match({
+            some: reason => <div>reason: {reason}</div>,
+            none: <></>,
+          }),
         ];
       }
       default:
@@ -384,20 +516,20 @@ export class Modlog extends Component<any, ModlogState> {
   }
 
   combined() {
-    let combined = this.buildCombined(this.state.res);
+    let combined = this.state.res.map(this.buildCombined).unwrapOr([]);
 
     return (
       <tbody>
         {combined.map(i => (
           <tr>
             <td>
-              <MomentTime data={i} />
+              <MomentTime published={i.when_} updated={None} />
             </td>
             <td>
-              {this.isAdminOrMod ? (
-                <PersonListing person={i.view.moderator} />
+              {this.amAdminOrMod ? (
+                <PersonListing person={i.moderator} />
               ) : (
-                <div>{i18n.t("mod")}</div>
+                <div>{this.modOrAdminText(i.moderator)}</div>
               )}
             </td>
             <td>{this.renderModlogType(i)}</td>
@@ -407,23 +539,28 @@ export class Modlog extends Component<any, ModlogState> {
     );
   }
 
-  get isAdminOrMod(): boolean {
-    let isAdmin =
-      UserService.Instance.myUserInfo &&
-      this.isoData.site_res.admins
-        .map(a => a.person.id)
-        .includes(UserService.Instance.myUserInfo.local_user_view.person.id);
-    let isMod =
-      UserService.Instance.myUserInfo &&
-      this.state.communityMods &&
-      this.state.communityMods
-        .map(m => m.moderator.id)
-        .includes(UserService.Instance.myUserInfo.local_user_view.person.id);
-    return isAdmin || isMod;
+  get amAdminOrMod(): boolean {
+    return (
+      amAdmin(Some(this.state.siteRes.admins)) ||
+      amMod(this.state.communityMods)
+    );
+  }
+
+  modOrAdminText(person: PersonSafe): string {
+    if (
+      this.isoData.site_res.admins.map(a => a.person.id).includes(person.id)
+    ) {
+      return i18n.t("admin");
+    } else {
+      return i18n.t("mod");
+    }
   }
 
   get documentTitle(): string {
-    return `Modlog - ${this.state.site_view.site.name}`;
+    return this.state.siteRes.site_view.match({
+      some: siteView => `Modlog - ${siteView.site.name}`,
+      none: "",
+    });
   }
 
   render() {
@@ -432,6 +569,8 @@ export class Modlog extends Component<any, ModlogState> {
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
+          description={None}
+          image={None}
         />
         {this.state.loading ? (
           <h5>
@@ -439,17 +578,6 @@ export class Modlog extends Component<any, ModlogState> {
           </h5>
         ) : (
           <div>
-            <h5>
-              {this.state.communityName && (
-                <Link
-                  className="text-body"
-                  to={`/c/${this.state.communityName}`}
-                >
-                  /c/{this.state.communityName}{" "}
-                </Link>
-              )}
-              <span>{i18n.t("modlog")}</span>
-            </h5>
             <div class="table-responsive">
               <table id="modlog_table" class="table table-sm table-hover">
                 <thead class="pointer">
@@ -478,43 +606,53 @@ export class Modlog extends Component<any, ModlogState> {
   }
 
   refetch() {
-    let modlogForm: GetModlog = {
+    let modlogForm = new GetModlog({
       community_id: this.state.communityId,
-      page: this.state.page,
-      limit: fetchLimit,
-    };
+      mod_person_id: None,
+      page: Some(this.state.page),
+      limit: Some(fetchLimit),
+      auth: auth(false).ok(),
+    });
     WebSocketService.Instance.send(wsClient.getModlog(modlogForm));
 
-    if (this.state.communityId) {
-      let communityForm: GetCommunity = {
-        id: this.state.communityId,
-        name: this.state.communityName,
-      };
-      WebSocketService.Instance.send(wsClient.getCommunity(communityForm));
-    }
+    this.state.communityId.match({
+      some: id => {
+        let communityForm = new GetCommunity({
+          id: Some(id),
+          name: None,
+          auth: auth(false).ok(),
+        });
+        WebSocketService.Instance.send(wsClient.getCommunity(communityForm));
+      },
+      none: void 0,
+    });
   }
 
   static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
     let pathSplit = req.path.split("/");
-    let communityId = pathSplit[3];
+    //let communityId = Some(pathSplit[3]).map(Number);
+    let communityId = Some(pathSplit[3]);
     let promises: Promise<any>[] = [];
 
-    let modlogForm: GetModlog = {
-      page: 1,
-      limit: fetchLimit,
-    };
-
-    if (communityId) {
-      modlogForm.community_id = communityId;
-    }
+    let modlogForm = new GetModlog({
+      page: Some(1),
+      limit: Some(fetchLimit),
+      community_id: communityId,
+      mod_person_id: None,
+      auth: req.auth,
+    });
 
     promises.push(req.client.getModlog(modlogForm));
 
-    if (communityId) {
-      let communityForm: GetCommunity = {
+    if (communityId.isSome()) {
+      let communityForm = new GetCommunity({
         id: communityId,
-      };
+        name: None,
+        auth: req.auth,
+      });
       promises.push(req.client.getCommunity(communityForm));
+    } else {
+      promises.push(Promise.resolve());
     }
     return promises;
   }
@@ -526,14 +664,14 @@ export class Modlog extends Component<any, ModlogState> {
       toast(i18n.t(msg.error), "danger");
       return;
     } else if (op == UserOperation.GetModlog) {
-      let data = wsJsonToRes<GetModlogResponse>(msg).data;
+      let data = wsJsonToRes<GetModlogResponse>(msg, GetModlogResponse);
       this.state.loading = false;
       window.scrollTo(0, 0);
-      this.state.res = data;
+      this.state.res = Some(data);
       this.setState(this.state);
     } else if (op == UserOperation.GetCommunity) {
-      let data = wsJsonToRes<GetCommunityResponse>(msg).data;
-      this.state.communityMods = data.moderators;
+      let data = wsJsonToRes<GetCommunityResponse>(msg, GetCommunityResponse);
+      this.state.communityMods = Some(data.moderators);
     }
   }
 }

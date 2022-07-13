@@ -1,40 +1,36 @@
+import { None } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import {
   GetSiteResponse,
   Login as LoginForm,
-  PiLogin as PiLoginForm,
   LoginResponse,
   PasswordReset,
-  SiteView,
+  PiLogin as PiLoginForm,
   UserOperation,
-  LemmyHttp,
+  wsJsonToRes,
+  wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
+import { httpBase } from "../../../shared/env";
+import axios from "../../axios";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
-  authField,
+  auth,
   isBrowser,
-  joinLemmyUrl,
-  joinPiUrl,
   setIsoData,
   toast,
-  validEmail,
   wsClient,
-  wsJsonToRes,
   wsSubscribe,
-  wsUserOp,
 } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
-import { Icon, Spinner } from "../common/icon";
-import axios from '../../axios';
-import {httpBase} from "../../../shared/env";
+import { Spinner } from "../common/icon";
 
 interface State {
   piLoginForm: PiLoginForm;
   loginForm: LoginForm;
   loginLoading: boolean;
-  site_view: SiteView;
+  siteRes: GetSiteResponse;
 }
 
 export class Login extends Component<any, State> {
@@ -42,17 +38,18 @@ export class Login extends Component<any, State> {
   private subscription: Subscription;
 
   emptyState: State = {
-    piLoginForm:{
+    piLoginForm: {
       pi_username: undefined,
       pi_uid: undefined,
       pi_token: undefined,
+      info: None,
     },
-    loginForm: {
+    loginForm: new LoginForm({
       username_or_email: undefined,
       password: undefined,
-    },
+    }),
     loginLoading: false,
-    site_view: this.isoData.site_res.site_view,
+    siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
@@ -63,13 +60,13 @@ export class Login extends Component<any, State> {
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
     if (isBrowser()) {
-      WebSocketService.Instance.send(wsClient.getCaptcha());      
+      WebSocketService.Instance.send(wsClient.getCaptcha());
     }
   }
 
   componentDidMount() {
     // Navigate to home if already logged in
-    if (UserService.Instance.myUserInfo) {
+    if (UserService.Instance.myUserInfo.isSome()) {
       this.context.router.history.push("/");
     }
   }
@@ -81,7 +78,10 @@ export class Login extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    return `${i18n.t("login")} - ${this.state.site_view.site.name}`;
+    return this.state.siteRes.site_view.match({
+      some: siteView => `${i18n.t("login")} - ${siteView.site.name}`,
+      none: "",
+    });
   }
 
   get isWePi(): boolean {
@@ -89,7 +89,7 @@ export class Login extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes('PiBrowser');
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get isForcePiAuth(): boolean {
@@ -97,13 +97,14 @@ export class Login extends Component<any, State> {
     //return isPiBrowser() && navigator.userAgent.includes('PiBrowser');
   }
 
-
   render() {
     return (
       <div class="container">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
+          description={None}
+          image={None}
         />
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3">{this.loginForm()}</div>
@@ -119,10 +120,7 @@ export class Login extends Component<any, State> {
           <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
             <h5>{i18n.t("login")}</h5>
             <div class="form-group row">
-              <label
-                class="col-sm-2 col-form-label"
-                htmlFor="login-username"
-              >
+              <label class="col-sm-2 col-form-label" htmlFor="login-username">
                 {i18n.t("username")}
               </label>
               <div class="col-sm-10">
@@ -170,36 +168,38 @@ export class Login extends Component<any, State> {
                   {this.state.loginLoading ? <Spinner /> : i18n.t("login")}
                 </button>
               </div>
-              <hr/>
-               {this.isPiBrowser  && (
+              <hr />
+              {this.isPiBrowser && (
                 <div class="col-sm-10">
-                <button 
-                type="button"
-                 class="btn btn-secondary"
-                 onClick={linkEvent(this, this.handlePiLoginSubmit)}
-                >
-                  {this.state.loginLoading ? <Spinner /> : "Login TEST (Do not use)"}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onClick={linkEvent(this, this.handlePiLoginSubmit)}
+                  >
+                    {this.state.loginLoading ? (
+                      <Spinner />
+                    ) : (
+                      "Login TEST (Do not use)"
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </form>
         </div>
       );
-    } 
-    else 
-    {
+    } else {
       return (
-      <div class="col-sm-10">
-        <button 
-        type="button"
-         class="btn btn-secondary"
-         onClick={linkEvent(this, this.handlePiLoginSubmit)}
-        >
-          {this.state.loginLoading ? <Spinner /> : i18n.t("Login")}
-        </button>
-      </div>
-      )
+        <div class="col-sm-10">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onClick={linkEvent(this, this.handlePiLoginSubmit)}
+          >
+            {this.state.loginLoading ? <Spinner /> : i18n.t("Login")}
+          </button>
+        </div>
+      );
     }
   }
 
@@ -219,12 +219,12 @@ export class Login extends Component<any, State> {
     i.state.loginForm.password = event.target.value;
     i.setState(i.state);
   }
-  
+
   handlePasswordReset(i: Login, event: any) {
     event.preventDefault();
-    let resetForm: PasswordReset = {
+    let resetForm = new PasswordReset({
       email: i.state.loginForm.username_or_email,
-    };
+    });
     WebSocketService.Instance.send(wsClient.passwordReset(resetForm));
   }
 
@@ -234,81 +234,82 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.state = this.emptyState;
-      // Refetch another captcha
-      WebSocketService.Instance.send(wsClient.getCaptcha());
       this.setState(this.state);
       return;
     } else {
       if (op == UserOperation.Login) {
-        let data = wsJsonToRes<LoginResponse>(msg).data;
+        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
         this.state = this.emptyState;
         this.setState(this.state);
         UserService.Instance.login(data);
-        WebSocketService.Instance.send(
-          wsClient.userJoin({
-            auth: authField(),
-          })
-        );
+        // WebSocketService.Instance.send(
+        //   wsClient.userJoin({
+        //     auth: auth().unwrap(),
+        //   })
+        // );
         toast(i18n.t("logged_in"));
         this.props.history.push("/");
       } else if (op == UserOperation.PiLogin) {
-        let data = wsJsonToRes<LoginResponse>(msg).data;
+        // TODO: UUID check
+        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
         this.state = this.emptyState;
         this.setState(this.state);
         UserService.Instance.login(data);
-        WebSocketService.Instance.send(
-          wsClient.userJoin({
-            auth: authField(),
-          })
-        );
+        // WebSocketService.Instance.send(
+        //   wsClient.userJoin({
+        //     auth: auth().unwrap(),
+        //   })
+        // );
         toast(i18n.t("logged_in"));
         this.props.history.push("/");
-    } else if (op == UserOperation.PasswordReset) {
+      } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
-        let data = wsJsonToRes<GetSiteResponse>(msg).data;
-        this.state.site_view = data.site_view;
+        let data = wsJsonToRes<GetSiteResponse>(msg, GetSiteResponse);
+        this.state.siteRes = data;
         this.setState(this.state);
       }
     }
   }
 
   async handlePiLoginSubmit(i: Login, event: any) {
-
     //if (!this.isPiBrowser)
     //  return;
     var piUser;
 
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-      const scopes = ['username','payments'];      
+      const scopes = ["username", "payments"];
       try {
-          var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-          return user;
-      } catch(err) {
-          console.log(err)
+        var user = await window.Pi.authenticate(
+          scopes,
+          onIncompletePaymentFound
+        );
+        return user;
+      } catch (err) {
+        console.log(err);
       }
     };
 
-    const onIncompletePaymentFound = async (payment) => { 
+    const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      const { data } = await axios.post('/pi/found', {
-          paymentid: payment.identifier,
-          pi_username: piUser.user.username,
-          pi_uid: piUser.user.uid,
-          auth: null,
-          dto: null
+      const { data } = await axios.post("/pi/found", {
+        paymentid: payment.identifier,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
+        auth: null,
+        dto: null,
       });
 
       if (data.status >= 200 && data.status < 300) {
-          //payment was approved continue with flow
-          return data;
+        //payment was approved continue with flow
+        return data;
       }
     }; // Read more about this in the SDK reference
-    
-    const PiLogin =  async (form: PiLoginForm) => {
+
+    const PiLogin = async (form: PiLoginForm) => {
       let client = new LemmyHttp(httpBase);
-      return  client.piLogin(form);
+      return client.piLogin(form);
     };
 
     event.preventDefault();
@@ -319,9 +320,9 @@ export class Login extends Component<any, State> {
     i.state.piLoginForm.pi_uid = piUser.user.uid;
     i.state.piLoginForm.pi_token = piUser.accessToken;
 
-    i.setState(i.state);    
+    i.setState(i.state);
     let useHttp = false;
-    if (useHttp===true) {
+    if (useHttp === true) {
       console.log(JSON.stringify(i.state.piLoginForm));
       var data = await PiLogin(i.state.piLoginForm);
       this.state = this.emptyState;
@@ -329,7 +330,7 @@ export class Login extends Component<any, State> {
       UserService.Instance.login(data);
       WebSocketService.Instance.send(
         wsClient.userJoin({
-          auth: authField(),
+          auth: auth().unwrap(),
         })
       );
       toast(i18n.t("logged_in"));
@@ -338,5 +339,4 @@ export class Login extends Component<any, State> {
       WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
     }
   }
-
 }

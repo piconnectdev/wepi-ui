@@ -1,55 +1,47 @@
+import { None, Some } from "@sniptt/monads";
 import { Component, createRef, linkEvent, RefObject } from "inferno";
-import { Link } from "inferno-router";
+import { NavLink } from "inferno-router";
 import {
   CommentResponse,
-  CommentView,
-  GetPersonMentions,
-  GetPersonMentionsResponse,
-  GetPrivateMessages,
-  GetReplies,
-  GetRepliesResponse,
+  GetReportCount,
+  GetReportCountResponse,
   GetSiteResponse,
+  GetUnreadCount,
+  GetUnreadCountResponse,
+  GetUnreadRegistrationApplicationCount,
+  GetUnreadRegistrationApplicationCountResponse,
   PrivateMessageResponse,
-  PrivateMessagesResponse,
-  PrivateMessageView,
-  SortType,
   UserOperation,
+  wsJsonToRes,
+  wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
-  authField,
-  donateLemmyUrl,
-  fetchLimit,
-  getLanguage,
+  amAdmin,
+  auth,
   isBrowser,
   notifyComment,
   notifyPrivateMessage,
   numToSI,
-  setTheme,
   showAvatars,
   toast,
   wsClient,
-  wsJsonToRes,
   wsSubscribe,
-  wsUserOp,
 } from "../../utils";
 import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
-import axios from '../../axios';
 
 interface NavbarProps {
-  site_res: GetSiteResponse;
+  siteRes: GetSiteResponse;
 }
 
 interface NavbarState {
-  isLoggedIn: boolean;
   expanded: boolean;
-  replies: CommentView[];
-  mentions: CommentView[];
-  messages: PrivateMessageView[];
-  unreadCount: number;
+  unreadInboxCount: number;
+  unreadReportCount: number;
+  unreadApplicationCount: number;
   searchParam: string;
   toggleSearch: boolean;
   showDropdown: boolean;
@@ -59,16 +51,16 @@ interface NavbarState {
 export class Navbar extends Component<NavbarProps, NavbarState> {
   private wsSub: Subscription;
   private userSub: Subscription;
-  private unreadCountSub: Subscription;
+  private unreadInboxCountSub: Subscription;
+  private unreadReportCountSub: Subscription;
+  private unreadApplicationCountSub: Subscription;
   private searchTextField: RefObject<HTMLInputElement>;
   private walletConnected: boolean;
 
   emptyState: NavbarState = {
-    isLoggedIn: !!this.props.site_res.my_user,
-    unreadCount: 0,
-    replies: [],
-    mentions: [],
-    messages: [],
+    unreadInboxCount: 0,
+    unreadReportCount: 0,
+    unreadApplicationCount: 0,
     expanded: false,
     searchParam: "",
     toggleSearch: false,
@@ -86,20 +78,19 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes('PiBrowser') ;
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   onClickConnect = async () => {
-    const onboardButton = document.getElementById('connectWallet');
-    try 
-    {
+    const onboardButton = document.getElementById("connectWallet");
+    try {
       // Will open the MetaMask UI
       // You should disable this button while the request is pending!
       if (this.walletConnected === false) {
-        await ethereum.request({ method: 'eth_requestAccounts' });
-        this.walletConnected  = true;
-        onboardButton.innerText = 'Connected MetaMask';
-      } 
+        await ethereum.request({ method: "eth_requestAccounts" });
+        this.walletConnected = true;
+        onboardButton.innerText = "Connected MetaMask";
+      }
       //else {
       //  onboardButton.innerText = 'Connect MetaMask';
       //  this.walletConnected  = false;
@@ -109,11 +100,11 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     }
   };
   onClickInstall = async () => {
-    window.location.href = "https://metamask.io/download"
-  }
+    window.location.href = "https://metamask.io/download";
+  };
   initialize = () => {
     if (!this.isPiBrowser) {
-      const onboardButton = document.getElementById('connectWallet');
+      const onboardButton = document.getElementById("connectWallet");
       //You will start here
       //Created check function to see if the MetaMask extension is installed
       const isMetaMaskInstalled = () => {
@@ -122,65 +113,59 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         return Boolean(ethereum && ethereum.isMetaMask);
       };
       //------Inserted Code------\\
-    const MetaMaskClientCheck = () => {
-      //Now we check to see if MetaMask is installed
-      if (!isMetaMaskInstalled()) {
-        //If it isn't installed we ask the user to click to install it
-        onboardButton.innerText = 'Install MetaMask';
-        onboardButton.onclick = this.onClickInstall;
-      } else {
-        //If it is installed we change our button text
-        onboardButton.innerText = 'Connect MetaMask';
-        onboardButton.onclick = this.onClickConnect;
-        this.walletConnected  = false;
-      }
-    };
-    MetaMaskClientCheck();
+      const MetaMaskClientCheck = () => {
+        //Now we check to see if MetaMask is installed
+        if (!isMetaMaskInstalled()) {
+          //If it isn't installed we ask the user to click to install it
+          onboardButton.innerText = "Install MetaMask";
+          onboardButton.onclick = this.onClickInstall;
+        } else {
+          //If it is installed we change our button text
+          onboardButton.innerText = "Connect MetaMask";
+          onboardButton.onclick = this.onClickConnect;
+          this.walletConnected = false;
+        }
+      };
+      MetaMaskClientCheck();
     }
   };
 
-  
   componentDidMount() {
-      if (isBrowser()) {
-      window.addEventListener('DOMContentLoaded', this.initialize);
-      this.websocketEvents();
-
+    // Subscribe to jwt changes
+    if (isBrowser()) {
       this.searchTextField = createRef();
-      console.log(`isLoggedIn = ${this.state.isLoggedIn}`);
 
       // On the first load, check the unreads
-      if (this.state.isLoggedIn == false) {
-        // setTheme(data.my_user.theme, true);
-        // i18n.changeLanguage(getLanguage());
-        // i18n.changeLanguage('de');
-      } else {
+      if (UserService.Instance.myUserInfo.isSome()) {
         this.requestNotificationPermission();
         WebSocketService.Instance.send(
           wsClient.userJoin({
-            auth: authField(),
+            auth: auth().unwrap(),
           })
         );
-        this.fetchUnreads();
+
+        if (this.props.siteRes.site_view.isSome()) {
+          this.fetchUnreads();
+        }
       }
 
-      this.userSub = UserService.Instance.jwtSub.subscribe(res => {
-        // A login
-        if (res !== undefined) {
-          this.requestNotificationPermission();
-          WebSocketService.Instance.send(
-            wsClient.getSite({ auth: authField() })
-          );
-        } else {
-          this.setState({ isLoggedIn: false });
-        }
-      });
+      this.requestNotificationPermission();
 
       // Subscribe to unread count changes
-      this.unreadCountSub = UserService.Instance.unreadCountSub.subscribe(
-        res => {
-          this.setState({ unreadCount: res });
-        }
-      );
+      this.unreadInboxCountSub =
+        UserService.Instance.unreadInboxCountSub.subscribe(res => {
+          this.setState({ unreadInboxCount: res });
+        });
+      // Subscribe to unread report count changes
+      this.unreadReportCountSub =
+        UserService.Instance.unreadReportCountSub.subscribe(res => {
+          this.setState({ unreadReportCount: res });
+        });
+      // Subscribe to unread application count
+      this.unreadApplicationCountSub =
+        UserService.Instance.unreadApplicationCountSub.subscribe(res => {
+          this.setState({ unreadApplicationCount: res });
+        });
     }
 
     if (this.isPiBrowser) {
@@ -223,7 +208,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   componentWillUnmount() {
     this.wsSub.unsubscribe();
     this.userSub.unsubscribe();
-    this.unreadCountSub.unsubscribe();
+    this.unreadInboxCountSub.unsubscribe();
+    this.unreadReportCountSub.unsubscribe();
+    this.unreadApplicationCountSub.unsubscribe();
   }
 
   updateUrl() {
@@ -247,54 +234,102 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   // TODO class active corresponding to current page
   navbar() {
-    let myUserInfo =
-      UserService.Instance.myUserInfo || this.props.site_res.my_user;
-    let person = myUserInfo?.local_user_view.person;
     return (
-      <nav class="navbar navbar-expand-lg navbar-light shadow-sm p-0 px-3">
+      <nav class="navbar navbar-expand-md navbar-light shadow-sm p-0 px-3">
         <div class="container">
-          {this.props.site_res.site_view && (
-            <button
-              title={
-                this.props.site_res.site_view.site.description ||
-                this.props.site_res.site_view.site.name
-              }
-              className="d-flex align-items-center navbar-brand mr-md-3 btn btn-link"
-              onClick={linkEvent(this, this.handleGotoHome)}
-            >
-              {this.props.site_res.site_view.site.icon && showAvatars() && (
-                <PictrsImage
-                  src={this.props.site_res.site_view.site.icon}
-                  icon
-                />
+          {this.props.siteRes.site_view.match({
+            some: siteView => (
+              <NavLink
+                to="/"
+                onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                title={siteView.site.description.unwrapOr(siteView.site.name)}
+                className="d-flex align-items-center navbar-brand mr-md-3"
+              >
+                {siteView.site.icon.match({
+                  some: icon =>
+                    showAvatars() && <PictrsImage src={icon} icon />,
+                  none: <></>,
+                })}
+                {siteView.site.name}
+              </NavLink>
+            ),
+            none: <></>,
+          })}
+          {UserService.Instance.myUserInfo.isSome() && (
+            <>
+              <ul class="navbar-nav ml-auto">
+                <li className="nav-item">
+                  <NavLink
+                    to="/inbox"
+                    className="p-1 navbar-toggler nav-link border-0"
+                    onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                    title={i18n.t("unread_messages", {
+                      count: this.state.unreadInboxCount,
+                      formattedCount: numToSI(this.state.unreadInboxCount),
+                    })}
+                  >
+                    <Icon icon="bell" />
+                    {this.state.unreadInboxCount > 0 && (
+                      <span class="mx-1 badge badge-light">
+                        {numToSI(this.state.unreadInboxCount)}
+                      </span>
+                    )}
+                  </NavLink>
+                </li>
+              </ul>
+              {this.moderatesSomething && (
+                <ul class="navbar-nav ml-1">
+                  <li className="nav-item">
+                    <NavLink
+                      to="/reports"
+                      className="p-1 navbar-toggler nav-link border-0"
+                      onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                      title={i18n.t("unread_reports", {
+                        count: this.state.unreadReportCount,
+                        formattedCount: numToSI(this.state.unreadReportCount),
+                      })}
+                    >
+                      <Icon icon="shield" />
+                      {this.state.unreadReportCount > 0 && (
+                        <span class="mx-1 badge badge-light">
+                          {numToSI(this.state.unreadReportCount)}
+                        </span>
+                      )}
+                    </NavLink>
+                  </li>
+                </ul>
               )}
-              {this.props.site_res.site_view.site.name}
-            </button>
-          )}
-          {this.state.isLoggedIn && (
-            <button
-              className="ml-auto p-1 navbar-toggler nav-link border-0 btn btn-link"
-              onClick={linkEvent(this, this.handleGotoInbox)}
-              title={i18n.t("inbox")}
-            >
-              <Icon icon="bell" />
-              {this.state.unreadCount > 0 && (
-                <span
-                  class="mx-1 badge badge-light"
-                  aria-label={`${this.state.unreadCount} ${i18n.t(
-                    "unread_messages"
-                  )}`}
-                >
-                  {numToSI(this.state.unreadCount)}
-                </span>
+              {this.amAdmin && (
+                <ul class="navbar-nav ml-1">
+                  <li className="nav-item">
+                    <NavLink
+                      to="/registration_applications"
+                      className="p-1 navbar-toggler nav-link border-0"
+                      onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                      title={i18n.t("unread_registration_applications", {
+                        count: this.state.unreadApplicationCount,
+                        formattedCount: numToSI(
+                          this.state.unreadApplicationCount
+                        ),
+                      })}
+                    >
+                      <Icon icon="clipboard" />
+                      {this.state.unreadApplicationCount > 0 && (
+                        <span class="mx-1 badge badge-light">
+                          {numToSI(this.state.unreadApplicationCount)}
+                        </span>
+                      )}
+                    </NavLink>
+                  </li>
+                </ul>
               )}
-            </button>
+            </>
           )}
           <button
             class="navbar-toggler border-0 p-1"
             type="button"
             aria-label="menu"
-            onClick={linkEvent(this, this.expandNavbar)}
+            onClick={linkEvent(this, this.handleToggleExpandNavbar)}
             data-tippy-content={i18n.t("expand_here")}
           >
             <Icon icon="menu" />
@@ -304,34 +339,41 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           >
             <ul class="navbar-nav my-2 mr-auto">
               <li class="nav-item">
-                <button
-                  className="nav-link btn btn-link"
-                  onClick={linkEvent(this, this.handleGotoCommunities)}
+                <NavLink
+                  to="/communities"
+                  className="nav-link"
+                  onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                   title={i18n.t("communities")}
                 >
                   {i18n.t("communities")}
-                </button>
+                </NavLink>
               </li>
               <li class="nav-item">
-                <button
-                  className="nav-link btn btn-link"
-                  onClick={linkEvent(this, this.handleGotoCreatePost)}
+                <NavLink
+                  to={{
+                    pathname: "/create_post",
+                    prevPath: this.currentLocation,
+                  }}
+                  className="nav-link"
+                  onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                   title={i18n.t("create_post")}
                 >
                   {i18n.t("create_post")}
-                </button>
+                </NavLink>
               </li>
               {this.canCreateCommunity && (
                 <li class="nav-item">
-                  <button
-                    className="nav-link btn btn-link"
-                    onClick={linkEvent(this, this.handleGotoCreateCommunity)}
+                  <NavLink
+                    to="/create_community"
+                    className="nav-link"
+                    onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                     title={i18n.t("create_community")}
                   >
                     {i18n.t("create_community")}
-                  </button>
+                  </NavLink>
                 </li>
-              )} {/*
+              )}{" "}
+              {/*
               <li class="nav-item">
                 <a
                   className="nav-link"
@@ -343,15 +385,16 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               </li>*/}
             </ul>
             <ul class="navbar-nav my-2">
-              {this.canAdmin && (
+              {this.amAdmin && (
                 <li className="nav-item">
-                  <button
-                    className="nav-link btn btn-link"
-                    onClick={linkEvent(this, this.handleGotoAdmin)}
+                  <NavLink
+                    to="/admin"
+                    className="nav-link"
+                    onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                     title={i18n.t("admin_settings")}
                   >
                     <Icon icon="settings" />
-                  </button>
+                  </NavLink>
                 </li>
               )}
             </ul>
@@ -388,110 +431,175 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </button>
               </form>
             )}
-            {this.state.isLoggedIn ? (
+            {UserService.Instance.myUserInfo.isSome() ? (
               <>
                 <ul class="navbar-nav my-2">
                   <li className="nav-item">
-                    <Link
+                    <NavLink
                       className="nav-link"
                       to="/inbox"
-                      title={i18n.t("inbox")}
+                      onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                      title={i18n.t("unread_messages", {
+                        count: this.state.unreadInboxCount,
+                        formattedCount: numToSI(this.state.unreadInboxCount),
+                      })}
                     >
                       <Icon icon="bell" />
-                      {this.state.unreadCount > 0 && (
-                        <span
-                          class="ml-1 badge badge-light"
-                          aria-label={`${this.state.unreadCount} ${i18n.t(
-                            "unread_messages"
-                          )}`}
-                        >
-                          {numToSI(this.state.unreadCount)}
+                      {this.state.unreadInboxCount > 0 && (
+                        <span class="ml-1 badge badge-light">
+                          {numToSI(this.state.unreadInboxCount)}
                         </span>
                       )}
-                    </Link>
+                    </NavLink>
                   </li>
                 </ul>
-                <ul class="navbar-nav">
-                  <li class="nav-item dropdown">
-                    <button
-                      class="nav-link btn btn-link dropdown-toggle"
-                      onClick={linkEvent(this, this.handleShowDropdown)}
-                      id="navbarDropdown"
-                      role="button"
-                      aria-expanded="false"
-                    >
-                      <span>
-                        {person.avatar && showAvatars() && (
-                          <PictrsImage src={person.avatar} icon />
+                {this.moderatesSomething && (
+                  <ul class="navbar-nav my-2">
+                    <li className="nav-item">
+                      <NavLink
+                        className="nav-link"
+                        to="/reports"
+                        onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                        title={i18n.t("unread_reports", {
+                          count: this.state.unreadReportCount,
+                          formattedCount: numToSI(this.state.unreadReportCount),
+                        })}
+                      >
+                        <Icon icon="shield" />
+                        {this.state.unreadReportCount > 0 && (
+                          <span class="ml-1 badge badge-light">
+                            {numToSI(this.state.unreadReportCount)}
+                          </span>
                         )}
-                        {person.display_name
-                          ? person.display_name
-                          : person.name}
-                      </span>
-                    </button>
-                    {this.state.showDropdown && (
-                      <div class="dropdown-content">
-                        <li className="nav-item">
+                      </NavLink>
+                    </li>
+                  </ul>
+                )}
+                {this.amAdmin && (
+                  <ul class="navbar-nav my-2">
+                    <li className="nav-item">
+                      <NavLink
+                        to="/registration_applications"
+                        className="nav-link"
+                        onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+                        title={i18n.t("unread_registration_applications", {
+                          count: this.state.unreadApplicationCount,
+                          formattedCount: numToSI(
+                            this.state.unreadApplicationCount
+                          ),
+                        })}
+                      >
+                        <Icon icon="clipboard" />
+                        {this.state.unreadApplicationCount > 0 && (
+                          <span class="mx-1 badge badge-light">
+                            {numToSI(this.state.unreadApplicationCount)}
+                          </span>
+                        )}
+                      </NavLink>
+                    </li>
+                  </ul>
+                )}
+                {UserService.Instance.myUserInfo
+                  .map(m => m.local_user_view.person)
+                  .match({
+                    some: person => (
+                      <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
                           <button
-                            className="nav-link btn btn-link"
-                            onClick={linkEvent(this, this.handleGotoProfile)}
-                            title={i18n.t("profile")}
+                            class="nav-link btn btn-link dropdown-toggle"
+                            onClick={linkEvent(this, this.handleToggleDropdown)}
+                            id="navbarDropdown"
+                            role="button"
+                            aria-expanded="false"
                           >
-                            <Icon icon="user" classes="mr-1" />
-                            {i18n.t("profile")}
+                            <span>
+                              {showAvatars() &&
+                                person.avatar.match({
+                                  some: avatar => (
+                                    <PictrsImage src={avatar} icon />
+                                  ),
+                                  none: <></>,
+                                })}
+                              {person.display_name.unwrapOr(person.name)}
+                            </span>
                           </button>
+                          {this.state.showDropdown && (
+                            <div
+                              class="dropdown-content"
+                              onMouseLeave={linkEvent(
+                                this,
+                                this.handleToggleDropdown
+                              )}
+                            >
+                              <li className="nav-item">
+                                <NavLink
+                                  to={`/u/${person.name}`}
+                                  className="nav-link"
+                                  title={i18n.t("profile")}
+                                >
+                                  <Icon icon="user" classes="mr-1" />
+                                  {i18n.t("profile")}
+                                </NavLink>
+                              </li>
+                              <li className="nav-item">
+                                <NavLink
+                                  to="/settings"
+                                  className="nav-link"
+                                  title={i18n.t("settings")}
+                                >
+                                  <Icon icon="settings" classes="mr-1" />
+                                  {i18n.t("settings")}
+                                </NavLink>
+                              </li>
+                              <li>
+                                <hr class="dropdown-divider" />
+                              </li>
+                              <li className="nav-item">
+                                <button
+                                  className="nav-link btn btn-link"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleLogoutClick
+                                  )}
+                                  title="test"
+                                >
+                                  <Icon icon="log-out" classes="mr-1" />
+                                  {i18n.t("logout")}
+                                </button>
+                              </li>
+                            </div>
+                          )}
                         </li>
-                        <li className="nav-item">
-                          <button
-                            className="nav-link btn btn-link"
-                            onClick={linkEvent(this, this.handleGotoSettings)}
-                            title={i18n.t("settings")}
-                          >
-                            <Icon icon="settings" classes="mr-1" />
-                            {i18n.t("settings")}
-                          </button>
-                        </li>
-                        <li>
-                          <hr class="dropdown-divider" />
-                        </li>
-                        <li className="nav-item">
-                          <button
-                            className="nav-link btn btn-link"
-                            onClick={linkEvent(this, this.handleLogoutClick)}
-                            title="test"
-                          >
-                            <Icon icon="log-out" classes="mr-1" />
-                            {i18n.t("logout")}
-                          </button>
-                        </li>
-                      </div>
-                    )}
-                  </li>
-                </ul>
+                      </ul>
+                    ),
+                    none: <></>,
+                  })}
               </>
             ) : (
               <ul class="navbar-nav my-2">
                 <li className="nav-item">
-                  <button
-                    className="nav-link btn btn-link"
-                    onClick={linkEvent(this, this.handleGotoLogin)}
+                  <NavLink
+                    to="/login"
+                    className="nav-link"
+                    onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                     title={i18n.t("login")}
                   >
                     {i18n.t("login")}
-                  </button>
+                  </NavLink>
                 </li>
                 <li className="nav-item">
-                  <button
-                    className="nav-link btn btn-link"
-                    onClick={linkEvent(this, this.handleGotoSignup)}
+                  <NavLink
+                    to="/signup"
+                    className="nav-link"
+                    onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
                     title={i18n.t("sign_up")}
                   >
                     {i18n.t("sign_up")}
-                  </button>
+                  </NavLink>
                 </li>
               </ul>
             )}
-             { !this.isPiBrowser && (
+            {!this.isPiBrowser && (
               <ul class="navbar-nav my-2">
                 <li className="ml-2 nav-item">
                   <button
@@ -503,17 +611,39 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     {i18n.t("Connect Wallet")}
                   </button>
                 </li>
-              </ul>)
-            }
+              </ul>
+            )}
           </div>
         </div>
       </nav>
     );
   }
 
-  expandNavbar(i: Navbar) {
+  get moderatesSomething(): boolean {
+    return (
+      UserService.Instance.myUserInfo.map(m => m.moderates).unwrapOr([])
+        .length > 0
+    );
+  }
+
+  get amAdmin(): boolean {
+    return amAdmin(Some(this.props.siteRes.admins));
+  }
+
+  get canCreateCommunity(): boolean {
+    let adminOnly = this.props.siteRes.site_view
+      .map(s => s.site.community_creation_admin_only)
+      .unwrapOr(false);
+    return !adminOnly || this.amAdmin;
+  }
+
+  handleToggleExpandNavbar(i: Navbar) {
     i.state.expanded = !i.state.expanded;
     i.setState(i.state);
+  }
+
+  handleHideExpandNavbar(i: Navbar) {
+    i.setState({ expanded: false, showDropdown: false });
   }
 
   handleSearchParam(i: Navbar, event: any) {
@@ -547,67 +677,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   handleLogoutClick(i: Navbar) {
     i.setState({ showDropdown: false, expanded: false });
     UserService.Instance.logout();
-    window.location.href = "/";
-    location.reload();
   }
 
-  handleGotoSettings(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push("/settings");
-  }
-
-  handleGotoProfile(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(
-      `/u/${UserService.Instance.myUserInfo.local_user_view.person.name}`
-    );
-  }
-
-  handleGotoCreatePost(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push("/create_post", {
-      prevPath: i.currentLocation,
-    });
-  }
-
-  handleGotoCreateCommunity(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/create_community`);
-  }
-
-  handleGotoCommunities(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/communities`);
-  }
-
-  handleGotoHome(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/`);
-  }
-
-  handleGotoInbox(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/inbox`);
-  }
-
-  handleGotoAdmin(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/admin`);
-  }
-
-  handleGotoLogin(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/login`);
-  }
-
-  
-
-  handleGotoSignup(i: Navbar) {
-    i.setState({ showDropdown: false, expanded: false });
-    i.context.router.history.push(`/signup`);
-  }
-
-  handleShowDropdown(i: Navbar) {
+  handleToggleDropdown(i: Navbar) {
     i.state.showDropdown = !i.state.showDropdown;
     i.setState(i.state);
   }
@@ -618,120 +690,107 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     if (msg.error) {
       if (msg.error == "not_logged_in") {
         UserService.Instance.logout();
-        location.reload();
       }
       return;
     } else if (msg.reconnect) {
       console.log(i18n.t("websocket_reconnected"));
-      WebSocketService.Instance.send(
-        wsClient.userJoin({
-          auth: authField(),
-        })
+      if (UserService.Instance.myUserInfo.isSome()) {
+        WebSocketService.Instance.send(
+          wsClient.userJoin({
+            auth: auth().unwrap(),
+          })
+        );
+        this.fetchUnreads();
+      }
+    } else if (op == UserOperation.GetUnreadCount) {
+      let data = wsJsonToRes<GetUnreadCountResponse>(
+        msg,
+        GetUnreadCountResponse
       );
-      this.fetchUnreads();
-    } else if (op == UserOperation.GetReplies) {
-      let data = wsJsonToRes<GetRepliesResponse>(msg).data;
-      let unreadReplies = data.replies.filter(r => !r.comment.read);
-
-      this.state.replies = unreadReplies;
-      this.state.unreadCount = this.calculateUnreadCount();
+      this.state.unreadInboxCount =
+        data.replies + data.mentions + data.private_messages;
       this.setState(this.state);
       this.sendUnreadCount();
-    } else if (op == UserOperation.GetPersonMentions) {
-      let data = wsJsonToRes<GetPersonMentionsResponse>(msg).data;
-      let unreadMentions = data.mentions.filter(r => !r.comment.read);
-
-      this.state.mentions = unreadMentions;
-      this.state.unreadCount = this.calculateUnreadCount();
-      this.setState(this.state);
-      this.sendUnreadCount();
-    } else if (op == UserOperation.GetPrivateMessages) {
-      let data = wsJsonToRes<PrivateMessagesResponse>(msg).data;
-      let unreadMessages = data.private_messages.filter(
-        r => !r.private_message.read
+    } else if (op == UserOperation.GetReportCount) {
+      let data = wsJsonToRes<GetReportCountResponse>(
+        msg,
+        GetReportCountResponse
       );
-
-      this.state.messages = unreadMessages;
-      this.state.unreadCount = this.calculateUnreadCount();
+      this.state.unreadReportCount = data.post_reports + data.comment_reports;
       this.setState(this.state);
-      this.sendUnreadCount();
-    } else if (op == UserOperation.GetSite) {
-      // This is only called on a successful login
-      let data = wsJsonToRes<GetSiteResponse>(msg).data;
-      console.log(data.my_user);
-      UserService.Instance.myUserInfo = data.my_user;
-      setTheme(
-        UserService.Instance.myUserInfo.local_user_view.local_user.theme
+      this.sendReportUnread();
+    } else if (op == UserOperation.GetUnreadRegistrationApplicationCount) {
+      let data = wsJsonToRes<GetUnreadRegistrationApplicationCountResponse>(
+        msg,
+        GetUnreadRegistrationApplicationCountResponse
       );
-      i18n.changeLanguage(getLanguage());
-      this.state.isLoggedIn = true;
+      this.state.unreadApplicationCount = data.registration_applications;
       this.setState(this.state);
+      this.sendApplicationUnread();
     } else if (op == UserOperation.CreateComment) {
-      let data = wsJsonToRes<CommentResponse>(msg).data;
+      let data = wsJsonToRes<CommentResponse>(msg, CommentResponse);
 
-      if (this.state.isLoggedIn) {
-        if (
-          data.recipient_ids.includes(
-            UserService.Instance.myUserInfo.local_user_view.local_user.id
-          )
-        ) {
-          this.state.replies.push(data.comment_view);
-          this.state.unreadCount++;
-          this.setState(this.state);
-          this.sendUnreadCount();
-          notifyComment(data.comment_view, this.context.router);
-        }
-      }
+      UserService.Instance.myUserInfo.match({
+        some: mui => {
+          if (data.recipient_ids.includes(mui.local_user_view.local_user.id)) {
+            this.state.unreadInboxCount++;
+            this.setState(this.state);
+            this.sendUnreadCount();
+            notifyComment(data.comment_view, this.context.router);
+          }
+        },
+        none: void 0,
+      });
     } else if (op == UserOperation.CreatePrivateMessage) {
-      let data = wsJsonToRes<PrivateMessageResponse>(msg).data;
+      let data = wsJsonToRes<PrivateMessageResponse>(
+        msg,
+        PrivateMessageResponse
+      );
 
-      if (this.state.isLoggedIn) {
-        if (
-          data.private_message_view.recipient.id ==
-          UserService.Instance.myUserInfo.local_user_view.person.id
-        ) {
-          this.state.messages.push(data.private_message_view);
-          this.state.unreadCount++;
-          this.setState(this.state);
-          this.sendUnreadCount();
-          notifyPrivateMessage(data.private_message_view, this.context.router);
-        }
-      }
+      UserService.Instance.myUserInfo.match({
+        some: mui => {
+          if (
+            data.private_message_view.recipient.id ==
+            mui.local_user_view.person.id
+          ) {
+            this.state.unreadInboxCount++;
+            this.setState(this.state);
+            this.sendUnreadCount();
+            notifyPrivateMessage(
+              data.private_message_view,
+              this.context.router
+            );
+          }
+        },
+        none: void 0,
+      });
     }
   }
 
   fetchUnreads() {
-    console.log("Fetching unreads...");
-    let repliesForm: GetReplies = {
-      sort: SortType.New,
-      unread_only: true,
-      page: 1,
-      limit: fetchLimit,
-      auth: authField(),
-    };
+    console.log("Fetching inbox unreads...");
 
-    let personMentionsForm: GetPersonMentions = {
-      sort: SortType.New,
-      unread_only: true,
-      page: 1,
-      limit: fetchLimit,
-      auth: authField(),
-    };
+    let unreadForm = new GetUnreadCount({
+      auth: auth().unwrap(),
+    });
+    WebSocketService.Instance.send(wsClient.getUnreadCount(unreadForm));
 
-    let privateMessagesForm: GetPrivateMessages = {
-      unread_only: true,
-      page: 1,
-      limit: fetchLimit,
-      auth: authField(),
-    };
+    console.log("Fetching reports...");
 
-    if (this.currentLocation !== "/inbox") {
-      WebSocketService.Instance.send(wsClient.getReplies(repliesForm));
+    let reportCountForm = new GetReportCount({
+      community_id: None,
+      auth: auth().unwrap(),
+    });
+    WebSocketService.Instance.send(wsClient.getReportCount(reportCountForm));
+
+    if (this.amAdmin) {
+      console.log("Fetching applications...");
+
+      let applicationCountForm = new GetUnreadRegistrationApplicationCount({
+        auth: auth().unwrap(),
+      });
       WebSocketService.Instance.send(
-        wsClient.getPersonMentions(personMentionsForm)
-      );
-      WebSocketService.Instance.send(
-        wsClient.getPrivateMessages(privateMessagesForm)
+        wsClient.getUnreadRegistrationApplicationCount(applicationCountForm)
       );
     }
   }
@@ -741,42 +800,23 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   sendUnreadCount() {
-    UserService.Instance.unreadCountSub.next(this.state.unreadCount);
+    UserService.Instance.unreadInboxCountSub.next(this.state.unreadInboxCount);
   }
 
-  calculateUnreadCount(): number {
-    return (
-      this.state.replies.filter(r => !r.comment.read).length +
-      this.state.mentions.filter(r => !r.comment.read).length +
-      this.state.messages.filter(r => !r.private_message.read).length
+  sendReportUnread() {
+    UserService.Instance.unreadReportCountSub.next(
+      this.state.unreadReportCount
     );
   }
 
-  get canAdmin(): boolean {
-    return (
-      UserService.Instance.myUserInfo &&
-      this.props.site_res.admins
-        .map(a => a.person.id)
-        .includes(UserService.Instance.myUserInfo.local_user_view.person.id)
+  sendApplicationUnread() {
+    UserService.Instance.unreadApplicationCountSub.next(
+      this.state.unreadApplicationCount
     );
-  }
-
-  get canCreateCommunity(): boolean {
-    let adminOnly =
-      this.props.site_res.site_view?.site.community_creation_admin_only;
-    return !adminOnly || this.canAdmin;
-  }
-
-  /// Listens for some websocket errors
-  websocketEvents() {
-    let msg = i18n.t("websocket_disconnected");
-    WebSocketService.Instance.closeEventListener(() => {
-      console.error(msg);
-    });
   }
 
   requestNotificationPermission() {
-    if (UserService.Instance.myUserInfo) {
+    if (UserService.Instance.myUserInfo.isSome()) {
       document.addEventListener("DOMContentLoaded", function () {
         if (!Notification) {
           toast(i18n.t("notifications_error"), "danger");
@@ -792,8 +832,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   handleConnectWallet(i: Navbar) {
     //i.setState({ showDropdown: false, expanded: false });
     //i.context.router.history.push(`/login`);
-    if (typeof window.ethereum !== 'undefined') {
-      console.log('MetaMask is installed!');
-    }    
+    if (typeof window.ethereum !== "undefined") {
+      console.log("MetaMask is installed!");
+    }
   }
 }
