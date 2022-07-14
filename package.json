@@ -19,6 +19,7 @@
   "dependencies": {
     "@typescript-eslint/parser": "^5.21.0",
     "autosize": "^5.0.1",
+    "axios": "^0.21.3",
     "check-password-strength": "^2.0.5",
     "choices.js": "^10.1.0",
     "classnames": "^2.3.1",
