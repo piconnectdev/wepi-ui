@@ -20,6 +20,7 @@ import {
   isBrowser,
   setIsoData,
   toast,
+  validEmail,
   wsClient,
   wsSubscribe,
 } from "../../utils";
@@ -59,6 +60,7 @@ export class Login extends Component<any, State> {
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
+
     if (isBrowser()) {
       WebSocketService.Instance.send(wsClient.getCaptcha());
     }

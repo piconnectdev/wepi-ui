@@ -295,7 +295,8 @@ export class Search extends Component<any, SearchState> {
     });
 
     let creatorId = this.getCreatorIdFromProps(pathSplit[13]);
-    let creator_id: Option<string> = creatorId == null ? None : Some(creatorId);
+    let creator_id: Option<string> =
+      creatorId == null || creatorId.length == 0 ? None : Some(creatorId);
     creator_id.match({
       some: id => {
         let getCreatorForm = new GetPersonDetails({

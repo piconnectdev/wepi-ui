@@ -81,5 +81,3 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
 .navbar-light .navbar-text a:hover, .navbar-dark .navbar-text a:focus {
   color: #fff;
 }
-
-.undefined{color: rgba(255, 255, 255, 0.5) !important;}

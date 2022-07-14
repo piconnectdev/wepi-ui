@@ -15,7 +15,7 @@ interface PostListingsProps {
 }
 
 export class PostListings extends Component<PostListingsProps, any> {
-  duplicatesMap = new Map<number, PostView[]>();
+  private duplicatesMap = new Map<string, PostView[]>();
 
   constructor(props: any, context: any) {
     super(props, context);

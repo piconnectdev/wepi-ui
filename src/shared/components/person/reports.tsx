@@ -53,7 +53,7 @@ enum MessageEnum {
 }
 
 type ItemType = {
-  id: number;
+  id: string;
   type_: MessageEnum;
   view: CommentReportView | PostReportView;
   published: string;

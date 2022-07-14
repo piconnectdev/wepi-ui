@@ -68,7 +68,7 @@ enum ModlogEnum {
 }
 
 type ModlogType = {
-  id: number;
+  id: string;
   type_: ModlogEnum;
   moderator: PersonSafe;
   view:

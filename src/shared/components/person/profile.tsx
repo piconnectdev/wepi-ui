@@ -69,6 +69,7 @@ import { SortSelect } from "../common/sort-select";
 import { CommunityLink } from "../community/community-link";
 import { PersonDetails } from "./person-details";
 import { PersonListing } from "./person-listing";
+
 interface ProfileState {
   personRes: Option<GetPersonDetailsResponse>;
   userName: string;
@@ -88,7 +89,7 @@ interface ProfileProps {
   view: PersonDetailsView;
   sort: SortType;
   page: number;
-  person_id: number | null;
+  person_id: string | null;
   username: string;
 }
 
@@ -227,7 +228,7 @@ export class Profile extends Component<any, ProfileState> {
       view: this.getViewFromProps(props.match.params.view),
       sort: this.getSortTypeFromProps(props.match.params.sort),
       page: this.getPageFromProps(props.match.params.page),
-      person_id: Number(props.match.params.id) || null,
+      person_id: props.match.params.id || null,
       username: props.match.params.username,
     };
   }
@@ -384,8 +385,8 @@ export class Profile extends Component<any, ProfileState> {
       </div>
     );
   }
-  handleBlockPerson(personId: number) {
-    if (personId != 0) {
+  handleBlockPerson(personId: string) {
+    if (personId != null) {
       let blockUserForm = new BlockPerson({
         person_id: personId,
         block: true,
@@ -394,7 +395,7 @@ export class Profile extends Component<any, ProfileState> {
       WebSocketService.Instance.send(wsClient.blockPerson(blockUserForm));
     }
   }
-  handleUnblockPerson(recipientId: number) {
+  handleUnblockPerson(recipientId: string) {
     let blockUserForm = new BlockPerson({
       person_id: recipientId,
       block: false,

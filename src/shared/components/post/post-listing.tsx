@@ -62,6 +62,7 @@ import { CommunityLink } from "../community/community-link";
 import { PersonListing } from "../person/person-listing";
 import { MetadataCard } from "./metadata-card";
 import { PostForm } from "./post-form";
+
 interface PostListingState {
   showEdit: boolean;
   showRemoveDialog: boolean;
@@ -528,6 +529,33 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
+  duplicatesLine() {
+    return this.props.duplicates.match({
+      some: dupes =>
+        dupes.length > 0 && (
+          <ul class="list-inline mb-1 small text-muted">
+            <>
+              <li className="list-inline-item mr-2">
+                {i18n.t("cross_posted_to")}
+              </li>
+              {dupes.map(pv => (
+                <li className="list-inline-item mr-2">
+                  <Link to={`/post/${pv.post.id}`}>
+                    {pv.community.local
+                      ? pv.community.name
+                      : `${pv.community.name}@${hostname(
+                          pv.community.actor_id
+                        )}`}
+                  </Link>
+                </li>
+              ))}
+            </>
+          </ul>
+        ),
+      none: <></>,
+    });
+  }
+
   commentsLine(mobile = false) {
     let post_view = this.props.post_view;
     return (
@@ -780,34 +808,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       </div>
     );
   }
-  /*
-  duplicatesLine() {
-    return this.props.duplicates.match({
-      some: dupes =>
-        dupes.length > 0 && (
-          <ul class="list-inline mb-1 small text-muted">
-            <>
-              <li className="list-inline-item mr-2">
-                {i18n.t("cross_posted_to")}
-              </li>
-              {dupes.map(pv => (
-                <li className="list-inline-item mr-2">
-                  <Link to={`/post/${pv.post.id}`}>
-                    {pv.community.local
-                      ? pv.community.name
-                      : `${pv.community.name}@${hostname(
-                          pv.community.actor_id
-                        )}`}
-                  </Link>
-                </li>
-              ))}
-            </>
-          </ul>
-        ),
-      none: <></>,
-    });
-  }
-
+  
+  /*  
   commentsLine(mobile = false) {
     let post = this.props.post_view.post;
     return (

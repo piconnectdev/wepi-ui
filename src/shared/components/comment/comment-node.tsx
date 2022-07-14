@@ -226,12 +226,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <PersonListing person={cv.creator} />
               </span>
 
-              {this.isMod && (
+              {isMod_ && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t("mod")}
                 </div>
               )}
-              {this.isAdmin && (
+              {isAdmin_ && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t("admin")}
                 </div>

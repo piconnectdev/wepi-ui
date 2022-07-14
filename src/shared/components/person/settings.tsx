@@ -78,7 +78,7 @@ interface SettingsState {
   personBlocks: PersonBlockView[];
   blockPerson: Option<PersonViewSafe>;
   communityBlocks: CommunityBlockView[];
-  blockCommunityId: number;
+  blockCommunityId: string;
   blockCommunity?: CommunityView;
   currentTab: string;
   themeList: string[];
