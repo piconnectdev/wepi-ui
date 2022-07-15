@@ -15,6 +15,7 @@ import {
   SiteView,
   toUndefined,
   UserOperation,
+  Web3Login as Web3LoginForm,
   wsJsonToRes,
   wsUserOp,
 } from "lemmy-js-client";
@@ -29,6 +30,7 @@ import {
   mdToHtml,
   setIsoData,
   toast,
+  utf8ToHex,
   validEmail,
   wsClient,
   wsSubscribe,
@@ -66,6 +68,7 @@ const passwordStrengthOptions: Options<string> = [
 
 interface State {
   piLoginForm: PiLoginForm;
+  web3LoginForm: Web3LoginForm;
   registerForm: Register;
   registerLoading: boolean;
   captcha: Option<GetCaptchaResponse>;
@@ -77,7 +80,6 @@ export class Signup extends Component<any, State> {
   private isoData = setIsoData(this.context);
   private subscription: Subscription;
   private audio: HTMLAudioElement;
-
   emptyState: State = {
     piLoginForm: {
       pi_username: undefined,
@@ -98,6 +100,13 @@ export class Signup extends Component<any, State> {
       payment_id: None,
       pi_username: None,
     }),
+    web3LoginForm: {
+      address: null,
+      signature: null,
+      token: null,
+      cli_time: 0,
+      info: undefined,
+    },
     registerLoading: false,
     captcha: None,
     captchaPlaying: false,
@@ -459,16 +468,23 @@ export class Signup extends Component<any, State> {
     }
   }
 
-  handleRegisterSubmit(i: Signup, event: any) {
+  async handleRegisterSubmit(i: Signup, event: any) {
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
-    if (this.isPiBrowser) {
-      // this.handlePiRegisterSubmit(i, event).then(()=>{
-      // });
+    let isPi = i.isPiBrowser;
+    const { ethereum } = window;
+    let isMetaMaks = Boolean(ethereum && ethereum.isMetaMask);
+    if (isPi) {
+      i.handlePiRegisterLoginFree(i, event);
+      // i.handlePiRegisterWithFee(i, event);
       return;
+    } else if (isMetaMaks) {
+      i.handleWeb3RegisterLoginFree(i, event);
+      return;
+    } else {
+      WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
     }
-    WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
   }
 
   handleRegisterUsernameChange(i: Signup, event: any) {
@@ -603,7 +619,46 @@ export class Signup extends Component<any, State> {
     }
   }
 
-  async handlePiRegisterSubmit(i: Signup, event: any) {
+  async handleWeb3RegisterLoginFree(i: Signup, event: any) {
+    const { ethereum } = window;
+    var accounts = await ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    console.log(JSON.stringify(i.state.registerForm.captcha_answer.unwrap()));
+    i.state.registerForm.captcha_uuid.match({
+      some: res => (i.state.web3LoginForm.token = res),
+      none: null,
+    });
+    i.state.web3LoginForm.address = ethereum.selectedAddress;
+    i.state.web3LoginForm.info = new LoginForm({
+      username_or_email: i.state.registerForm.username,
+      password: i.state.registerForm.password,
+    });
+    i.state.web3LoginForm.cli_time = new Date().getTime();
+    let text =
+      "LOGIN:" +
+      i.state.registerForm.username +
+      ";TOKEN:" +
+      i.state.web3LoginForm.token +
+      ";TIME:" +
+      i.state.web3LoginForm.cli_time;
+    ethereum
+      .request({
+        method: "personal_sign",
+        params: [`0x${utf8ToHex(text)}`, ethereum.selectedAddress],
+      })
+      .then(signature => {
+        console.log(ethereum.selectedAddress);
+        console.log(signature);
+        i.state.web3LoginForm.signature = signature;
+
+        console.log(JSON.stringify(i.state.web3LoginForm));
+        //WebSocketService.Instance.send(wsClient.web3Login(i.state.web3LoginForm));
+      })
+      .catch(error => console.error(error));
+  }
+
+  async handlePiRegisterLoginFree(i: Signup, event: any) {
     var piUser;
 
     const authenticatePiUser = async () => {
@@ -649,14 +704,14 @@ export class Signup extends Component<any, State> {
     i.state.piLoginForm.pi_username = piUser.user.username;
     i.state.piLoginForm.pi_uid = piUser.user.uid;
     i.state.piLoginForm.pi_token = piUser.accessToken;
-    i.state.piLoginForm.info = Some({
+    i.state.piLoginForm.info = {
       username_or_email: i.state.registerForm.username,
       password: i.state.registerForm.password,
-    });
+    };
     i.setState(i.state);
     let useHttp = false;
     if (useHttp === true) {
-      console.log(JSON.stringify(i.state.piLoginForm));
+      //console.log(JSON.stringify(i.state.piLoginForm));
       var data = await PiLogin(i.state.piLoginForm);
       this.state = this.emptyState;
       this.setState(this.state);
@@ -673,7 +728,7 @@ export class Signup extends Component<any, State> {
     }
   }
 
-  async handlePiRegister(i: Signup, event: any) {
+  async handlePiRegisterWithFee(i: Signup, event: any) {
     if (!this.isPiBrowser) return;
 
     var config = {

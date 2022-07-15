@@ -2,6 +2,7 @@ import { None } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import {
   GetSiteResponse,
+  LemmyHttp,
   Login as LoginForm,
   LoginResponse,
   PasswordReset,
@@ -20,7 +21,6 @@ import {
   isBrowser,
   setIsoData,
   toast,
-  validEmail,
   wsClient,
   wsSubscribe,
 } from "../../utils";

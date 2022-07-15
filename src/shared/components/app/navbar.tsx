@@ -834,6 +834,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     //i.context.router.history.push(`/login`);
     if (typeof window.ethereum !== "undefined") {
       console.log("MetaMask is installed!");
+      window.ethereum.request({ method: "eth_requestAccounts" });
     }
   }
 }

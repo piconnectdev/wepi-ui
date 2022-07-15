@@ -1197,6 +1197,10 @@ export function isBrowser() {
   return typeof window !== "undefined";
 }
 
+export function isPiBrowser(): boolean {
+  return isBrowser() && navigator.userAgent.includes("PiBrowser");
+}
+
 export function setIsoData<Type1, Type2, Type3, Type4, Type5>(
   context: any,
   cls1?: ClassConstructor<Type1>,
