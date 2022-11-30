@@ -1,10 +1,13 @@
-import { None, Option, Result, Some } from "@sniptt/monads";
+import { Err, None, Ok, Option, Result, Some } from "@sniptt/monads";
 import { ClassConstructor, deserialize, serialize } from "class-transformer";
 import emojiShortName from "emoji-short-name";
 import {
   BlockCommunityResponse,
   BlockPersonResponse,
+  Comment as CommentI,
+  CommentNode as CommentNodeI,
   CommentReportView,
+  CommentSortType,
   CommentView,
   CommunityBlockView,
   CommunityModeratorView,
@@ -39,12 +42,7 @@ import tippy from "tippy.js";
 import Toastify from "toastify-js";
 import { httpBase } from "./env";
 import { i18n, languages } from "./i18next";
-import {
-  CommentNode as CommentNodeI,
-  CommentSortType,
-  DataType,
-  IsoData,
-} from "./interfaces";
+import { DataType, IsoData } from "./interfaces";
 import { UserService, WebSocketService } from "./services";
 
 var Tribute: any;
@@ -79,9 +77,10 @@ export const eth01 = "0x2386F26FC10000";
 export const eth001 = "0x38D7EA4C68000";
 export const gasPrice = "0x174876E800"; // 0x200B20, 0x2E90EDD000=> 200Gwei, 0x174876E800=>100Gwei
 export const postRefetchSeconds: number = 60 * 1000;
-export const fetchLimit = 20;
+export const fetchLimit = 40;
 export const trendingFetchLimit = 6;
 export const mentionDropdownFetchLimit = 10;
+export const commentTreeMaxDepth = 8;
 
 export const relTags = "noopener nofollow";
 
@@ -219,9 +218,10 @@ export function canMod(
 export function canAdmin(
   admins: Option<PersonViewSafe[]>,
   creator_id: string,
-  myUserInfo = UserService.Instance.myUserInfo
+  myUserInfo = UserService.Instance.myUserInfo,
+  onSelf = false
 ): boolean {
-  return canMod(None, admins, creator_id, myUserInfo);
+  return canMod(None, admins, creator_id, myUserInfo, onSelf);
 }
 
 export function isMod(
@@ -373,9 +373,9 @@ export function routeSearchTypeToEnum(type: string): SearchType {
 }
 
 export async function getSiteMetadata(url: string) {
-  let form: GetSiteMetadata = {
+  let form = new GetSiteMetadata({
     url,
-  };
+  });
   let client = new LemmyHttp(httpBase);
   return client.getSiteMetadata(form);
 }
@@ -426,7 +426,7 @@ export function getLanguages(
   myUserInfo = UserService.Instance.myUserInfo
 ): string[] {
   let myLang = myUserInfo
-    .map(m => m.local_user_view.local_user.lang)
+    .map(m => m.local_user_view.local_user.interface_language)
     .unwrapOr("browser");
   let lang = override || myLang;
 
@@ -619,7 +619,7 @@ export function notifyComment(comment_view: CommentView, router: any) {
   let info: NotifyInfo = {
     name: comment_view.creator.name,
     icon: comment_view.creator.avatar,
-    link: `/post/${comment_view.post.id}/comment/${comment_view.comment.id}`,
+    link: `/comment/${comment_view.comment.id}`,
     body: comment_view.comment.content,
   };
   notify(info, router);
@@ -638,21 +638,18 @@ export function notifyPrivateMessage(pmv: PrivateMessageView, router: any) {
 function notify(info: NotifyInfo, router: any) {
   messageToastify(info, router);
 
-  // TODO absolute nightmare bug, but notifs are currently broken.
-  // Notification.new will try to do a browser fetch ???
+  if (Notification.permission !== "granted") Notification.requestPermission();
+  else {
+    var notification = new Notification(info.name, {
+      ...{ body: info.body },
+      ...(info.icon.isSome() && { icon: info.icon.unwrap() }),
+    });
 
-  // if (Notification.permission !== "granted") Notification.requestPermission();
-  // else {
-  //   var notification = new Notification(info.name, {
-  //     icon: info.icon,
-  //     body: info.body,
-  //   });
-
-  //   notification.onclick = (ev: Event): any => {
-  //     ev.preventDefault();
-  //     router.history.push(info.link);
-  //   };
-  // }
+    notification.onclick = (ev: Event): any => {
+      ev.preventDefault();
+      router.history.push(info.link);
+    };
+  }
 }
 
 export function setupTribute() {
@@ -835,6 +832,7 @@ export function editCommentRes(data: CommentView, comments: CommentView[]) {
   let found = comments.find(c => c.comment.id == data.comment.id);
   if (found) {
     found.comment.content = data.comment.content;
+    found.comment.distinguished = data.comment.distinguished;
     found.comment.updated = data.comment.updated;
     found.comment.removed = data.comment.removed;
     found.comment.deleted = data.comment.deleted;
@@ -991,61 +989,12 @@ export function updateRegistrationApplicationRes(
 export function commentsToFlatNodes(comments: CommentView[]): CommentNodeI[] {
   let nodes: CommentNodeI[] = [];
   for (let comment of comments) {
-    nodes.push({ comment_view: comment });
+    nodes.push({ comment_view: comment, children: [], depth: 0 });
   }
   return nodes;
 }
 
-function commentSort(tree: CommentNodeI[], sort: CommentSortType) {
-  // First, put removed and deleted comments at the bottom, then do your other sorts
-  if (sort == CommentSortType.Top) {
-    tree.sort(
-      (a, b) =>
-        +a.comment_view.comment.removed - +b.comment_view.comment.removed ||
-        +a.comment_view.comment.deleted - +b.comment_view.comment.deleted ||
-        b.comment_view.counts.score - a.comment_view.counts.score
-    );
-  } else if (sort == CommentSortType.New) {
-    tree.sort(
-      (a, b) =>
-        +a.comment_view.comment.removed - +b.comment_view.comment.removed ||
-        +a.comment_view.comment.deleted - +b.comment_view.comment.deleted ||
-        b.comment_view.comment.published.localeCompare(
-          a.comment_view.comment.published
-        )
-    );
-  } else if (sort == CommentSortType.Old) {
-    tree.sort(
-      (a, b) =>
-        +a.comment_view.comment.removed - +b.comment_view.comment.removed ||
-        +a.comment_view.comment.deleted - +b.comment_view.comment.deleted ||
-        a.comment_view.comment.published.localeCompare(
-          b.comment_view.comment.published
-        )
-    );
-  } else if (sort == CommentSortType.Hot) {
-    tree.sort(
-      (a, b) =>
-        +a.comment_view.comment.removed - +b.comment_view.comment.removed ||
-        +a.comment_view.comment.deleted - +b.comment_view.comment.deleted ||
-        hotRankComment(b.comment_view as CommentView) -
-          hotRankComment(a.comment_view as CommentView)
-    );
-  }
-
-  // Go through the children recursively
-  for (let node of tree) {
-    if (node.children) {
-      commentSort(node.children, sort);
-    }
-  }
-}
-
-export function commentSortSortType(tree: CommentNodeI[], sort: SortType) {
-  commentSort(tree, convertCommentSortType(sort));
-}
-
-function convertCommentSortType(sort: SortType): CommentSortType {
+export function convertCommentSortType(sort: SortType): CommentSortType {
   if (
     sort == SortType.TopAll ||
     sort == SortType.TopDay ||
@@ -1065,21 +1014,32 @@ function convertCommentSortType(sort: SortType): CommentSortType {
 
 export function buildCommentsTree(
   comments: CommentView[],
-  commentSortType: CommentSortType
+  parentComment: boolean
 ): CommentNodeI[] {
   let map = new Map<string, CommentNodeI>();
+  let depthOffset = !parentComment
+    ? 0
+    : getDepthFromComment(comments[0].comment);
+
   for (let comment_view of comments) {
     let node: CommentNodeI = {
       comment_view: comment_view,
       children: [],
-      depth: 0,
+      depth: getDepthFromComment(comment_view.comment) - depthOffset,
     };
     map.set(comment_view.comment.id, { ...node });
   }
+
   let tree: CommentNodeI[] = [];
+
+  // if its a parent comment fetch, then push the first comment to the top node.
+  if (parentComment) {
+    tree.push(map.get(comments[0].comment.id));
+  }
+
   for (let comment_view of comments) {
     let child = map.get(comment_view.comment.id);
-    let parent_id = comment_view.comment.parent_id;
+    let parent_id = getCommentParentId(comment_view.comment);
     parent_id.match({
       some: parentId => {
         let parent = map.get(parentId);
@@ -1089,26 +1049,37 @@ export function buildCommentsTree(
         }
       },
       none: () => {
-        tree.push(child);
+        if (!parentComment) {
+          tree.push(child);
+        }
       },
     });
-
-    setDepth(child);
   }
-
-  commentSort(tree, commentSortType);
 
   return tree;
 }
 
-function setDepth(node: CommentNodeI, i = 0) {
-  for (let child of node.children) {
-    child.depth = i;
-    setDepth(child, i + 1);
+export function getCommentParentId(comment: CommentI): Option<string> {
+  let split = comment.path.split(".");
+  // remove the 0
+  split.shift();
+
+  if (split.length > 1) {
+    return Some(split[split.length - 2]);
+  } else {
+    return None;
   }
 }
 
-export function insertCommentIntoTree(tree: CommentNodeI[], cv: CommentView) {
+export function getDepthFromComment(comment: CommentI): number {
+  return comment.path.split(".").length - 2;
+}
+
+export function insertCommentIntoTree(
+  tree: CommentNodeI[],
+  cv: CommentView,
+  parentComment: boolean
+) {
   // Building a fake node to be used for later
   let node: CommentNodeI = {
     comment_view: cv,
@@ -1116,7 +1087,7 @@ export function insertCommentIntoTree(tree: CommentNodeI[], cv: CommentView) {
     depth: 0,
   };
 
-  cv.comment.parent_id.match({
+  getCommentParentId(cv.comment).match({
     some: parentId => {
       let parentComment = searchCommentTree(tree, parentId);
       parentComment.match({
@@ -1128,7 +1099,9 @@ export function insertCommentIntoTree(tree: CommentNodeI[], cv: CommentView) {
       });
     },
     none: () => {
-      tree.unshift(node);
+      if (!parentComment) {
+        tree.unshift(node);
+      }
     },
   });
 }
@@ -1155,6 +1128,7 @@ export function searchCommentTree(
 
 export const colorList: string[] = [
   hsl(0),
+  hsl(50),
   hsl(100),
   hsl(150),
   hsl(200),
@@ -1302,7 +1276,7 @@ export function showLocal(isoData: IsoData): boolean {
     .unwrapOr(false);
 }
 
-interface ChoicesValue {
+export interface ChoicesValue {
   value: string;
   label: string;
 }
@@ -1324,7 +1298,7 @@ export function personToChoice(pvs: PersonViewSafe): ChoicesValue {
 }
 
 export async function fetchCommunities(q: string) {
-  let form: Search = {
+  let form = new Search({
     q,
     type_: Some(SearchType.Communities),
     sort: Some(SortType.TopAll),
@@ -1335,13 +1309,13 @@ export async function fetchCommunities(q: string) {
     community_name: None,
     creator_id: None,
     auth: auth(false).ok(),
-  };
+  });
   let client = new LemmyHttp(httpBase);
   return client.search(form);
 }
 
 export async function fetchUsers(q: string) {
-  let form: Search = {
+  let form = new Search({
     q,
     type_: Some(SearchType.Users),
     sort: Some(SortType.TopAll),
@@ -1352,7 +1326,7 @@ export async function fetchUsers(q: string) {
     community_name: None,
     creator_id: None,
     auth: auth(false).ok(),
-  };
+  });
   let client = new LemmyHttp(httpBase);
   return client.search(form);
 }
@@ -1361,13 +1335,14 @@ export const choicesConfig = {
   shouldSort: false,
   searchResultLimit: fetchLimit,
   classNames: {
-    containerOuter: "choices",
-    containerInner: "choices__inner bg-secondary border-0",
+    containerOuter: "choices custom-select px-0",
+    containerInner:
+      "choices__inner bg-secondary border-0 py-0 modlog-choices-font-size",
     input: "form-control",
     inputCloned: "choices__input--cloned",
     list: "choices__list",
     listItems: "choices__list--multiple",
-    listSingle: "choices__list--single",
+    listSingle: "choices__list--single py-0",
     listDropdown: "choices__list--dropdown",
     item: "choices__item bg-secondary",
     itemSelectable: "choices__item--selectable",
@@ -1458,4 +1433,72 @@ export function enableDownvotes(siteRes: GetSiteResponse): boolean {
 
 export function enableNsfw(siteRes: GetSiteResponse): boolean {
   return siteRes.site_view.map(s => s.site.enable_nsfw).unwrapOr(false);
+}
+
+export function postToCommentSortType(sort: SortType): CommentSortType {
+  if ([SortType.Active, SortType.Hot].includes(sort)) {
+    return CommentSortType.Hot;
+  } else if ([SortType.New, SortType.NewComments].includes(sort)) {
+    return CommentSortType.New;
+  } else if (sort == SortType.Old) {
+    return CommentSortType.Old;
+  } else {
+    return CommentSortType.Top;
+  }
+}
+
+export function arrayGet<T>(arr: Array<T>, index: number): Result<T, string> {
+  let out = arr.at(index);
+  if (out == undefined) {
+    return Err("Index undefined");
+  } else {
+    return Ok(out);
+  }
+}
+
+export function myFirstDiscussionLanguageId(
+  myUserInfo = UserService.Instance.myUserInfo
+): Option<number> {
+  return myUserInfo.andThen(mui =>
+    arrayGet(mui.discussion_languages, 0)
+      .ok()
+      .map(i => i.id)
+  );
+}
+
+export function canCreateCommunity(siteRes: GetSiteResponse): boolean {
+  let adminOnly = siteRes.site_view
+    .map(s => s.site.community_creation_admin_only)
+    .unwrapOr(false);
+  return !adminOnly || amAdmin(Some(siteRes.admins));
+}
+
+export function isPostBlocked(
+  pv: PostView,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  return myUserInfo
+    .map(
+      mui =>
+        mui.community_blocks
+          .map(c => c.community.id)
+          .includes(pv.community.id) ||
+        mui.person_blocks.map(p => p.target.id).includes(pv.creator.id)
+    )
+    .unwrapOr(false);
+}
+
+/// Checks to make sure you can view NSFW posts. Returns true if you can.
+export function nsfwCheck(
+  pv: PostView,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  let nsfw = pv.post.nsfw || pv.community.nsfw;
+  return (
+    !nsfw ||
+    (nsfw &&
+      myUserInfo
+        .map(m => m.local_user_view.local_user.show_nsfw)
+        .unwrapOr(false))
+  );
 }

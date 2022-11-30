@@ -21,6 +21,7 @@ import { UserService, WebSocketService } from "../../services";
 import {
   amAdmin,
   auth,
+  canCreateCommunity,
   isBrowser,
   notifyComment,
   notifyPrivateMessage,
@@ -235,8 +236,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   // TODO class active corresponding to current page
   navbar() {
     return (
-      <nav class="navbar navbar-expand-md navbar-light shadow-sm p-0 px-3">
-        <div class="container">
+      <nav className="navbar navbar-expand-md navbar-light shadow-sm p-0 px-3">
+        <div className="container">
           {this.props.siteRes.site_view.match({
             some: siteView => (
               <NavLink
@@ -257,7 +258,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           })}
           {UserService.Instance.myUserInfo.isSome() && (
             <>
-              <ul class="navbar-nav ml-auto">
+              <ul className="navbar-nav ml-auto">
                 <li className="nav-item">
                   <NavLink
                     to="/inbox"
@@ -270,7 +271,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   >
                     <Icon icon="bell" />
                     {this.state.unreadInboxCount > 0 && (
-                      <span class="mx-1 badge badge-light">
+                      <span className="mx-1 badge badge-light">
                         {numToSI(this.state.unreadInboxCount)}
                       </span>
                     )}
@@ -278,7 +279,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </li>
               </ul>
               {this.moderatesSomething && (
-                <ul class="navbar-nav ml-1">
+                <ul className="navbar-nav ml-1">
                   <li className="nav-item">
                     <NavLink
                       to="/reports"
@@ -291,7 +292,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     >
                       <Icon icon="shield" />
                       {this.state.unreadReportCount > 0 && (
-                        <span class="mx-1 badge badge-light">
+                        <span className="mx-1 badge badge-light">
                           {numToSI(this.state.unreadReportCount)}
                         </span>
                       )}
@@ -300,7 +301,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </ul>
               )}
               {this.amAdmin && (
-                <ul class="navbar-nav ml-1">
+                <ul className="navbar-nav ml-1">
                   <li className="nav-item">
                     <NavLink
                       to="/registration_applications"
@@ -315,7 +316,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     >
                       <Icon icon="clipboard" />
                       {this.state.unreadApplicationCount > 0 && (
-                        <span class="mx-1 badge badge-light">
+                        <span className="mx-1 badge badge-light">
                           {numToSI(this.state.unreadApplicationCount)}
                         </span>
                       )}
@@ -326,7 +327,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             </>
           )}
           <button
-            class="navbar-toggler border-0 p-1"
+            className="navbar-toggler border-0 p-1"
             type="button"
             aria-label="menu"
             onClick={linkEvent(this, this.handleToggleExpandNavbar)}
@@ -337,8 +338,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           <div
             className={`${!this.state.expanded && "collapse"} navbar-collapse`}
           >
-            <ul class="navbar-nav my-2 mr-auto">
-              <li class="nav-item">
+            <ul className="navbar-nav my-2 mr-auto">
+              <li className="nav-item">
                 <NavLink
                   to="/communities"
                   className="nav-link"
@@ -348,11 +349,15 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   {i18n.t("communities")}
                 </NavLink>
               </li>
-              <li class="nav-item">
+              <li className="nav-item">
+                {/* TODO make sure this works: https://github.com/infernojs/inferno/issues/1608 */}
                 <NavLink
                   to={{
                     pathname: "/create_post",
-                    prevPath: this.currentLocation,
+                    search: "",
+                    hash: "",
+                    key: "",
+                    state: { prevPath: this.currentLocation },
                   }}
                   className="nav-link"
                   onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
@@ -361,8 +366,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   {i18n.t("create_post")}
                 </NavLink>
               </li>
-              {this.canCreateCommunity && (
-                <li class="nav-item">
+              {canCreateCommunity(this.props.siteRes) && (
+                <li className="nav-item">
                   <NavLink
                     to="/create_community"
                     className="nav-link"
@@ -384,7 +389,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </a>
               </li>*/}
             </ul>
-            <ul class="navbar-nav my-2">
+            <ul className="navbar-nav my-2">
               {this.amAdmin && (
                 <li className="nav-item">
                   <NavLink
@@ -402,12 +407,12 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               /^\/search/
             ) && (
               <form
-                class="form-inline mr-2"
+                className="form-inline mr-2"
                 onSubmit={linkEvent(this, this.handleSearchSubmit)}
               >
                 <input
                   id="search-input"
-                  class={`form-control mr-0 search-input ${
+                  className={`form-control mr-0 search-input ${
                     this.state.toggleSearch ? "show-input" : "hide-input"
                   }`}
                   onInput={linkEvent(this, this.handleSearchParam)}
@@ -417,13 +422,13 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   placeholder={i18n.t("search")}
                   onBlur={linkEvent(this, this.handleSearchBlur)}
                 ></input>
-                <label class="sr-only" htmlFor="search-input">
+                <label className="sr-only" htmlFor="search-input">
                   {i18n.t("search")}
                 </label>
                 <button
                   name="search-btn"
                   onClick={linkEvent(this, this.handleSearchBtn)}
-                  class="px-1 btn btn-link"
+                  className="px-1 btn btn-link"
                   style="color: var(--gray)"
                   aria-label={i18n.t("search")}
                 >
@@ -433,7 +438,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             )}
             {UserService.Instance.myUserInfo.isSome() ? (
               <>
-                <ul class="navbar-nav my-2">
+                <ul className="navbar-nav my-2">
                   <li className="nav-item">
                     <NavLink
                       className="nav-link"
@@ -446,7 +451,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     >
                       <Icon icon="bell" />
                       {this.state.unreadInboxCount > 0 && (
-                        <span class="ml-1 badge badge-light">
+                        <span className="ml-1 badge badge-light">
                           {numToSI(this.state.unreadInboxCount)}
                         </span>
                       )}
@@ -454,7 +459,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   </li>
                 </ul>
                 {this.moderatesSomething && (
-                  <ul class="navbar-nav my-2">
+                  <ul className="navbar-nav my-2">
                     <li className="nav-item">
                       <NavLink
                         className="nav-link"
@@ -467,7 +472,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                       >
                         <Icon icon="shield" />
                         {this.state.unreadReportCount > 0 && (
-                          <span class="ml-1 badge badge-light">
+                          <span className="ml-1 badge badge-light">
                             {numToSI(this.state.unreadReportCount)}
                           </span>
                         )}
@@ -476,7 +481,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   </ul>
                 )}
                 {this.amAdmin && (
-                  <ul class="navbar-nav my-2">
+                  <ul className="navbar-nav my-2">
                     <li className="nav-item">
                       <NavLink
                         to="/registration_applications"
@@ -491,7 +496,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                       >
                         <Icon icon="clipboard" />
                         {this.state.unreadApplicationCount > 0 && (
-                          <span class="mx-1 badge badge-light">
+                          <span className="mx-1 badge badge-light">
                             {numToSI(this.state.unreadApplicationCount)}
                           </span>
                         )}
@@ -503,10 +508,10 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   .map(m => m.local_user_view.person)
                   .match({
                     some: person => (
-                      <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
+                      <ul className="navbar-nav">
+                        <li className="nav-item dropdown">
                           <button
-                            class="nav-link btn btn-link dropdown-toggle"
+                            className="nav-link btn btn-link dropdown-toggle"
                             onClick={linkEvent(this, this.handleToggleDropdown)}
                             id="navbarDropdown"
                             role="button"
@@ -525,7 +530,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                           </button>
                           {this.state.showDropdown && (
                             <div
-                              class="dropdown-content"
+                              className="dropdown-content"
                               onMouseLeave={linkEvent(
                                 this,
                                 this.handleToggleDropdown
@@ -552,7 +557,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                                 </NavLink>
                               </li>
                               <li>
-                                <hr class="dropdown-divider" />
+                                <hr className="dropdown-divider" />
                               </li>
                               <li className="nav-item">
                                 <button
@@ -576,7 +581,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   })}
               </>
             ) : (
-              <ul class="navbar-nav my-2">
+              <ul className="navbar-nav my-2">
                 <li className="nav-item">
                   <NavLink
                     to="/login"
@@ -600,7 +605,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               </ul>
             )}
             {!this.isPiBrowser && (
-              <ul class="navbar-nav my-2">
+              <ul className="navbar-nav my-2">
                 <li className="ml-2 nav-item">
                   <button
                     id="connectWallet"
@@ -630,16 +635,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     return amAdmin(Some(this.props.siteRes.admins));
   }
 
-  get canCreateCommunity(): boolean {
-    let adminOnly = this.props.siteRes.site_view
-      .map(s => s.site.community_creation_admin_only)
-      .unwrapOr(false);
-    return !adminOnly || this.amAdmin;
-  }
-
   handleToggleExpandNavbar(i: Navbar) {
-    i.state.expanded = !i.state.expanded;
-    i.setState(i.state);
+    i.setState({ expanded: !i.state.expanded });
   }
 
   handleHideExpandNavbar(i: Navbar) {
@@ -647,8 +644,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   handleSearchParam(i: Navbar, event: any) {
-    i.state.searchParam = event.target.value;
-    i.setState(i.state);
+    i.setState({ searchParam: event.target.value });
   }
 
   handleSearchSubmit(i: Navbar, event: any) {
@@ -669,8 +665,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   handleSearchBlur(i: Navbar, event: any) {
     if (!(event.relatedTarget && event.relatedTarget.name !== "search-btn")) {
-      i.state.toggleSearch = false;
-      i.setState(i.state);
+      i.setState({ toggleSearch: false });
     }
   }
 
@@ -680,8 +675,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   handleToggleDropdown(i: Navbar) {
-    i.state.showDropdown = !i.state.showDropdown;
-    i.setState(i.state);
+    i.setState({ showDropdown: !i.state.showDropdown });
   }
 
   parseMessage(msg: any) {
@@ -707,25 +701,25 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         msg,
         GetUnreadCountResponse
       );
-      this.state.unreadInboxCount =
-        data.replies + data.mentions + data.private_messages;
-      this.setState(this.state);
+      this.setState({
+        unreadInboxCount: data.replies + data.mentions + data.private_messages,
+      });
       this.sendUnreadCount();
     } else if (op == UserOperation.GetReportCount) {
       let data = wsJsonToRes<GetReportCountResponse>(
         msg,
         GetReportCountResponse
       );
-      this.state.unreadReportCount = data.post_reports + data.comment_reports;
-      this.setState(this.state);
+      this.setState({
+        unreadReportCount: data.post_reports + data.comment_reports,
+      });
       this.sendReportUnread();
     } else if (op == UserOperation.GetUnreadRegistrationApplicationCount) {
       let data = wsJsonToRes<GetUnreadRegistrationApplicationCountResponse>(
         msg,
         GetUnreadRegistrationApplicationCountResponse
       );
-      this.state.unreadApplicationCount = data.registration_applications;
-      this.setState(this.state);
+      this.setState({ unreadApplicationCount: data.registration_applications });
       this.sendApplicationUnread();
     } else if (op == UserOperation.CreateComment) {
       let data = wsJsonToRes<CommentResponse>(msg, CommentResponse);
@@ -733,8 +727,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
       UserService.Instance.myUserInfo.match({
         some: mui => {
           if (data.recipient_ids.includes(mui.local_user_view.local_user.id)) {
-            this.state.unreadInboxCount++;
-            this.setState(this.state);
+            this.setState({
+              unreadInboxCount: this.state.unreadInboxCount + 1,
+            });
             this.sendUnreadCount();
             notifyComment(data.comment_view, this.context.router);
           }
@@ -753,8 +748,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             data.private_message_view.recipient.id ==
             mui.local_user_view.person.id
           ) {
-            this.state.unreadInboxCount++;
-            this.setState(this.state);
+            this.setState({
+              unreadInboxCount: this.state.unreadInboxCount + 1,
+            });
             this.sendUnreadCount();
             notifyPrivateMessage(
               data.private_message_view,

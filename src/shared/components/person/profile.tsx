@@ -129,15 +129,14 @@ export class Profile extends Component<any, ProfileState> {
 
     // Only fetch the data if coming from another route
     if (this.isoData.path == this.context.router.route.match.url) {
-      this.state.personRes = Some(
-        this.isoData.routeData[0] as GetPersonDetailsResponse
-      );
-      this.state.loading = false;
+      this.state = {
+        ...this.state,
+        personRes: Some(this.isoData.routeData[0] as GetPersonDetailsResponse),
+        loading: false,
+      };
     } else {
       this.fetchUserData();
     }
-
-    this.setPersonBlock();
   }
 
   fetchUserData() {
@@ -170,11 +169,12 @@ export class Profile extends Component<any, ProfileState> {
     UserService.Instance.myUserInfo.match({
       some: mui =>
         this.state.personRes.match({
-          some: res => {
-            this.state.personBlocked = mui.person_blocks
-              .map(a => a.target.id)
-              .includes(res.person_view.person.id);
-          },
+          some: res =>
+            this.setState({
+              personBlocked: mui.person_blocks
+                .map(a => a.target.id)
+                .includes(res.person_view.person.id),
+            }),
           none: void 0,
         }),
       none: void 0,
@@ -215,6 +215,7 @@ export class Profile extends Component<any, ProfileState> {
   }
 
   componentDidMount() {
+    this.setPersonBlock();
     setupTippy();
   }
 
@@ -258,7 +259,7 @@ export class Profile extends Component<any, ProfileState> {
 
   render() {
     return (
-      <div class="container">
+      <div className="container">
         {this.state.loading ? (
           <h5>
             <Spinner large />
@@ -266,8 +267,8 @@ export class Profile extends Component<any, ProfileState> {
         ) : (
           this.state.personRes.match({
             some: res => (
-              <div class="row">
-                <div class="col-12 col-md-8">
+              <div className="row">
+                <div className="col-12 col-md-8">
                   <>
                     <HtmlTags
                       title={this.documentTitle}
@@ -289,11 +290,12 @@ export class Profile extends Component<any, ProfileState> {
                     enableNsfw={enableNsfw(this.state.siteRes)}
                     view={this.state.view}
                     onPageChange={this.handlePageChange}
+                    allLanguages={this.state.siteRes.all_languages}
                   />
                 </div>
 
                 {!this.state.loading && (
-                  <div class="col-12 col-md-4">
+                  <div className="col-12 col-md-4">
                     {this.moderates()}
                     {this.amCurrentUser && this.follows()}
                   </div>
@@ -309,7 +311,7 @@ export class Profile extends Component<any, ProfileState> {
 
   viewRadios() {
     return (
-      <div class="btn-group btn-group-toggle flex-wrap mb-2">
+      <div className="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`btn btn-outline-secondary pointer
             ${this.state.view == PersonDetailsView.Overview && "active"}
@@ -371,7 +373,7 @@ export class Profile extends Component<any, ProfileState> {
 
     return (
       <div className="mb-2">
-        <span class="mr-3">{this.viewRadios()}</span>
+        <span className="mr-3">{this.viewRadios()}</span>
         <SortSelect
           sort={this.state.sort}
           onChange={this.handleSortChange}
@@ -414,14 +416,17 @@ export class Profile extends Component<any, ProfileState> {
               banner={pv.person.banner}
               icon={pv.person.avatar}
             />
-            <div class="mb-3">
-              <div class="">
-                <div class="mb-0 d-flex flex-wrap">
+            <div className="mb-3">
+              <div className="">
+                <div className="mb-0 d-flex flex-wrap">
                   <div>
-                    {pv.person.display_name && (
-                      <h5 class="mb-0">{pv.person.display_name}</h5>
-                    )}
-                    <ul class="list-inline mb-2">
+                    {pv.person.display_name.match({
+                      some: displayName => (
+                        <h5 className="mb-0">{displayName}</h5>
+                      ),
+                      none: <></>,
+                    })}
+                    <ul className="list-inline mb-2">
                       <li className="list-inline-item">
                         <PersonListing
                           person={pv.person}
@@ -539,7 +544,7 @@ export class Profile extends Component<any, ProfileState> {
                   none: <></>,
                 })}
                 <div>
-                  <ul class="list-inline mb-2">
+                  <ul className="list-inline mb-2">
                     <li className="list-inline-item badge badge-light">
                       {i18n.t("number_of_posts", {
                         count: pv.counts.post_count,
@@ -554,7 +559,7 @@ export class Profile extends Component<any, ProfileState> {
                     </li>
                   </ul>
                 </div>
-                <div class="text-muted">
+                <div className="text-muted">
                   {i18n.t("joined")}{" "}
                   <MomentTime
                     published={pv.person.published}
@@ -595,9 +600,9 @@ export class Profile extends Component<any, ProfileState> {
                 </>
               )}
               <hr />
-              <div class="mb-2">
+              <div className="mb-2">
                 <a
-                  class="btn btn-secondary btn-block  mr-2 "
+                  className="btn btn-secondary btn-block  mr-2 "
                   href="#"
                   onClick={linkEvent(pv, this.handleBlockchainClick)}
                 >
@@ -615,7 +620,7 @@ export class Profile extends Component<any, ProfileState> {
               </div>
             )}
             <div>
-              <ul class="list-inline mb-2">
+              <ul className="list-inline mb-2">
                 <li className="list-inline-item badge badge-light">
                   {i18n.t("number_of_posts", {
                     count: pv.counts.post_count,
@@ -630,7 +635,7 @@ export class Profile extends Component<any, ProfileState> {
                 </li>
               </ul>
             </div>
-            <div class="text-muted">
+            <div className="text-muted">
               {i18n.t("joined")}{" "}
               <MomentTime data={pv.person} showAgo ignoreUpdated />
             </div>
@@ -655,33 +660,36 @@ export class Profile extends Component<any, ProfileState> {
           <>
             {this.state.showBanDialog && (
               <form onSubmit={linkEvent(this, this.handleModBanSubmit)}>
-                <div class="form-group row col-12">
-                  <label class="col-form-label" htmlFor="profile-ban-reason">
+                <div className="form-group row col-12">
+                  <label
+                    className="col-form-label"
+                    htmlFor="profile-ban-reason"
+                  >
                     {i18n.t("reason")}
                   </label>
                   <input
                     type="text"
                     id="profile-ban-reason"
-                    class="form-control mr-2"
+                    className="form-control mr-2"
                     placeholder={i18n.t("reason")}
                     value={toUndefined(this.state.banReason)}
                     onInput={linkEvent(this, this.handleModBanReasonChange)}
                   />
-                  <label class="col-form-label" htmlFor={`mod-ban-expires`}>
+                  <label className="col-form-label" htmlFor={`mod-ban-expires`}>
                     {i18n.t("expires")}
                   </label>
                   <input
                     type="number"
                     id={`mod-ban-expires`}
-                    class="form-control mr-2"
+                    className="form-control mr-2"
                     placeholder={i18n.t("number_of_days")}
                     value={toUndefined(this.state.banExpireDays)}
                     onInput={linkEvent(this, this.handleModBanExpireDaysChange)}
                   />
-                  <div class="form-group">
-                    <div class="form-check">
+                  <div className="form-group">
+                    <div className="form-check">
                       <input
-                        class="form-check-input"
+                        className="form-check-input"
                         id="mod-ban-remove-data"
                         type="checkbox"
                         checked={this.state.removeData}
@@ -691,7 +699,7 @@ export class Profile extends Component<any, ProfileState> {
                         )}
                       />
                       <label
-                        class="form-check-label"
+                        className="form-check-label"
                         htmlFor="mod-ban-remove-data"
                         title={i18n.t("remove_content_more")}
                       >
@@ -705,10 +713,10 @@ export class Profile extends Component<any, ProfileState> {
                 {/*   <label class="col-form-label">Expires</label> */}
                 {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
                 {/* </div> */}
-                <div class="form-group row">
+                <div className="form-group row">
                   <button
-                    type="cancel"
-                    class="btn btn-secondary mr-2"
+                    type="reset"
+                    className="btn btn-secondary mr-2"
                     aria-label={i18n.t("cancel")}
                     onClick={linkEvent(this, this.handleModBanSubmitCancel)}
                   >
@@ -716,7 +724,7 @@ export class Profile extends Component<any, ProfileState> {
                   </button>
                   <button
                     type="submit"
-                    class="btn btn-secondary"
+                    className="btn btn-secondary"
                     aria-label={i18n.t("ban")}
                   >
                     {i18n.t("ban")} {pv.person.name}
@@ -730,25 +738,28 @@ export class Profile extends Component<any, ProfileState> {
       });
   }
 
-  // TODO test this, make sure its good
   moderates() {
     return this.state.personRes
       .map(r => r.moderates)
       .match({
         some: moderates => {
           if (moderates.length > 0) {
-            <div class="card border-secondary mb-3">
-              <div class="card-body">
-                <h5>{i18n.t("moderates")}</h5>
-                <ul class="list-unstyled mb-0">
-                  {moderates.map(cmv => (
-                    <li>
-                      <CommunityLink community={cmv.community} />
-                    </li>
-                  ))}
-                </ul>
+            return (
+              <div className="card border-secondary mb-3">
+                <div className="card-body">
+                  <h5>{i18n.t("moderates")}</h5>
+                  <ul className="list-unstyled mb-0">
+                    {moderates.map(cmv => (
+                      <li key={cmv.community.id}>
+                        <CommunityLink community={cmv.community} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>;
+            );
+          } else {
+            return <></>;
           }
         },
         none: void 0,
@@ -761,18 +772,22 @@ export class Profile extends Component<any, ProfileState> {
       .match({
         some: follows => {
           if (follows.length > 0) {
-            <div class="card border-secondary mb-3">
-              <div class="card-body">
-                <h5>{i18n.t("subscribed")}</h5>
-                <ul class="list-unstyled mb-0">
-                  {follows.map(cfv => (
-                    <li>
-                      <CommunityLink community={cfv.community} />
-                    </li>
-                  ))}
-                </ul>
+            return (
+              <div className="card border-secondary mb-3">
+                <div className="card-body">
+                  <h5>{i18n.t("subscribed")}</h5>
+                  <ul className="list-unstyled mb-0">
+                    {follows.map(cfv => (
+                      <li key={cfv.community.id}>
+                        <CommunityLink community={cfv.community} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>;
+            );
+          } else {
+            return <></>;
           }
         },
         none: void 0,
@@ -789,8 +804,7 @@ export class Profile extends Component<any, ProfileState> {
     this.props.history.push(
       `${typeView}/view/${viewStr}/sort/${sortStr}/page/${page}`
     );
-    this.state.loading = true;
-    this.setState(this.state);
+    this.setState({ loading: true });
     this.fetchUserData();
   }
 
@@ -810,29 +824,24 @@ export class Profile extends Component<any, ProfileState> {
   }
 
   handleModBanShow(i: Profile) {
-    i.state.showBanDialog = true;
-    i.setState(i.state);
+    i.setState({ showBanDialog: true });
   }
 
   handleModBanReasonChange(i: Profile, event: any) {
-    i.state.banReason = event.target.value;
-    i.setState(i.state);
+    i.setState({ banReason: event.target.value });
   }
 
   handleModBanExpireDaysChange(i: Profile, event: any) {
-    i.state.banExpireDays = event.target.value;
-    i.setState(i.state);
+    i.setState({ banExpireDays: event.target.value });
   }
 
   handleModRemoveDataChange(i: Profile, event: any) {
-    i.state.removeData = event.target.checked;
-    i.setState(i.state);
+    i.setState({ removeData: event.target.checked });
   }
 
   handleModBanSubmitCancel(i: Profile, event?: any) {
     event.preventDefault();
-    i.state.showBanDialog = false;
-    i.setState(i.state);
+    i.setState({ showBanDialog: false });
   }
 
   handleModBanSubmit(i: Profile, event?: any) {
@@ -845,7 +854,7 @@ export class Profile extends Component<any, ProfileState> {
           // If its an unban, restore all their data
           let ban = !person.banned;
           if (ban == false) {
-            i.state.removeData = false;
+            i.setState({ removeData: false });
           }
           let form = new BanPerson({
             person_id: person.id,
@@ -857,8 +866,7 @@ export class Profile extends Component<any, ProfileState> {
           });
           WebSocketService.Instance.send(wsClient.banPerson(form));
 
-          i.state.showBanDialog = false;
-          i.setState(i.state);
+          i.setState({ showBanDialog: false });
         },
         none: void 0,
       });
@@ -883,15 +891,12 @@ export class Profile extends Component<any, ProfileState> {
         msg,
         GetPersonDetailsResponse
       );
-      this.state.personRes = Some(data);
-      this.state.loading = false;
+      this.setState({ personRes: Some(data), loading: false });
       this.setPersonBlock();
-      this.setState(this.state);
       restoreScrollPosition(this.context);
     } else if (op == UserOperation.AddAdmin) {
       let data = wsJsonToRes<AddAdminResponse>(msg, AddAdminResponse);
-      this.state.siteRes.admins = data.admins;
-      this.setState(this.state);
+      this.setState(s => ((s.siteRes.admins = data.admins), s));
     } else if (op == UserOperation.CreateCommentLike) {
       let data = wsJsonToRes<CommentResponse>(msg, CommentResponse);
       createCommentLikeRes(

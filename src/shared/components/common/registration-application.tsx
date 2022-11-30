@@ -88,23 +88,25 @@ export class RegistrationApplication extends Component<
         })}
 
         {this.state.denyExpanded && (
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label">
+          <div className="form-group row">
+            <label className="col-sm-2 col-form-label">
               {i18n.t("deny_reason")}
             </label>
-            <div class="col-sm-10">
+            <div className="col-sm-10">
               <MarkdownTextArea
                 initialContent={this.state.denyReason}
+                initialLanguageId={None}
                 onContentChange={this.handleDenyReasonChange}
                 placeholder={None}
                 buttonTitle={None}
                 maxLength={None}
                 hideNavigationWarnings
+                allLanguages={[]}
               />
             </div>
           </div>
         )}
-        {(!ra.admin_id || (ra.admin_id && !accepted)) && (
+        {(ra.admin_id.isNone() || (ra.admin_id.isSome() && !accepted)) && (
           <button
             className="btn btn-secondary mr-2 my-2"
             onClick={linkEvent(this, this.handleApprove)}
@@ -113,7 +115,7 @@ export class RegistrationApplication extends Component<
             {i18n.t("approve")}
           </button>
         )}
-        {(!ra.admin_id || (ra.admin_id && accepted)) && (
+        {(ra.admin_id.isNone() || (ra.admin_id.isSome() && accepted)) && (
           <button
             className="btn btn-secondary mr-2"
             onClick={linkEvent(this, this.handleDeny)}
@@ -157,7 +159,6 @@ export class RegistrationApplication extends Component<
   }
 
   handleDenyReasonChange(val: string) {
-    this.state.denyReason = Some(val);
-    this.setState(this.state);
+    this.setState({ denyReason: Some(val) });
   }
 }
