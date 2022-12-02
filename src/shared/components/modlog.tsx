@@ -622,10 +622,7 @@ export class Modlog extends Component<any, ModlogState> {
   }
 
   get amAdminOrMod(): boolean {
-    return (
-      amAdmin(Some(this.state.siteRes.admins)) ||
-      amMod(this.state.communityMods)
-    );
+    return amAdmin() || amMod(this.state.communityMods);
   }
 
   modOrAdminText(person: Option<PersonSafe>): string {
@@ -639,15 +636,12 @@ export class Modlog extends Component<any, ModlogState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `Modlog - ${siteView.site.name}`,
-      none: "",
-    });
+    return `Modlog - ${this.state.siteRes.site_view.site.name}`;
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -715,21 +709,18 @@ export class Modlog extends Component<any, ModlogState> {
                   </option>
                 </select>
               </div>
-              {this.state.siteRes.site_view.match({
-                some: site_view =>
-                  !site_view.site.hide_modlog_mod_names.unwrapOr(false) && (
-                    <div className="form-group col-sm-6">
-                      <select
-                        id="filter-mod"
-                        className="form-control"
-                        value={toUndefined(this.state.filter_mod)}
-                      >
-                        <option>{i18n.t("filter_by_mod")}</option>
-                      </select>
-                    </div>
-                  ),
-                none: <></>,
-              })}
+              {!this.state.siteRes.site_view.local_site
+                .hide_modlog_mod_names && (
+                <div className="form-group col-sm-6">
+                  <select
+                    id="filter-mod"
+                    className="form-control"
+                    value={toUndefined(this.state.filter_mod)}
+                  >
+                    <option>{i18n.t("filter_by_mod")}</option>
+                  </select>
+                </div>
+              )}
               <div className="form-group col-sm-6">
                 <select
                   id="filter-user"

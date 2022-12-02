@@ -106,6 +106,8 @@ export class Settings extends Component<any, SettingsState> {
       default_sort_type: None,
       default_listing_type: None,
       theme: None,
+      interface_language: None,
+      discussion_languages: None,
       avatar: None,
       banner: None,
       display_name: None,
@@ -118,8 +120,12 @@ export class Settings extends Component<any, SettingsState> {
       pi_address: None,
       web3_address: None,
       dap_address: None,
-      sol_address: None,
-      lang: None,
+      cosmos_address: None,
+      sui_address: None,
+      ton_address: None,
+      pol_address: None,
+      auth_sign: None,
+      sign_data: true,
     }),
     changePasswordForm: new ChangePassword({
       new_password: undefined,
@@ -213,7 +219,7 @@ export class Settings extends Component<any, SettingsState> {
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <>
           <HtmlTags
             title={this.documentTitle}
@@ -553,7 +559,10 @@ export class Settings extends Component<any, SettingsState> {
             </div>
           </div>*/}
           <div className="form-group row">
-            <label className="col-lg-3 col-form-label" htmlFor="user-pi-address">
+            <label
+              className="col-lg-3 col-form-label"
+              htmlFor="user-pi-address"
+            >
               {i18n.t("Pi Network Address")}
             </label>
             <div className="col-lg-9">
@@ -562,7 +571,7 @@ export class Settings extends Component<any, SettingsState> {
                 id="user-pi-address"
                 className="form-control"
                 placeholder={i18n.t("Pi Network Address ( G... )")}
-                value={this.state.saveUserSettingsForm.pi_address}
+                value={toUndefined(this.state.saveUserSettingsForm.pi_address)}
                 onInput={linkEvent(this, this.handlePiAddressChange)}
                 pattern="^G[A-Za-z0-9]*$"
                 minLength={3}
@@ -570,7 +579,10 @@ export class Settings extends Component<any, SettingsState> {
             </div>
           </div>
           <div className="form-group row">
-            <label className="col-lg-3 col-form-label" htmlFor="user-web3-address">
+            <label
+              className="col-lg-3 col-form-label"
+              htmlFor="user-web3-address"
+            >
               {i18n.t("Web3 Address")}
             </label>
             <div className="col-lg-9">
@@ -581,7 +593,9 @@ export class Settings extends Component<any, SettingsState> {
                 placeholder={i18n.t(
                   "ETH, BSC, MATIC address ( 0x7ab111c7846b10e06963b2e6484a2462dc5851aa )"
                 )}
-                value={this.state.saveUserSettingsForm.web3_address}
+                value={toUndefined(
+                  this.state.saveUserSettingsForm.web3_address
+                )}
                 onInput={linkEvent(this, this.handleWeb3AddresslChange)}
                 pattern="^0x[a-fA-F0-9]{40}$"
                 minLength={3}
@@ -1296,6 +1310,7 @@ export class Settings extends Component<any, SettingsState> {
     } else if (op == UserOperation.SaveUserSettings) {
       let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
       UserService.Instance.login(data);
+      location.reload();
       this.setState({ saveUserSettingsLoading: false });
       toast(i18n.t("saved"));
       window.scrollTo(0, 0);
@@ -1341,7 +1356,9 @@ export class Settings extends Component<any, SettingsState> {
       const { ethereum } = window;
       return Boolean(ethereum && ethereum.isMetaMask);
     };
-    let luv = UserService.Instance.myUserInfo.local_user_view;
+    let mui = UserService.Instance.myUserInfo.unwrap();
+    let luv = mui.local_user_view;
+
     var config = {
       memo: "wepi:profile:" + luv.person.name,
       metadata: {
@@ -1351,7 +1368,7 @@ export class Settings extends Component<any, SettingsState> {
         actor_id: luv.person.actor_id,
         t: luv.person.published,
         u: luv.person.updated,
-        s: luv.person.cert,
+        s: luv.person.auth_sign,
       },
     };
     var str = utf8ToHex(JSON.stringify(config));
@@ -1382,7 +1399,8 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   async handlePiBlockchain(i: Settings, event: any) {
-    let luv = UserService.Instance.myUserInfo.local_user_view;
+    let mui = UserService.Instance.myUserInfo.unwrap();
+    let luv = mui.local_user_view;
     var config = {
       amount: 0.001,
       //memo: ('wepi:profile:'+luv.person.name).substr(0,28),
@@ -1396,7 +1414,7 @@ export class Settings extends Component<any, SettingsState> {
         //web3_address: luv.person.web3_address,
         t: luv.person.published,
         u: luv.person.updated,
-        s: luv.person.cert,
+        s: luv.person.auth_sign,
       },
     };
     var info = {

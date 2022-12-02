@@ -272,18 +272,14 @@ export class Community extends Component<any, State> {
   get documentTitle(): string {
     return this.state.communityRes.match({
       some: res =>
-        this.state.siteRes.site_view.match({
-          some: siteView =>
-            `${res.community_view.community.title} - ${siteView.site.name}`,
-          none: "",
-        }),
+        `${res.community_view.community.title} - ${this.state.siteRes.site_view.site.name}`,
       none: "",
     });
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         {this.state.communityLoading ? (
           <h5>
             <Spinner large />

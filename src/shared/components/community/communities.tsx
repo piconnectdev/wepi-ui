@@ -109,15 +109,14 @@ export class Communities extends Component<any, CommunitiesState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `${i18n.t("communities")} - ${siteView.site.name}`,
-      none: "",
-    });
+    return `${i18n.t("communities")} - ${
+      this.state.siteRes.site_view.site.name
+    }`;
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}

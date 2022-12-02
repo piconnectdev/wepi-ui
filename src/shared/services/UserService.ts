@@ -42,7 +42,6 @@ export class UserService {
         toast(i18n.t("logged_in"));
         IsomorphicCookie.save("jwt", jwt, { expires, secure: isHttps });
         this.setJwtInfo();
-        location.reload();
       },
       none: void 0,
     });
@@ -52,8 +51,7 @@ export class UserService {
     this.jwtInfo = None;
     this.myUserInfo = None;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
-    //Cookies.remove('wepiJwt');
-    document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.host;
+    document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.hostname;
     location.reload();
   }
 

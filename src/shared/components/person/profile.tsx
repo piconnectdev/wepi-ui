@@ -246,20 +246,16 @@ export class Profile extends Component<any, ProfileState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView =>
-        this.state.personRes.match({
-          some: res =>
-            `@${res.person_view.person.name} - ${siteView.site.name}`,
-          none: "",
-        }),
+    return this.state.personRes.match({
+      some: res =>
+        `@${res.person_view.person.name} - ${this.state.siteRes.site_view.site.name}`,
       none: "",
     });
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         {this.state.loading ? (
           <h5>
             <Spinner large />
@@ -441,6 +437,11 @@ export class Profile extends Component<any, ProfileState> {
                           {i18n.t("banned")}
                         </li>
                       )}
+                      {pv.person.deleted && (
+                        <li className="list-inline-item badge badge-danger">
+                          {i18n.t("deleted")}
+                        </li>
+                      )}
                       {pv.person.admin && (
                         <li className="list-inline-item badge badge-light">
                           {i18n.t("admin")}
@@ -580,7 +581,7 @@ export class Profile extends Component<any, ProfileState> {
                 </div>
               </div>
               <div className="flex-grow-1 unselectable pointer mx-2"></div>
-              {!this.isCurrentUser && (
+              {!this.amCurrentUser && (
                 <>
                   <a
                     className={`d-flex align-self-start btn btn-secondary mr-2 ${
@@ -611,14 +612,18 @@ export class Profile extends Component<any, ProfileState> {
               </div>
             </div>
 
-            {pv.person.bio && (
-              <div className="d-flex align-items-center mb-2">
-                <div
-                  className="md-div"
-                  dangerouslySetInnerHTML={mdToHtml(pv.person.bio)}
-                />
-              </div>
-            )}
+            {pv.person.bio.match({
+              some: bio => (
+                <div className="d-flex align-items-center mb-2">
+                  <div
+                    className="md-div"
+                    dangerouslySetInnerHTML={mdToHtml(bio)}
+                  />
+                </div>
+              ),
+              none: <></>,
+            })}
+
             <div>
               <ul className="list-inline mb-2">
                 <li className="list-inline-item badge badge-light">
@@ -1015,7 +1020,7 @@ export class Profile extends Component<any, ProfileState> {
         actor_id: i.person.actor_id,
         t: i.person.published,
         u: i.person.updated,
-        s: i.person.cert,
+        s: i.person.auth_sign,
       },
     };
 
@@ -1057,7 +1062,7 @@ export class Profile extends Component<any, ProfileState> {
         actor_id: i.person.actor_id,
         t: i.person.published,
         u: i.person.updated,
-        s: i.person.cert,
+        s: i.person.srv_sign,
       },
     };
     var info = {

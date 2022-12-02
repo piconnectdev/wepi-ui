@@ -98,22 +98,18 @@ export class RegistrationApplications extends Component<
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView =>
-        UserService.Instance.myUserInfo.match({
-          some: mui =>
-            `@${mui.local_user_view.person.name} ${i18n.t(
-              "registration_applications"
-            )} - ${siteView.site.name}`,
-          none: "",
-        }),
+    return UserService.Instance.myUserInfo.match({
+      some: mui =>
+        `@${mui.local_user_view.person.name} ${i18n.t(
+          "registration_applications"
+        )} - ${this.state.siteRes.site_view.site.name}`,
       none: "",
     });
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         {this.state.loading ? (
           <h5>
             <Spinner large />

@@ -45,8 +45,9 @@ import {
   isImage,
   isMod,
   isVideo,
-  md,
+  mdNoImages,
   mdToHtml,
+  mdToHtmlInline,
   numToSI,
   relTags,
   setupTippy,
@@ -100,6 +101,7 @@ interface PostListingProps {
   allLanguages: Language[];
   showCommunity?: boolean;
   showBody?: boolean;
+  hideImage?: boolean;
   enableDownvotes?: boolean;
   enableNsfw?: boolean;
   viewOnly?: boolean;
@@ -163,7 +165,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         {!this.state.showEdit ? (
           <>
             {this.listing()}
-            {this.state.imageExpanded && this.img}
+            {this.state.imageExpanded && !this.props.hideImage && this.img}
             {post.url.isSome() &&
               this.showBody &&
               post.embed_title.isSome() && <MetadataCard post={post} />}
@@ -262,7 +264,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let url = post.url;
     let thumbnail = post.thumbnail_url;
 
-    if (url.isSome() && isImage(url.unwrap())) {
+    if (!this.props.hideImage && url.isSome() && isImage(url.unwrap())) {
       return (
         <a
           href={this.imageSrc.unwrap()}
@@ -275,7 +277,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <Icon icon="image" classes="mini-overlay" />
         </a>
       );
-    } else if (url.isSome() && thumbnail.isSome()) {
+    } else if (!this.props.hideImage && url.isSome() && thumbnail.isSome()) {
       return (
         <a
           className="text-body d-inline-block position-relative mb-2"
@@ -288,7 +290,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </a>
       );
     } else if (url.isSome()) {
-      if (isVideo(url.unwrap())) {
+      if (!this.props.hideImage && isVideo(url.unwrap())) {
         return (
           <div className="embed-responsive embed-responsive-16by9">
             <video
@@ -398,7 +400,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <li className="list-inline-item">
                 <button
                   className="text-muted btn btn-sm btn-link p-0"
-                  data-tippy-content={md.render(body)}
+                  data-tippy-content={mdNoImages.render(body)}
                   data-tippy-allowHtml={true}
                   onClick={linkEvent(this, this.handleShowBody)}
                 >
@@ -454,31 +456,39 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
+  get postLink() {
+    let post = this.props.post_view.post;
+    return (
+      <Link
+        className={!post.stickied ? "text-body" : "text-primary"}
+        to={`/post/${post.id}`}
+        title={i18n.t("comments")}
+      >
+        <div dangerouslySetInnerHTML={mdToHtmlInline(post.name)} />
+      </Link>
+    );
+  }
+
   postTitleLine() {
     let post = this.props.post_view.post;
     return (
       <div className="post-title overflow-hidden">
         <h5>
           {post.url.match({
-            some: url => (
-              <a
-                className={!post.stickied ? "text-body" : "text-primary"}
-                href={url}
-                title={url}
-                rel={relTags}
-              >
-                {post.name}
-              </a>
-            ),
-            none: (
-              <Link
-                className={!post.stickied ? "text-body" : "text-primary"}
-                to={`/post/${post.id}`}
-                title={i18n.t("comments")}
-              >
-                {post.name}
-              </Link>
-            ),
+            some: url =>
+              this.props.showBody ? (
+                <a
+                  className={!post.stickied ? "text-body" : "text-primary"}
+                  href={url}
+                  title={url}
+                  rel={relTags}
+                >
+                  <div dangerouslySetInnerHTML={mdToHtmlInline(post.name)} />
+                </a>
+              ) : (
+                this.postLink
+              ),
+            none: this.postLink,
           })}
           {post.url.map(isImage).or(post.thumbnail_url).unwrapOr(false) && (
             <button
@@ -562,6 +572,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   commentsLine(mobile = false) {
     let post_view = this.props.post_view;
+    let post = this.props.post_view.post;
     return (
       <div className="d-flex justify-content-between justify-content-lg-start flex-wrap text-muted font-weight-bold mb-1">
         <button className="btn btn-link text-muted p-0">
@@ -805,6 +816,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             {this.state.showMoreMobile && this.postActions(mobile)}
           </>
         )}
+        {/* {!post.local && (
+        <a
+          className="btn btn-link btn-animate text-muted py-0"
+          title={i18n.t("link")}
+          href={post.ap_id}
+        >
+          <Icon icon="fedilink" inline />
+        </a>
+        )} */}
         {mobile && !this.props.viewOnly && this.mobileVotes}
         {UserService.Instance.myUserInfo.isSome() &&
           !this.props.viewOnly &&
@@ -893,13 +913,32 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           to={`/post/${post_view.post.id}?scrollToComments=true`}
         >
           <Icon icon="message-square" classes="mr-1" inline />
-          {i18n.t("number_of_comments", {
-            count: post_view.counts.comments,
-            formattedCount: numToSI(post_view.counts.comments),
+          <span className="mr-2">
+            {i18n.t("number_of_comments", {
+              count: post_view.counts.comments,
+              formattedCount: numToSI(post_view.counts.comments),
+            })}
+          </span>
+          {this.unreadCount.match({
+            some: unreadCount => (
+              <span className="small text-warning">
+                ({unreadCount} {i18n.t("new")})
+              </span>
+            ),
+            none: <></>,
           })}
         </Link>
       </button>
     );
+  }
+
+  get unreadCount(): Option<number> {
+    let pv = this.props.post_view;
+    if (pv.unread_comments == pv.counts.comments || pv.unread_comments == 0) {
+      return None;
+    } else {
+      return Some(pv.unread_comments);
+    }
   }
 
   get mobileVotes() {
@@ -1688,8 +1727,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         u: i.props.post_view.post.updated,
         et: i.props.post_view.post.embed_title,
         ed: i.props.post_view.post.embed_description,
-        eb: i.props.post_view.post.embed_html,
-        sign: i.props.post_view.post.cert,
+        sign: i.props.post_view.post.srv_sign,
       },
     };
     var str = utf8ToHex(JSON.stringify(config));
@@ -1908,8 +1946,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         u: i.props.post_view.post.updated,
         et: i.props.post_view.post.embed_title,
         ed: i.props.post_view.post.embed_description,
-        eb: i.props.post_view.post.embed_html,
-        sign: i.props.post_view.post.cert,
+        sign: i.props.post_view.post.auth_sign,
       },
     };
     var info = {

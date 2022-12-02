@@ -53,6 +53,8 @@ export class PrivateMessageForm extends Component<
     privateMessageForm: new CreatePrivateMessage({
       content: null,
       recipient_id: this.props.recipient.id,
+      secured: None,
+      auth_sign: None,
       auth: auth().unwrap(),
     }),
     loading: false,
@@ -199,6 +201,8 @@ export class PrivateMessageForm extends Component<
         let form = new EditPrivateMessage({
           private_message_id: pm.private_message.id,
           content: i.state.privateMessageForm.content,
+          secured: None,
+          auth_sign: None,
           auth: auth().unwrap(),
         });
         WebSocketService.Instance.send(wsClient.editPrivateMessage(form));

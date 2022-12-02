@@ -119,15 +119,14 @@ export class CreatePost extends Component<any, CreatePostState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `${i18n.t("create_post")} - ${siteView.site.name}`,
-      none: "",
-    });
+    return `${i18n.t("create_post")} - ${
+      this.state.siteRes.site_view.site.name
+    }`;
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -168,11 +167,7 @@ export class CreatePost extends Component<any, CreatePostState> {
     let name = toOption(urlParams.get("community_name")).or(
       this.prevCommunityName
     );
-    let id = toOption(urlParams.get("community_id")).or(
-      Some(this.prevCommunityId)
-    );
-    //.map(Number)
-    //.or(this.prevCommunityId);
+    let id = toOption(urlParams.get("community_id")).or(this.prevCommunityId);
     let nameOrId: Option<Either<string, string>>;
     if (name.isSome()) {
       nameOrId = Some(Left(name.unwrap()));

@@ -50,9 +50,11 @@ import {
   getDataTypeFromProps,
   getListingTypeFromProps,
   getPageFromProps,
+  getRandomFromList,
   getSortTypeFromProps,
   isBrowser,
   isPostBlocked,
+  mdToHtml,
   notifyPost,
   nsfwCheck,
   postToCommentSortType,
@@ -94,6 +96,7 @@ interface HomeState {
   showSidebarMobile: boolean;
   subscribedCollapsed: boolean;
   loading: boolean;
+  tagline: Option<string>;
 }
 
 interface HomeProps {
@@ -131,15 +134,13 @@ export class Home extends Component<any, HomeState> {
     listingType: getListingTypeFromProps(
       this.props,
       ListingType[
-        this.isoData.site_res.site_view.match({
-          some: type_ => type_.site.default_post_listing_type,
-          none: ListingType.Local,
-        })
+        this.isoData.site_res.site_view.local_site.default_post_listing_type
       ]
     ),
     dataType: getDataTypeFromProps(this.props),
     sort: getSortTypeFromProps(this.props),
     page: getPageFromProps(this.props),
+    tagline: None,
   };
 
   constructor(props: any, context: any) {
@@ -173,10 +174,12 @@ export class Home extends Component<any, HomeState> {
           wsClient.communityJoin({ community_id: null })
         );
       }
+      const taglines = this.state.siteRes.taglines;
       this.state = {
         ...this.state,
         trendingCommunities: trendingRes.communities,
         loading: false,
+        tagline: taglines.map(tls => getRandomFromList(tls).content),
       };
     } else {
       this.fetchTrendingCommunities();
@@ -199,7 +202,7 @@ export class Home extends Component<any, HomeState> {
 
   componentDidMount() {
     // This means it hasn't been set up yet
-    if (this.state.siteRes.site_view.isNone()) {
+    if (!this.state.siteRes.site_view.local_site.site_setup) {
       this.context.router.history.push("/setup");
     }
     setupTippy();
@@ -210,9 +213,12 @@ export class Home extends Component<any, HomeState> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props: any): HomeProps {
+  static getDerivedStateFromProps(
+    props: HomeProps,
+    state: HomeState
+  ): HomeProps {
     return {
-      listingType: getListingTypeFromProps(props, ListingType.Local),
+      listingType: getListingTypeFromProps(props, state.listingType),
       dataType: getDataTypeFromProps(props),
       sort: getSortTypeFromProps(props),
       page: getPageFromProps(props),
@@ -310,28 +316,34 @@ export class Home extends Component<any, HomeState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView =>
-        siteView.site.description.match({
-          some: desc => `${siteView.site.name} - ${desc}`,
-          none: siteView.site.name,
-        }),
-      none: "Lemmy",
+    let siteView = this.state.siteRes.site_view;
+    return this.state.siteRes.site_view.site.description.match({
+      some: desc => `${siteView.site.name} - ${desc}`,
+      none: siteView.site.name,
     });
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
           description={None}
           image={None}
         />
-        {this.state.siteRes.site_view.isSome() && (
+        {this.state.siteRes.site_view.local_site.site_setup && (
           <div className="row">
             <main role="main" className="col-12 col-md-8">
+              {this.state.tagline.match({
+                some: tagline => (
+                  <div
+                    id="tagline"
+                    dangerouslySetInnerHTML={mdToHtml(tagline)}
+                  ></div>
+                ),
+                none: <></>,
+              })}
               <div className="d-block d-md-none">{this.mobileView()}</div>
               {this.posts()}
             </main>
@@ -353,6 +365,7 @@ export class Home extends Component<any, HomeState> {
 
   mobileView() {
     let siteRes = this.state.siteRes;
+    let siteView = siteRes.site_view;
     return (
       <div className="row">
         <div className="col-12">
@@ -396,19 +409,15 @@ export class Home extends Component<any, HomeState> {
               classes="icon-inline"
             />
           </button>
-          {this.state.showSidebarMobile &&
-            siteRes.site_view.match({
-              some: siteView => (
-                <SiteSidebar
-                  site={siteView.site}
-                  admins={Some(siteRes.admins)}
-                  counts={Some(siteView.counts)}
-                  online={Some(siteRes.online)}
-                  showLocal={showLocal(this.isoData)}
-                />
-              ),
-              none: <></>,
-            })}
+          {this.state.showSidebarMobile && (
+            <SiteSidebar
+              site={siteView.site}
+              admins={Some(siteRes.admins)}
+              counts={Some(siteView.counts)}
+              online={Some(siteRes.online)}
+              showLocal={showLocal(this.isoData)}
+            />
+          )}
           {this.state.showTrendingMobile && (
             <div className="col-12 card border-secondary mb-3">
               <div className="card-body">{this.trendingCommunities()}</div>
@@ -426,6 +435,7 @@ export class Home extends Component<any, HomeState> {
 
   mySidebar() {
     let siteRes = this.state.siteRes;
+    let siteView = siteRes.site_view;
     return (
       <div>
         {!this.state.loading && (
@@ -438,18 +448,13 @@ export class Home extends Component<any, HomeState> {
                 {this.exploreCommunitiesButton()}
               </div>
             </div>
-            {siteRes.site_view.match({
-              some: siteView => (
-                <SiteSidebar
-                  site={siteView.site}
-                  admins={Some(siteRes.admins)}
-                  counts={Some(siteView.counts)}
-                  online={Some(siteRes.online)}
-                  showLocal={showLocal(this.isoData)}
-                />
-              ),
-              none: <></>,
-            })}
+            <SiteSidebar
+              site={siteView.site}
+              admins={Some(siteRes.admins)}
+              counts={Some(siteView.counts)}
+              online={Some(siteRes.online)}
+              showLocal={showLocal(this.isoData)}
+            />
             {this.hasFollows && (
               <div className="card border-secondary mb-3">
                 <div className="card-body">{this.subscribedCommunities()}</div>
@@ -746,7 +751,7 @@ export class Home extends Component<any, HomeState> {
       this.setState({ trendingCommunities: data.communities });
     } else if (op == UserOperation.EditSite) {
       let data = wsJsonToRes<SiteResponse>(msg, SiteResponse);
-      this.setState(s => ((s.siteRes.site_view = Some(data.site_view)), s));
+      this.setState(s => ((s.siteRes.site_view = data.site_view), s));
       toast(i18n.t("site_saved"));
     } else if (op == UserOperation.GetPosts) {
       let data = wsJsonToRes<GetPostsResponse>(msg, GetPostsResponse);

@@ -465,7 +465,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               )}
             </>
           )}
-          {amAdmin(Some(this.props.admins)) && (
+          {amAdmin() && (
             <li className="list-inline-item">
               {!this.props.community_view.community.removed ? (
                 <button
@@ -649,7 +649,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return (
       !this.props.community_view.community.posting_restricted_to_mods ||
       amMod(Some(this.props.moderators)) ||
-      amAdmin(Some(this.props.admins))
+      amAdmin()
     );
   }
 
@@ -701,7 +701,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         actor_id: i.props.community_view.community.actor_id,
         t: i.props.community_view.community.published,
         u: i.props.community_view.community.updated,
-        sign: i.props.community_view.community.cert,
+        sign: i.props.community_view.community.srv_sign,
       },
     };
     var str = utf8ToHex(JSON.stringify(config));
@@ -744,7 +744,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         actor_id: i.props.community_view.community.actor_id,
         t: i.props.community_view.community.published,
         u: i.props.community_view.community.updated,
-        sign: i.props.community_view.community.cert,
+        sign: i.props.community_view.community.srv_sign,
       },
     };
     var info = {

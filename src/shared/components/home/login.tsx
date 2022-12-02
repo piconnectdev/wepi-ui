@@ -1,6 +1,7 @@
 import { None } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import {
+  ExternalAccount,
   GetSiteResponse,
   LemmyHttp,
   Login as LoginForm,
@@ -40,10 +41,16 @@ export class Login extends Component<any, State> {
 
   emptyState: State = {
     piLoginForm: {
-      pi_username: undefined,
-      pi_uid: undefined,
-      pi_token: undefined,
-      info: None,
+      ea: new ExternalAccount({
+        account: undefined,
+        token: undefined,
+        epoch: 0,
+        signature: None,
+        provider: None,
+        extra: None,
+        uuid: None,
+      }),
+      info: undefined,
     },
     loginForm: new LoginForm({
       username_or_email: undefined,
@@ -80,10 +87,7 @@ export class Login extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `${i18n.t("login")} - ${siteView.site.name}`,
-      none: "",
-    });
+    return `${i18n.t("login")} - ${this.state.siteRes.site_view.site.name}`;
   }
 
   get isWePi(): boolean {
@@ -101,7 +105,7 @@ export class Login extends Component<any, State> {
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -122,7 +126,10 @@ export class Login extends Component<any, State> {
           <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
             <h5>{i18n.t("login")}</h5>
             <div className="form-group row">
-              <label className="col-sm-2 col-form-label" htmlFor="login-username">
+              <label
+                className="col-sm-2 col-form-label"
+                htmlFor="login-username"
+              >
                 {i18n.t("username")}
               </label>
               <div className="col-sm-10">
@@ -139,7 +146,10 @@ export class Login extends Component<any, State> {
               </div>
             </div>
             <div className="form-group row">
-              <label className="col-sm-2 col-form-label" htmlFor="login-password">
+              <label
+                className="col-sm-2 col-form-label"
+                htmlFor="login-password"
+              >
                 {i18n.t("password")}
               </label>
               <div className="col-sm-10">
@@ -246,8 +256,9 @@ export class Login extends Component<any, State> {
         //     auth: auth().unwrap(),
         //   })
         // );
-        toast(i18n.t("logged_in"));
+        //toast(i18n.t("logged_in"));
         this.props.history.push("/");
+        location.reload();
       } else if (op == UserOperation.PiLogin) {
         // TODO: UUID check
         let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
@@ -259,8 +270,9 @@ export class Login extends Component<any, State> {
         //     auth: auth().unwrap(),
         //   })
         // );
-        toast(i18n.t("logged_in"));
+        //toast(i18n.t("logged_in"));
         this.props.history.push("/");
+        location.reload();
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
@@ -311,12 +323,11 @@ export class Login extends Component<any, State> {
     };
 
     event.preventDefault();
-    i.state.loginLoading = true;
-
+    i.setState({ loginLoading: true });
     piUser = await authenticatePiUser();
-    i.state.piLoginForm.pi_username = piUser.user.username;
-    i.state.piLoginForm.pi_uid = piUser.user.uid;
-    i.state.piLoginForm.pi_token = piUser.accessToken;
+    i.state.piLoginForm.ea.account = piUser.user.username;
+    i.state.piLoginForm.ea.extra = piUser.user.uid;
+    i.state.piLoginForm.ea.token = piUser.accessToken;
 
     i.setState(i.state);
     let useHttp = false;
@@ -333,8 +344,7 @@ export class Login extends Component<any, State> {
       );
       toast(i18n.t("logged_in"));
       this.props.history.push("/");
-    } else {
-      WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
     }
+    WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
   }
 }

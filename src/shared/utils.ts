@@ -23,13 +23,15 @@ import {
   PersonViewSafe,
   PostReportView,
   PostView,
+  PrivateMessageReportView,
   PrivateMessageView,
   RegistrationApplicationView,
   Search,
   SearchType,
   SortType,
+  toUndefined,
 } from "lemmy-js-client";
-import markdown_it from "markdown-it";
+import { default as MarkdownIt } from "markdown-it";
 import markdown_it_container from "markdown-it-container";
 import markdown_it_footnote from "markdown-it-footnote";
 import markdown_it_html5_embed from "markdown-it-html5-embed";
@@ -81,6 +83,7 @@ export const fetchLimit = 40;
 export const trendingFetchLimit = 6;
 export const mentionDropdownFetchLimit = 10;
 export const commentTreeMaxDepth = 8;
+export const markdownFieldCharacterLimit = 50000;
 
 export const relTags = "noopener nofollow";
 
@@ -106,41 +109,54 @@ export function randomStr(
     .join("");
 }
 
-export const md = new markdown_it({
+const html5EmbedConfig = {
+  html5embed: {
+    useImageSyntax: true, // Enables video/audio embed with ![]() syntax (default)
+    attributes: {
+      audio: 'controls preload="metadata"',
+      video: 'width="100%" max-height="100%" controls loop preload="metadata"',
+    },
+  },
+};
+
+const spoilerConfig = {
+  validate: (params: string) => {
+    return params.trim().match(/^spoiler\s+(.*)$/);
+  },
+
+  render: (tokens: any, idx: any) => {
+    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
+
+    if (tokens[idx].nesting === 1) {
+      // opening tag
+      return `<details><summary> ${md.utils.escapeHtml(m[1])} </summary>\n`;
+    } else {
+      // closing tag
+      return "</details>\n";
+    }
+  },
+};
+
+const markdownItConfig: MarkdownIt.Options = {
   html: false,
   linkify: true,
   typographer: true,
-})
+};
+
+export const md = new MarkdownIt(markdownItConfig)
   .use(markdown_it_sub)
   .use(markdown_it_sup)
   .use(markdown_it_footnote)
-  .use(markdown_it_html5_embed, {
-    html5embed: {
-      useImageSyntax: true, // Enables video/audio embed with ![]() syntax (default)
-      attributes: {
-        audio: 'controls preload="metadata"',
-        video:
-          'width="100%" max-height="100%" controls loop preload="metadata"',
-      },
-    },
-  })
-  .use(markdown_it_container, "spoiler", {
-    validate: function (params: any) {
-      return params.trim().match(/^spoiler\s+(.*)$/);
-    },
+  .use(markdown_it_html5_embed, html5EmbedConfig)
+  .use(markdown_it_container, "spoiler", spoilerConfig);
 
-    render: function (tokens: any, idx: any) {
-      var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
-
-      if (tokens[idx].nesting === 1) {
-        // opening tag
-        return `<details><summary> ${md.utils.escapeHtml(m[1])} </summary>\n`;
-      } else {
-        // closing tag
-        return "</details>\n";
-      }
-    },
-  });
+export const mdNoImages = new MarkdownIt(markdownItConfig)
+  .use(markdown_it_sub)
+  .use(markdown_it_sup)
+  .use(markdown_it_footnote)
+  .use(markdown_it_html5_embed, html5EmbedConfig)
+  .use(markdown_it_container, "spoiler", spoilerConfig)
+  .disable("image");
 
 export function hotRankComment(comment_view: CommentView): number {
   return hotRank(comment_view.counts.score, comment_view.comment.published);
@@ -171,6 +187,14 @@ export function hotRank(score: number, timeStr: string): number {
 
 export function mdToHtml(text: string) {
   return { __html: md.render(text) };
+}
+
+export function mdToHtmlNoImages(text: string) {
+  return { __html: mdNoImages.render(text) };
+}
+
+export function mdToHtmlInline(text: string) {
+  return { __html: md.renderInline(text) };
 }
 
 export function getUnixTime(text: string): number {
@@ -254,14 +278,10 @@ export function isAdmin(
   });
 }
 
-export function amAdmin(
-  admins: Option<PersonViewSafe[]>,
-  myUserInfo = UserService.Instance.myUserInfo
-): boolean {
-  return myUserInfo.match({
-    some: mui => isAdmin(admins, mui.local_user_view.person.id),
-    none: false,
-  });
+export function amAdmin(myUserInfo = UserService.Instance.myUserInfo): boolean {
+  return myUserInfo
+    .map(mui => mui.local_user_view.person.admin)
+    .unwrapOr(false);
 }
 
 export function amCommunityCreator(
@@ -551,6 +571,7 @@ export function toast(text: string, background = "success") {
 export function pictrsDeleteToast(
   clickToDeleteText: string,
   deletePictureText: string,
+  failedDeletePictureText: string,
   deleteUrl: string
 ) {
   if (isBrowser()) {
@@ -563,13 +584,19 @@ export function pictrsDeleteToast(
       duration: 10000,
       onClick: () => {
         if (toast) {
-          window.location.replace(deleteUrl);
-          alert(deletePictureText);
-          toast.hideToast();
+          fetch(deleteUrl).then(res => {
+            toast.hideToast();
+            if (res.ok === true) {
+              alert(deletePictureText);
+            } else {
+              alert(failedDeletePictureText);
+            }
+          });
         }
       },
       close: true,
-    }).showToast();
+    });
+    toast.showToast();
   }
 }
 
@@ -587,7 +614,7 @@ export function messageToastify(info: NotifyInfo, router: any) {
 
     let toast = Toastify({
       text: `${htmlBody}<br />${info.name}`,
-      avatar: info.icon,
+      avatar: toUndefined(info.icon),
       backgroundColor: backgroundColor,
       className: "text-dark",
       close: true,
@@ -601,7 +628,8 @@ export function messageToastify(info: NotifyInfo, router: any) {
           router.history.push(info.link);
         }
       },
-    }).showToast();
+    });
+    toast.showToast();
   }
 }
 
@@ -786,7 +814,6 @@ export function getListingTypeFromPropsNoDefault(props: any): ListingType {
     : ListingType.Local;
 }
 
-// TODO might need to add a user setting for this too
 export function getDataTypeFromProps(props: any): DataType {
   return props.match.params.data_type
     ? routeDataTypeToEnum(props.match.params.data_type)
@@ -816,12 +843,14 @@ export function getRecipientIdFromProps(props: any): string {
   return props.match.params.recipient_id;
 }
 
-export function getIdFromProps(props: any): string {
-  return props.match.params.id;
+export function getIdFromProps(props: any): Option<string> {
+  let id: string = props.match.params.post_id;
+  return id ? Some(id) : None;
 }
 
-export function getCommentIdFromProps(props: any): string {
-  return props.match.params.comment_id;
+export function getCommentIdFromProps(props: any): Option<string> {
+  let id: string = props.match.params.comment_id;
+  return id ? Some(id) : None;
 }
 
 export function getUsernameFromProps(props: any): string {
@@ -952,6 +981,7 @@ export function editPostRes(data: PostView, post: PostView) {
   }
 }
 
+// TODO possible to make these generic?
 export function updatePostReportRes(
   data: PostReportView,
   reports: PostReportView[]
@@ -969,6 +999,18 @@ export function updateCommentReportRes(
   let found = reports.find(c => c.comment_report.id == data.comment_report.id);
   if (found) {
     found.comment_report = data.comment_report;
+  }
+}
+
+export function updatePrivateMessageReportRes(
+  data: PrivateMessageReportView,
+  reports: PrivateMessageReportView[]
+) {
+  let found = reports.find(
+    c => c.private_message_report.id == data.private_message_report.id
+  );
+  if (found) {
+    found.private_message_report = data.private_message_report;
   }
 }
 
@@ -1042,7 +1084,12 @@ export function buildCommentsTree(
     let parent_id = getCommentParentId(comment_view.comment);
     parent_id.match({
       some: parentId => {
-        let parent = map.get(parentId);
+        var _uuid = parentId;
+        _uuid = insertString(_uuid, 8, "-");
+        _uuid = insertString(_uuid, 13, "-");
+        _uuid = insertString(_uuid, 18, "-");
+        _uuid = insertString(_uuid, 23, "-");
+        let parent = map.get(_uuid);
         // Necessary because blocked comment might not exist
         if (parent) {
           parent.children.push(child);
@@ -1057,6 +1104,10 @@ export function buildCommentsTree(
   }
 
   return tree;
+}
+
+function insertString(str, index, value) {
+  return str.substr(0, index) + value + str.substr(index);
 }
 
 export function getCommentParentId(comment: CommentI): Option<string> {
@@ -1089,7 +1140,13 @@ export function insertCommentIntoTree(
 
   getCommentParentId(cv.comment).match({
     some: parentId => {
-      let parentComment = searchCommentTree(tree, parentId);
+      var _uuid = parentId;
+      _uuid = insertString(_uuid, 8, "-");
+      _uuid = insertString(_uuid, 13, "-");
+      _uuid = insertString(_uuid, 18, "-");
+      _uuid = insertString(_uuid, 23, "-");
+
+      let parentComment = searchCommentTree(tree, _uuid);
       parentComment.match({
         some: pComment => {
           node.depth = pComment.depth + 1;
@@ -1428,11 +1485,11 @@ export function auth(throwErr = true): Result<string, string> {
 }
 
 export function enableDownvotes(siteRes: GetSiteResponse): boolean {
-  return siteRes.site_view.map(s => s.site.enable_downvotes).unwrapOr(true);
+  return siteRes.site_view.local_site.enable_downvotes;
 }
 
 export function enableNsfw(siteRes: GetSiteResponse): boolean {
-  return siteRes.site_view.map(s => s.site.enable_nsfw).unwrapOr(false);
+  return siteRes.site_view.local_site.enable_nsfw;
 }
 
 export function postToCommentSortType(sort: SortType): CommentSortType {
@@ -1466,11 +1523,12 @@ export function myFirstDiscussionLanguageId(
   );
 }
 
-export function canCreateCommunity(siteRes: GetSiteResponse): boolean {
-  let adminOnly = siteRes.site_view
-    .map(s => s.site.community_creation_admin_only)
-    .unwrapOr(false);
-  return !adminOnly || amAdmin(Some(siteRes.admins));
+export function canCreateCommunity(
+  siteRes: GetSiteResponse,
+  myUserInfo = UserService.Instance.myUserInfo
+): boolean {
+  let adminOnly = siteRes.site_view.local_site.community_creation_admin_only;
+  return !adminOnly || amAdmin(myUserInfo);
 }
 
 export function isPostBlocked(
@@ -1501,4 +1559,8 @@ export function nsfwCheck(
         .map(m => m.local_user_view.local_user.show_nsfw)
         .unwrapOr(false))
   );
+}
+
+export function getRandomFromList<T>(list: T[]): T {
+  return list[Math.floor(Math.random() * list.length)];
 }

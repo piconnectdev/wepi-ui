@@ -134,6 +134,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
             form_id: this.state.formId,
             comment_id: node.comment_view.comment.id,
             language_id,
+            auth_sign: None,
             auth: auth().unwrap(),
           });
           WebSocketService.Instance.send(wsClient.editComment(form));
@@ -144,6 +145,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
             post_id: node.comment_view.post.id,
             parent_id: Some(node.comment_view.comment.id),
             language_id,
+            auth_sign: None,
             auth: auth().unwrap(),
           });
           WebSocketService.Instance.send(wsClient.createComment(form));
@@ -156,6 +158,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           post_id: postId,
           parent_id: None,
           language_id,
+          auth_sign: None,
           auth: auth().unwrap(),
         });
         WebSocketService.Instance.send(wsClient.createComment(form));

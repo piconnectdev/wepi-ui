@@ -1,11 +1,11 @@
 import { None, Option, Some } from "@sniptt/monads";
-import { Component, linkEvent } from "inferno";
+import { Component, InfernoMouseEvent, linkEvent } from "inferno";
 import { Prompt } from "inferno-router";
 import {
   CreateSite,
   EditSite,
+  GetSiteResponse,
   ListingType,
-  Site,
   toUndefined,
 } from "lemmy-js-client";
 import { i18n } from "../../i18next";
@@ -20,16 +20,15 @@ import {
   web3AnchorAddress,
   wsClient,
 } from "../../utils";
-import { Spinner } from "../common/icon";
+import { Icon, Spinner } from "../common/icon";
 import { ImageUploadForm } from "../common/image-upload-form";
+import { LanguageSelect } from "../common/language-select";
 import { ListingTypeSelect } from "../common/listing-type-select";
 import { MarkdownTextArea } from "../common/markdown-textarea";
 
 interface SiteFormProps {
-  site: Option<Site>; // If a site is given, that means this is an edit
+  siteRes: GetSiteResponse;
   showLocal?: boolean;
-  onCancel?(): void;
-  onEdit?(): void;
 }
 
 interface SiteFormState {
@@ -41,9 +40,9 @@ interface SiteFormState {
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   private emptyState: SiteFormState = {
     siteForm: new EditSite({
-      enable_downvotes: Some(true),
-      open_registration: Some(true),
-      enable_nsfw: Some(true),
+      enable_downvotes: None,
+      open_registration: None,
+      enable_nsfw: None,
       name: None,
       icon: None,
       banner: None,
@@ -57,8 +56,33 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       legal_information: None,
       description: None,
       community_creation_admin_only: None,
+      application_email_admins: None,
+      hide_modlog_mod_names: None,
+      discussion_languages: None,
+      slur_filter_regex: None,
+      actor_name_max_length: None,
+      rate_limit_message: None,
+      rate_limit_message_per_second: None,
+      rate_limit_comment: None,
+      rate_limit_comment_per_second: None,
+      rate_limit_image: None,
+      rate_limit_image_per_second: None,
+      rate_limit_post: None,
+      rate_limit_post_per_second: None,
+      rate_limit_register: None,
+      rate_limit_register_per_second: None,
+      rate_limit_search: None,
+      rate_limit_search_per_second: None,
+      federation_enabled: None,
+      federation_debug: None,
+      federation_worker_count: None,
+      captcha_enabled: None,
+      captcha_difficulty: None,
+      allowed_instances: None,
+      blocked_instances: None,
+      taglines: None,
+      auth_sign: None,
       auth: undefined,
-      hide_modlog_mod_names: Some(true),
     }),
     loading: false,
     themeList: None,
@@ -82,34 +106,64 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     this.handleDefaultPostListingTypeChange =
       this.handleDefaultPostListingTypeChange.bind(this);
 
-    if (this.props.site.isSome()) {
-      let site = this.props.site.unwrap();
-      this.state = {
-        ...this.state,
-        siteForm: new EditSite({
-          name: Some(site.name),
-          sidebar: site.sidebar,
-          description: site.description,
-          enable_downvotes: Some(site.enable_downvotes),
-          open_registration: Some(site.open_registration),
-          enable_nsfw: Some(site.enable_nsfw),
-          community_creation_admin_only: Some(
-            site.community_creation_admin_only
-          ),
-          icon: site.icon,
-          banner: site.banner,
-          require_email_verification: Some(site.require_email_verification),
-          require_application: Some(site.require_application),
-          application_question: site.application_question,
-          private_instance: Some(site.private_instance),
-          default_theme: Some(site.default_theme),
-          default_post_listing_type: Some(site.default_post_listing_type),
-          legal_information: site.legal_information,
-          hide_modlog_mod_names: site.hide_modlog_mod_names,
-          auth: undefined,
-        }),
-      };
-    }
+    this.handleDiscussionLanguageChange =
+      this.handleDiscussionLanguageChange.bind(this);
+
+    let site = this.props.siteRes.site_view.site;
+    let ls = this.props.siteRes.site_view.local_site;
+    let lsrl = this.props.siteRes.site_view.local_site_rate_limit;
+    this.state = {
+      ...this.state,
+      siteForm: new EditSite({
+        name: Some(site.name),
+        sidebar: site.sidebar,
+        description: site.description,
+        enable_downvotes: Some(ls.enable_downvotes),
+        open_registration: Some(ls.open_registration),
+        enable_nsfw: Some(ls.enable_nsfw),
+        community_creation_admin_only: Some(ls.community_creation_admin_only),
+        icon: site.icon,
+        banner: site.banner,
+        require_email_verification: Some(ls.require_email_verification),
+        require_application: Some(ls.require_application),
+        application_question: ls.application_question,
+        private_instance: Some(ls.private_instance),
+        default_theme: Some(ls.default_theme),
+        default_post_listing_type: Some(ls.default_post_listing_type),
+        legal_information: ls.legal_information,
+        application_email_admins: Some(ls.application_email_admins),
+        hide_modlog_mod_names: Some(ls.hide_modlog_mod_names),
+        discussion_languages: Some(this.props.siteRes.discussion_languages),
+        slur_filter_regex: ls.slur_filter_regex,
+        actor_name_max_length: Some(ls.actor_name_max_length),
+        rate_limit_message: Some(lsrl.message),
+        rate_limit_message_per_second: Some(lsrl.message_per_second),
+        rate_limit_comment: Some(lsrl.comment),
+        rate_limit_comment_per_second: Some(lsrl.comment_per_second),
+        rate_limit_image: Some(lsrl.image),
+        rate_limit_image_per_second: Some(lsrl.image_per_second),
+        rate_limit_post: Some(lsrl.post),
+        rate_limit_post_per_second: Some(lsrl.post_per_second),
+        rate_limit_register: Some(lsrl.register),
+        rate_limit_register_per_second: Some(lsrl.register_per_second),
+        rate_limit_search: Some(lsrl.search),
+        rate_limit_search_per_second: Some(lsrl.search_per_second),
+        federation_enabled: Some(ls.federation_enabled),
+        federation_debug: Some(ls.federation_debug),
+        federation_worker_count: Some(ls.federation_worker_count),
+        captcha_enabled: Some(ls.captcha_enabled),
+        captcha_difficulty: Some(ls.captcha_difficulty),
+        allowed_instances: this.props.siteRes.federated_instances.andThen(
+          f => f.allowed
+        ),
+        blocked_instances: this.props.siteRes.federated_instances.andThen(
+          f => f.blocked
+        ),
+        taglines: this.props.siteRes.taglines.map(x => x.map(y => y.content)),
+        auth_sign: None,
+        auth: undefined,
+      }),
+    };
   }
 
   async componentDidMount() {
@@ -124,7 +178,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   componentDidUpdate() {
     if (
       !this.state.loading &&
-      this.props.site.isNone() &&
+      !this.props.siteRes.site_view.local_site.site_setup &&
       (this.state.siteForm.name ||
         this.state.siteForm.sidebar ||
         this.state.siteForm.application_question ||
@@ -141,12 +195,13 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   render() {
+    let siteSetup = this.props.siteRes.site_view.local_site.site_setup;
     return (
       <>
         <Prompt
           when={
             !this.state.loading &&
-            this.props.site.isNone() &&
+            !siteSetup &&
             (this.state.siteForm.name ||
               this.state.siteForm.sidebar ||
               this.state.siteForm.application_question ||
@@ -156,7 +211,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         />
         <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
           <h5>{`${
-            this.props.site.isSome()
+            siteSetup
               ? capitalizeFirstLetter(i18n.t("save"))
               : capitalizeFirstLetter(i18n.t("name"))
           } ${i18n.t("your_site")}`}</h5>
@@ -394,6 +449,30 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           </div>
           <div className="form-group row">
             <div className="col-12">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  id="create-site-application-email-admins"
+                  type="checkbox"
+                  checked={toUndefined(
+                    this.state.siteForm.application_email_admins
+                  )}
+                  onChange={linkEvent(
+                    this,
+                    this.handleSiteApplicationEmailAdmins
+                  )}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="create-site-email-admins"
+                >
+                  {i18n.t("application_email_admins")}
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="form-group row">
+            <div className="col-12">
               <label
                 className="form-check-label mr-2"
                 htmlFor="create-site-default-theme"
@@ -475,6 +554,496 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             </div>
           </div>
           <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-slur-filter-regex"
+            >
+              {i18n.t("slur_filter_regex")}
+            </label>
+            <div className="col-12">
+              <input
+                type="text"
+                id="create-site-slur-filter-regex"
+                placeholder="(word1|word2)"
+                className="form-control"
+                value={toUndefined(this.state.siteForm.slur_filter_regex)}
+                onInput={linkEvent(this, this.handleSiteSlurFilterRegex)}
+                minLength={3}
+              />
+            </div>
+          </div>
+          <LanguageSelect
+            allLanguages={this.props.siteRes.all_languages}
+            selectedLanguageIds={this.state.siteForm.discussion_languages}
+            multiple={true}
+            onChange={this.handleDiscussionLanguageChange}
+          />
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-actor-name"
+            >
+              {i18n.t("actor_name_max_length")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-actor-name"
+                className="form-control"
+                min={5}
+                value={toUndefined(this.state.siteForm.actor_name_max_length)}
+                onInput={linkEvent(this, this.handleSiteActorNameMaxLength)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <div className="col-12">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  id="create-site-federation-enabled"
+                  type="checkbox"
+                  checked={toUndefined(this.state.siteForm.federation_enabled)}
+                  onChange={linkEvent(this, this.handleSiteFederationEnabled)}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="create-site-federation-enabled"
+                >
+                  {i18n.t("federation_enabled")}
+                </label>
+              </div>
+            </div>
+          </div>
+          {this.state.siteForm.federation_enabled.unwrapOr(false) && (
+            <>
+              <div className="form-group row">
+                <label
+                  className="col-12 col-form-label"
+                  htmlFor="create-site-allowed-instances"
+                >
+                  {i18n.t("allowed_instances")}
+                </label>
+                <div className="col-12">
+                  <input
+                    type="text"
+                    placeholder="instance1.tld,instance2.tld"
+                    id="create-site-allowed-instances"
+                    className="form-control"
+                    value={this.instancesToString(
+                      this.state.siteForm.allowed_instances
+                    )}
+                    onInput={linkEvent(this, this.handleSiteAllowedInstances)}
+                  />
+                </div>
+              </div>
+              <div className="form-group row">
+                <label
+                  className="col-12 col-form-label"
+                  htmlFor="create-site-blocked-instances"
+                >
+                  {i18n.t("blocked_instances")}
+                </label>
+                <div className="col-12">
+                  <input
+                    type="text"
+                    placeholder="instance1.tld,instance2.tld"
+                    id="create-site-blocked-instances"
+                    className="form-control"
+                    value={this.instancesToString(
+                      this.state.siteForm.blocked_instances
+                    )}
+                    onInput={linkEvent(this, this.handleSiteBlockedInstances)}
+                  />
+                </div>
+              </div>
+              <div className="form-group row">
+                <div className="col-12">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      id="create-site-federation-debug"
+                      type="checkbox"
+                      checked={toUndefined(
+                        this.state.siteForm.federation_debug
+                      )}
+                      onChange={linkEvent(this, this.handleSiteFederationDebug)}
+                    />
+                    <label
+                      className="form-check-label"
+                      htmlFor="create-site-federation-debug"
+                    >
+                      {i18n.t("federation_debug")}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="form-group row">
+                <label
+                  className="col-12 col-form-label"
+                  htmlFor="create-site-federation-worker-count"
+                >
+                  {i18n.t("federation_worker_count")}
+                </label>
+                <div className="col-12">
+                  <input
+                    type="number"
+                    id="create-site-federation-worker-count"
+                    className="form-control"
+                    min={0}
+                    value={toUndefined(
+                      this.state.siteForm.federation_worker_count
+                    )}
+                    onInput={linkEvent(
+                      this,
+                      this.handleSiteFederationWorkerCount
+                    )}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+          <div className="form-group row">
+            <div className="col-12">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  id="create-site-captcha-enabled"
+                  type="checkbox"
+                  checked={toUndefined(this.state.siteForm.captcha_enabled)}
+                  onChange={linkEvent(this, this.handleSiteCaptchaEnabled)}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="create-site-captcha-enabled"
+                >
+                  {i18n.t("captcha_enabled")}
+                </label>
+              </div>
+            </div>
+          </div>
+          {this.state.siteForm.captcha_enabled.unwrapOr(false) && (
+            <div className="form-group row">
+              <div className="col-12">
+                <label
+                  className="form-check-label mr-2"
+                  htmlFor="create-site-captcha-difficulty"
+                >
+                  {i18n.t("captcha_difficulty")}
+                </label>
+                <select
+                  id="create-site-captcha-difficulty"
+                  value={toUndefined(this.state.siteForm.captcha_difficulty)}
+                  onChange={linkEvent(this, this.handleSiteCaptchaDifficulty)}
+                  className="custom-select w-auto"
+                >
+                  <option value="easy">{i18n.t("easy")}</option>
+                  <option value="medium">{i18n.t("medium")}</option>
+                  <option value="hard">{i18n.t("hard")}</option>
+                </select>
+              </div>
+            </div>
+          )}
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-message"
+            >
+              {i18n.t("rate_limit_message")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-message"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_message)}
+                onInput={linkEvent(this, this.handleSiteRateLimitMessage)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-message-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-message-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_message_per_second
+                )}
+                onInput={linkEvent(
+                  this,
+                  this.handleSiteRateLimitMessagePerSecond
+                )}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-post"
+            >
+              {i18n.t("rate_limit_post")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-post"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_post)}
+                onInput={linkEvent(this, this.handleSiteRateLimitPost)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-post-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-post-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_post_per_second
+                )}
+                onInput={linkEvent(this, this.handleSiteRateLimitPostPerSecond)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-register"
+            >
+              {i18n.t("rate_limit_register")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-register"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_register)}
+                onInput={linkEvent(this, this.handleSiteRateLimitRegister)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-register-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-register-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_register_per_second
+                )}
+                onInput={linkEvent(
+                  this,
+                  this.handleSiteRateLimitRegisterPerSecond
+                )}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-image"
+            >
+              {i18n.t("rate_limit_image")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-image"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_image)}
+                onInput={linkEvent(this, this.handleSiteRateLimitImage)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-image-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-image-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_image_per_second
+                )}
+                onInput={linkEvent(
+                  this,
+                  this.handleSiteRateLimitImagePerSecond
+                )}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-comment"
+            >
+              {i18n.t("rate_limit_comment")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-comment"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_comment)}
+                onInput={linkEvent(this, this.handleSiteRateLimitComment)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-comment-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-comment-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_comment_per_second
+                )}
+                onInput={linkEvent(
+                  this,
+                  this.handleSiteRateLimitCommentPerSecond
+                )}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-search"
+            >
+              {i18n.t("rate_limit_search")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-search"
+                className="form-control"
+                min={0}
+                value={toUndefined(this.state.siteForm.rate_limit_search)}
+                onInput={linkEvent(this, this.handleSiteRateLimitSearch)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-12 col-form-label"
+              htmlFor="create-site-rate-limit-search-per-second"
+            >
+              {i18n.t("per_second")}
+            </label>
+            <div className="col-12">
+              <input
+                type="number"
+                id="create-site-rate-limit-search-per-second"
+                className="form-control"
+                min={0}
+                value={toUndefined(
+                  this.state.siteForm.rate_limit_search_per_second
+                )}
+                onInput={linkEvent(
+                  this,
+                  this.handleSiteRateLimitSearchPerSecond
+                )}
+              />
+            </div>
+          </div>
+          {siteSetup && (
+            <div className="form-group row">
+              <h5 className="col-12">{i18n.t("taglines")}</h5>
+              <div className="table-responsive col-12">
+                <table
+                  id="taglines_table"
+                  className="table table-sm table-hover"
+                >
+                  <thead className="pointer"></thead>
+                  <tbody>
+                    {this.state.siteForm.taglines
+                      .unwrapOr([])
+                      .map((cv, index) => (
+                        <tr key={index}>
+                          <td>
+                            <MarkdownTextArea
+                              initialContent={Some(cv)}
+                              initialLanguageId={None}
+                              placeholder={None}
+                              buttonTitle={None}
+                              maxLength={None}
+                              onContentChange={s =>
+                                this.handleTaglineChange(this, index, s)
+                              }
+                              hideNavigationWarnings
+                              allLanguages={this.props.siteRes.all_languages}
+                            />
+                          </td>
+                          <td className="text-right">
+                            <button
+                              className="btn btn-link btn-animate text-muted"
+                              onClick={e =>
+                                this.handleDeleteTaglineClick(this, index, e)
+                              }
+                              data-tippy-content={i18n.t("delete")}
+                              aria-label={i18n.t("delete")}
+                            >
+                              <Icon
+                                icon="trash"
+                                classes={`icon-inline text-danger`}
+                              />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <button
+                  className="btn btn-sm btn-secondary mr-2"
+                  onClick={e => this.handleAddTaglineClick(this, e)}
+                >
+                  {i18n.t("add_tagline")}
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="form-group row">
             <div className="col-12">
               <button
                 type="submit"
@@ -483,22 +1052,13 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
               >
                 {this.state.loading ? (
                   <Spinner />
-                ) : this.props.site.isSome() ? (
+                ) : siteSetup ? (
                   capitalizeFirstLetter(i18n.t("save"))
                 ) : (
                   capitalizeFirstLetter(i18n.t("create"))
                 )}
               </button>
-              {this.props.site.isSome() && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={linkEvent(this, this.handleCancel)}
-                >
-                  {i18n.t("cancel")}
-                </button>
-              )}
-              {this.props.site && (
+              {siteSetup && (
                 <button
                   type="button"
                   className="btn btn-secondary mr-2"
@@ -518,10 +1078,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     event.preventDefault();
     i.setState({ loading: true });
     i.setState(s => ((s.siteForm.auth = auth().unwrap()), s));
-
-    if (i.props.site.isSome()) {
+    if (i.props.siteRes.site_view.local_site.site_setup) {
       WebSocketService.Instance.send(wsClient.editSite(i.state.siteForm));
-      i.props.onEdit();
     } else {
       let sForm = i.state.siteForm;
       let form = new CreateSite({
@@ -540,12 +1098,51 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         private_instance: sForm.private_instance,
         default_theme: sForm.default_theme,
         default_post_listing_type: sForm.default_post_listing_type,
+        application_email_admins: sForm.application_email_admins,
         auth: auth().unwrap(),
         hide_modlog_mod_names: sForm.hide_modlog_mod_names,
+        legal_information: sForm.legal_information,
+        slur_filter_regex: sForm.slur_filter_regex,
+        actor_name_max_length: sForm.actor_name_max_length,
+        rate_limit_message: sForm.rate_limit_message,
+        rate_limit_message_per_second: sForm.rate_limit_message_per_second,
+        rate_limit_comment: sForm.rate_limit_comment,
+        rate_limit_comment_per_second: sForm.rate_limit_comment_per_second,
+        rate_limit_image: sForm.rate_limit_image,
+        rate_limit_image_per_second: sForm.rate_limit_image_per_second,
+        rate_limit_post: sForm.rate_limit_post,
+        rate_limit_post_per_second: sForm.rate_limit_post_per_second,
+        rate_limit_register: sForm.rate_limit_register,
+        rate_limit_register_per_second: sForm.rate_limit_register_per_second,
+        rate_limit_search: sForm.rate_limit_search,
+        rate_limit_search_per_second: sForm.rate_limit_search_per_second,
+        federation_enabled: sForm.federation_enabled,
+        federation_debug: sForm.federation_debug,
+        federation_worker_count: sForm.federation_worker_count,
+        captcha_enabled: sForm.captcha_enabled,
+        captcha_difficulty: sForm.captcha_difficulty,
+        allowed_instances: sForm.allowed_instances,
+        blocked_instances: sForm.blocked_instances,
+        discussion_languages: sForm.discussion_languages,
+        auth_sign: None,
       });
       WebSocketService.Instance.send(wsClient.createSite(form));
     }
     i.setState(i.state);
+  }
+
+  instancesToString(opt: Option<string[]>): string {
+    return opt.map(list => list.join(",")).unwrapOr("");
+  }
+
+  handleSiteAllowedInstances(i: SiteForm, event: any) {
+    let list = splitToList(event.target.value);
+    i.setState(s => ((s.siteForm.allowed_instances = list), s));
+  }
+
+  handleSiteBlockedInstances(i: SiteForm, event: any) {
+    let list = splitToList(event.target.value);
+    i.setState(s => ((s.siteForm.blocked_instances = list), s));
   }
 
   handleSiteNameChange(i: SiteForm, event: any) {
@@ -559,6 +1156,44 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
 
   handleSiteLegalInfoChange(val: string) {
     this.setState(s => ((s.siteForm.legal_information = Some(val)), s));
+  }
+
+  handleTaglineChange(i: SiteForm, index: number, val: string) {
+    i.state.siteForm.taglines.match({
+      some: tls => {
+        tls[index] = val;
+      },
+      none: void 0,
+    });
+    i.setState(i.state);
+  }
+
+  handleDeleteTaglineClick(
+    i: SiteForm,
+    index: number,
+    event: InfernoMouseEvent<HTMLButtonElement>
+  ) {
+    event.preventDefault();
+    if (i.state.siteForm.taglines.isSome()) {
+      let taglines = i.state.siteForm.taglines.unwrap();
+      taglines.splice(index, 1);
+      i.state.siteForm.taglines = None; // force rerender of table rows
+      i.setState(i.state);
+      i.state.siteForm.taglines = Some(taglines);
+      i.setState(i.state);
+    }
+  }
+
+  handleAddTaglineClick(
+    i: SiteForm,
+    event: InfernoMouseEvent<HTMLButtonElement>
+  ) {
+    event.preventDefault();
+    if (i.state.siteForm.taglines.isNone()) {
+      i.state.siteForm.taglines = Some([]);
+    }
+    i.state.siteForm.taglines.unwrap().push("");
+    i.setState(i.state);
   }
 
   handleSiteApplicationQuestionChange(val: string) {
@@ -600,6 +1235,11 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     i.setState(i.state);
   }
 
+  handleSiteApplicationEmailAdmins(i: SiteForm, event: any) {
+    i.state.siteForm.application_email_admins = Some(event.target.checked);
+    i.setState(i.state);
+  }
+
   handleSitePrivateInstance(i: SiteForm, event: any) {
     i.state.siteForm.private_instance = Some(event.target.checked);
     i.setState(i.state);
@@ -616,7 +1256,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   handleCancel(i: SiteForm) {
-    i.props.onCancel();
+    //i.props.onCancel();
   }
 
   async handleBlockchain(i: SiteForm) {
@@ -629,10 +1269,10 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     var config = {
       memo: "wepi:site",
       metadata: {
-        name: i.props.site.name,
-        desc: i.props.site.description,
-        t: i.props.site.published,
-        u: i.props.site.updated,
+        name: i.state.siteForm.name,
+        desc: i.state.siteForm.description,
+        //t: i.state.siteForm.published,
+        //u: i.state.siteForm.updated,
         web3: web3AnchorAddress,
       },
     };
@@ -680,6 +1320,164 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     this.setState(s => ((s.siteForm.banner = Some("")), s));
   }
 
+  handleSiteSlurFilterRegex(i: SiteForm, event: any) {
+    i.setState(
+      s => ((s.siteForm.slur_filter_regex = Some(event.target.value)), s)
+    );
+  }
+
+  handleSiteActorNameMaxLength(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.actor_name_max_length = Some(Number(event.target.value))), s
+      )
+    );
+  }
+
+  handleSiteRateLimitMessage(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_message = Some(Number(event.target.value))), s
+      )
+    );
+  }
+
+  handleSiteRateLimitMessagePerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_message_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteRateLimitPost(i: SiteForm, event: any) {
+    i.setState(
+      s => ((s.siteForm.rate_limit_post = Some(Number(event.target.value))), s)
+    );
+  }
+
+  handleSiteRateLimitPostPerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_post_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteRateLimitImage(i: SiteForm, event: any) {
+    i.setState(
+      s => ((s.siteForm.rate_limit_image = Some(Number(event.target.value))), s)
+    );
+  }
+
+  handleSiteRateLimitImagePerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_image_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteRateLimitComment(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_comment = Some(Number(event.target.value))), s
+      )
+    );
+  }
+
+  handleSiteRateLimitCommentPerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_comment_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteRateLimitSearch(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_search = Some(Number(event.target.value))), s
+      )
+    );
+  }
+
+  handleSiteRateLimitSearchPerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_search_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteRateLimitRegister(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_register = Some(Number(event.target.value))), s
+      )
+    );
+  }
+
+  handleSiteRateLimitRegisterPerSecond(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.rate_limit_register_per_second = Some(
+          Number(event.target.value)
+        )),
+        s
+      )
+    );
+  }
+
+  handleSiteFederationEnabled(i: SiteForm, event: any) {
+    i.state.siteForm.federation_enabled = Some(event.target.checked);
+    i.setState(i.state);
+  }
+
+  handleSiteFederationDebug(i: SiteForm, event: any) {
+    i.state.siteForm.federation_debug = Some(event.target.checked);
+    i.setState(i.state);
+  }
+
+  handleSiteFederationWorkerCount(i: SiteForm, event: any) {
+    i.setState(
+      s => (
+        (s.siteForm.federation_worker_count = Some(Number(event.target.value))),
+        s
+      )
+    );
+  }
+
+  handleSiteCaptchaEnabled(i: SiteForm, event: any) {
+    i.state.siteForm.captcha_enabled = Some(event.target.checked);
+    i.setState(i.state);
+  }
+
+  handleSiteCaptchaDifficulty(i: SiteForm, event: any) {
+    i.setState(
+      s => ((s.siteForm.captcha_difficulty = Some(event.target.value)), s)
+    );
+  }
+
+  handleDiscussionLanguageChange(val: number[]) {
+    this.setState(s => ((s.siteForm.discussion_languages = Some(val)), s));
+  }
+
   handleDefaultPostListingTypeChange(val: ListingType) {
     this.setState(
       s => (
@@ -689,5 +1487,14 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         s
       )
     );
+  }
+}
+
+function splitToList(commaList: string): Option<string[]> {
+  if (commaList !== "") {
+    let list = commaList.trim().split(",");
+    return Some(list);
+  } else {
+    return Some([]);
   }
 }

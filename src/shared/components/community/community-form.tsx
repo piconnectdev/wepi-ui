@@ -54,6 +54,7 @@ export class CommunityForm extends Component<
       icon: None,
       banner: None,
       posting_restricted_to_mods: None,
+      auth_sign: None,
       auth: undefined,
     }),
     loading: false,
@@ -90,6 +91,7 @@ export class CommunityForm extends Component<
           posting_restricted_to_mods: Some(
             cv.community.posting_restricted_to_mods
           ),
+          auth_sign: None,
           auth: undefined,
         }),
       };
@@ -308,6 +310,7 @@ export class CommunityForm extends Component<
           banner: cForm.banner,
           nsfw: cForm.nsfw,
           posting_restricted_to_mods: cForm.posting_restricted_to_mods,
+          auth_sign: None,
           auth: cForm.auth,
         });
 

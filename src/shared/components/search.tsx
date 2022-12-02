@@ -380,18 +380,15 @@ export class Search extends Component<any, SearchState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView =>
-        this.state.q
-          ? `${i18n.t("search")} - ${this.state.q} - ${siteView.site.name}`
-          : `${i18n.t("search")} - ${siteView.site.name}`,
-      none: "",
-    });
+    let siteName = this.state.siteRes.site_view.site.name;
+    return this.state.q
+      ? `${i18n.t("search")} - ${this.state.q} - ${siteName}`
+      : `${i18n.t("search")} - ${siteName}`;
   }
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -870,7 +867,8 @@ export class Search extends Component<any, SearchState> {
       limit: Some(fetchLimit),
       auth: auth(false).ok(),
     });
-
+    console.log("SearchForm: state" + JSON.stringify(this.state));
+    console.log("SearchForm:" + JSON.stringify(form));
     let resolveObjectForm = new ResolveObject({
       q: this.state.q,
       auth: auth(false).ok(),
@@ -1003,11 +1001,8 @@ export class Search extends Component<any, SearchState> {
     const typeStr = paramUpdates.type_ || this.state.type_;
     const listingTypeStr = paramUpdates.listingType || this.state.listingType;
     const sortStr = paramUpdates.sort || this.state.sort;
-    const communityId =
-      paramUpdates.communityId == paramUpdates.communityId ||
-      this.state.communityId;
-    const creatorId =
-      paramUpdates.creatorId == paramUpdates.creatorId || this.state.creatorId;
+    const communityId = paramUpdates.communityId || this.state.communityId;
+    const creatorId = paramUpdates.creatorId || this.state.creatorId;
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/search/q/${qStrEncoded}/type/${typeStr}/sort/${sortStr}/listing_type/${listingTypeStr}/community_id/${communityId}/creator_id/${creatorId}/page/${page}`

@@ -26,24 +26,17 @@ export class Legal extends Component<any, LegalState> {
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
           description={None}
           image={None}
         />
-        {this.state.siteRes.site_view.match({
-          some: siteView =>
-            siteView.site.legal_information.match({
-              some: legal => (
-                <div
-                  className="md-div"
-                  dangerouslySetInnerHTML={mdToHtml(legal)}
-                />
-              ),
-              none: <></>,
-            }),
+        {this.state.siteRes.site_view.local_site.legal_information.match({
+          some: legal => (
+            <div className="md-div" dangerouslySetInnerHTML={mdToHtml(legal)} />
+          ),
           none: <></>,
         })}
       </div>

@@ -14,7 +14,7 @@ export class Footer extends Component<FooterProps, any> {
 
   render() {
     return (
-      <nav className="container navbar navbar-expand-md navbar-light navbar-bg p-3">
+      <nav className="container-lg navbar navbar-expand-md navbar-light navbar-bg p-3">
         <div className="navbar-collapse">
           <ul className="navbar-nav ml-auto">
             {/* {this.props.site.version !== VERSION && (
@@ -30,9 +30,7 @@ export class Footer extends Component<FooterProps, any> {
                 {i18n.t("modlog")}
               </NavLink>
             </li>
-            {this.props.site.site_view
-              .andThen(s => s.site.legal_information)
-              .isSome() && (
+            {this.props.site.site_view.local_site.legal_information.isSome() && (
               <li className="nav-item">
                 <NavLink className="nav-link" to="/legal">
                   {i18n.t("legal_information")}

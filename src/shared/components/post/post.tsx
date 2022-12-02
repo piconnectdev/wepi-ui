@@ -75,9 +75,9 @@ import { PostListing } from "./post-listing";
 const commentsShownInterval = 15;
 
 interface PostState {
+  postId: Option<string>;
+  commentId: Option<string>;
   postRes: Option<GetPostResponse>;
-  postId: string;
-  commentId?: string;
   commentsRes: Option<GetCommentsResponse>;
   commentTree: CommentNodeI[];
   commentSort: CommentSortType;
@@ -317,11 +317,7 @@ export class Post extends Component<any, PostState> {
   get documentTitle(): string {
     return this.state.postRes.match({
       some: res =>
-        this.state.siteRes.site_view.match({
-          some: siteView =>
-            `${res.post_view.post.name} - ${siteView.site.name}`,
-          none: "",
-        }),
+        `${res.post_view.post.name} - ${this.state.siteRes.site_view.site.name}`,
       none: "",
     });
   }
@@ -345,7 +341,7 @@ export class Post extends Component<any, PostState> {
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         {this.state.loading ? (
           <h5>
             <Spinner large />
@@ -635,13 +631,20 @@ export class Post extends Component<any, PostState> {
           WebSocketService.Instance.send(
             wsClient.postJoin({ post_id: postId })
           );
-          WebSocketService.Instance.send(
-            wsClient.getPost({
-              id: Some(postId),
-              comment_id: None,
-              auth: auth(false).ok(),
-            })
-          );
+
+          let postForm = new GetPost({
+            id: Some(postId),
+            comment_id: None,
+            auth: auth(false).ok(),
+          });
+          WebSocketService.Instance.send(wsClient.getPost(postForm));
+          // WebSocketService.Instance.send(
+          //   wsClient.getPost({
+          //     id: Some(postId),
+          //     comment_id: None,
+          //     auth: auth(false).ok(),
+          //   })
+          // );
         },
         none: void 0,
       });

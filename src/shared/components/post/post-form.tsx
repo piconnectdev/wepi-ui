@@ -96,6 +96,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       body: None,
       honeypot: None,
       language_id: None,
+      auth_sign: None,
       auth: undefined,
     }),
     loading: false,
@@ -133,6 +134,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           nsfw: Some(pv.post.nsfw),
           honeypot: None,
           language_id: Some(pv.post.language_id),
+          auth_sign: None,
           auth: auth().unwrap(),
         }),
       };
@@ -482,6 +484,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           nsfw: pForm.nsfw,
           post_id: pv.post.id,
           language_id: Some(pv.post.language_id),
+          auth_sign: None,
           auth: auth().unwrap(),
         });
         WebSocketService.Instance.send(wsClient.editPost(form));
@@ -640,8 +643,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           i.state.postForm.url = Some(url);
           i.setState({ imageLoading: false });
           pictrsDeleteToast(
-            i18n.t("click_to_delete_picture"),
-            i18n.t("picture_deleted"),
+            `${i18n.t("click_to_delete_picture")}: ${file.name}`,
+            `${i18n.t("picture_deleted")}: ${file.name}`,
+            `${i18n.t("failed_to_delete_picture")}: ${file.name}`,
             deleteUrl
           );
         } else {
@@ -722,10 +726,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       none: void 0,
     });
 
-    if (isBrowser() && this.state.postForm.community_id) {
-      this.choices.setChoiceByValue(
-        this.state.postForm.community_id.toString()
-      );
+    if (
+      isBrowser() &&
+      this.state.postForm.community_id &&
+      this.choices !== undefined
+    ) {
+      this.choices.setChoiceByValue(this.state.postForm.community_id);
     }
     this.setState(this.state);
   }

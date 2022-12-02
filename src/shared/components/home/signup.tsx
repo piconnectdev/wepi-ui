@@ -5,6 +5,7 @@ import { Component, linkEvent } from "inferno";
 import { T } from "inferno-i18next-dess";
 import {
   CaptchaResponse,
+  ExternalAccount,
   GetCaptchaResponse,
   GetSiteResponse,
   LemmyHttp,
@@ -16,6 +17,7 @@ import {
   toUndefined,
   UserOperation,
   Web3Login as Web3LoginForm,
+  Web3Register,
   wsJsonToRes,
   wsUserOp,
 } from "lemmy-js-client";
@@ -69,10 +71,12 @@ const passwordStrengthOptions: Options<string> = [
 interface State {
   piLoginForm: PiLoginForm;
   web3LoginForm: Web3LoginForm;
+  web3RegisterForm: Web3Register;
   registerForm: Register;
   registerLoading: boolean;
   captcha: Option<GetCaptchaResponse>;
   captchaPlaying: boolean;
+  token: Option<GetCaptchaResponse>;
   siteRes: GetSiteResponse;
 }
 
@@ -81,12 +85,19 @@ export class Signup extends Component<any, State> {
   private subscription: Subscription;
   private audio: HTMLAudioElement;
   emptyState: State = {
-    piLoginForm: {
-      pi_username: undefined,
-      pi_uid: undefined,
-      pi_token: undefined,
+    token: None,
+    piLoginForm: new PiLoginForm({
+      ea: new ExternalAccount({
+        account: undefined,
+        token: undefined,
+        epoch: 0,
+        signature: None,
+        provider: None,
+        extra: None,
+        uuid: None,
+      }),
       info: undefined,
-    },
+    }),
     registerForm: new Register({
       username: undefined,
       password: undefined,
@@ -97,15 +108,35 @@ export class Signup extends Component<any, State> {
       honeypot: None,
       answer: None,
       email: None,
-      payment_id: None,
-      pi_username: None,
     }),
     web3LoginForm: {
-      address: null,
+      account: null,
       signature: null,
       token: null,
-      cli_time: 0,
+      epoch: 0,
       info: undefined,
+    },
+    web3RegisterForm: {
+      ea: new ExternalAccount({
+        account: undefined,
+        token: undefined,
+        epoch: 0,
+        signature: None,
+        provider: None,
+        extra: None,
+        uuid: None,
+      }),
+      info: new Register({
+        username: undefined,
+        password: undefined,
+        password_verify: undefined,
+        show_nsfw: false,
+        captcha_uuid: None,
+        captcha_answer: None,
+        honeypot: None,
+        answer: None,
+        email: None,
+      }),
     },
     registerLoading: false,
     captcha: None,
@@ -124,6 +155,7 @@ export class Signup extends Component<any, State> {
 
     if (isBrowser()) {
       WebSocketService.Instance.send(wsClient.getCaptcha());
+      WebSocketService.Instance.send(wsClient.getToken());
     }
   }
 
@@ -134,14 +166,14 @@ export class Signup extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `${this.titleName(siteView)} - ${siteView.site.name}`,
-      none: "",
-    });
+    let siteView = this.state.siteRes.site_view;
+    return `${this.titleName(siteView)} - ${siteView.site.name}`;
   }
 
   titleName(siteView: SiteView): string {
-    return i18n.t(siteView.site.private_instance ? "apply_to_join" : "sign_up");
+    return i18n.t(
+      siteView.local_site.private_instance ? "apply_to_join" : "sign_up"
+    );
   }
 
   get isLemmyMl(): boolean {
@@ -166,7 +198,7 @@ export class Signup extends Component<any, State> {
 
   render() {
     return (
-      <div className="container">
+      <div className="container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
@@ -183,248 +215,238 @@ export class Signup extends Component<any, State> {
   }
 
   registerForm() {
-    return this.state.siteRes.site_view.match({
-      some: siteView => (
-        <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-          <h5>{this.titleName(siteView)}</h5>
+    let siteView = this.state.siteRes.site_view;
+    return (
+      <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
+        <h5>{this.titleName(siteView)}</h5>
 
-          {this.isLemmyMl && (
-            <div className="form-group row">
-              <div className="mt-2 mb-0 alert alert-warning" role="alert">
-                <T i18nKey="lemmy_ml_registration_message">
-                  #<a href={joinLemmyUrl}>#</a>
-                </T>
-              </div>
-            </div>
-          )}
-
+        {this.isLemmyMl && (
           <div className="form-group row">
-            <label
-              className="col-sm-2 col-form-label"
-              htmlFor="register-username"
-            >
-              {i18n.t("username")}
-            </label>
-
-            <div className="col-sm-10">
-              <input
-                type="text"
-                id="register-username"
-                className="form-control"
-                value={this.state.registerForm.username}
-                onInput={linkEvent(this, this.handleRegisterUsernameChange)}
-                required
-                minLength={3}
-                pattern="[a-zA-Z0-9_]+"
-                title={i18n.t("community_reqs")}
-              />
+            <div className="mt-2 mb-0 alert alert-warning" role="alert">
+              <T i18nKey="lemmy_ml_registration_message">
+                #<a href={joinLemmyUrl}>#</a>
+              </T>
             </div>
           </div>
+        )}
 
-          <div className="form-group row">
-            <label className="col-sm-2 col-form-label" htmlFor="register-email">
-              {i18n.t("email")}
-            </label>
-            <div className="col-sm-10">
-              <input
-                type="email"
-                id="register-email"
-                className="form-control"
-                placeholder={
-                  siteView.site.require_email_verification
-                    ? i18n.t("required")
-                    : i18n.t("optional")
-                }
-                value={toUndefined(this.state.registerForm.email)}
-                autoComplete="email"
-                onInput={linkEvent(this, this.handleRegisterEmailChange)}
-                required={siteView.site.require_email_verification}
-                minLength={3}
-              />
-              {!siteView.site.require_email_verification &&
-                !this.state.registerForm.email
-                  .map(validEmail)
-                  .unwrapOr(true) && (
-                  <div className="mt-2 mb-0 alert alert-warning" role="alert">
-                    <Icon icon="alert-triangle" classes="icon-inline mr-2" />
-                    {i18n.t("no_password_reset")}
-                  </div>
-                )}
-            </div>
+        <div className="form-group row">
+          <label
+            className="col-sm-2 col-form-label"
+            htmlFor="register-username"
+          >
+            {i18n.t("username")}
+          </label>
+
+          <div className="col-sm-10">
+            <input
+              type="text"
+              id="register-username"
+              className="form-control"
+              value={this.state.registerForm.username}
+              onInput={linkEvent(this, this.handleRegisterUsernameChange)}
+              required
+              minLength={3}
+              pattern="[a-zA-Z0-9_]+"
+              title={i18n.t("community_reqs")}
+            />
           </div>
+        </div>
 
-          <div className="form-group row">
-            <label
-              className="col-sm-2 col-form-label"
-              htmlFor="register-password"
-            >
-              {i18n.t("password")}
-            </label>
-            <div className="col-sm-10">
-              <input
-                type="password"
-                id="register-password"
-                value={this.state.registerForm.password}
-                autoComplete="new-password"
-                onInput={linkEvent(this, this.handleRegisterPasswordChange)}
-                minLength={10}
-                maxLength={60}
-                className="form-control"
-                required
-              />
-              {this.state.registerForm.password && (
-                <div className={this.passwordColorClass}>
-                  {i18n.t(this.passwordStrength as I18nKeys)}
+        <div className="form-group row">
+          <label className="col-sm-2 col-form-label" htmlFor="register-email">
+            {i18n.t("email")}
+          </label>
+          <div className="col-sm-10">
+            <input
+              type="email"
+              id="register-email"
+              className="form-control"
+              placeholder={
+                siteView.local_site.require_email_verification
+                  ? i18n.t("required")
+                  : i18n.t("optional")
+              }
+              value={toUndefined(this.state.registerForm.email)}
+              autoComplete="email"
+              onInput={linkEvent(this, this.handleRegisterEmailChange)}
+              required={siteView.local_site.require_email_verification}
+              minLength={3}
+            />
+            {!siteView.local_site.require_email_verification &&
+              !this.state.registerForm.email.map(validEmail).unwrapOr(true) && (
+                <div className="mt-2 mb-0 alert alert-warning" role="alert">
+                  <Icon icon="alert-triangle" classes="icon-inline mr-2" />
+                  {i18n.t("no_password_reset")}
                 </div>
               )}
-            </div>
           </div>
+        </div>
 
-          <div className="form-group row">
-            <label
-              className="col-sm-2 col-form-label"
-              htmlFor="register-verify-password"
-            >
-              {i18n.t("verify_password")}
-            </label>
-            <div className="col-sm-10">
-              <input
-                type="password"
-                id="register-verify-password"
-                value={this.state.registerForm.password_verify}
-                autoComplete="new-password"
-                onInput={linkEvent(
-                  this,
-                  this.handleRegisterPasswordVerifyChange
-                )}
-                maxLength={60}
-                className="form-control"
-                required
-              />
-            </div>
+        <div className="form-group row">
+          <label
+            className="col-sm-2 col-form-label"
+            htmlFor="register-password"
+          >
+            {i18n.t("password")}
+          </label>
+          <div className="col-sm-10">
+            <input
+              type="password"
+              id="register-password"
+              value={this.state.registerForm.password}
+              autoComplete="new-password"
+              onInput={linkEvent(this, this.handleRegisterPasswordChange)}
+              minLength={10}
+              maxLength={60}
+              className="form-control"
+              required
+            />
+            {this.state.registerForm.password && (
+              <div className={this.passwordColorClass}>
+                {i18n.t(this.passwordStrength as I18nKeys)}
+              </div>
+            )}
           </div>
+        </div>
 
-          {siteView.site.require_application && (
-            <>
-              <div className="form-group row">
-                <div className="offset-sm-2 col-sm-10">
-                  <div className="mt-2 alert alert-warning" role="alert">
-                    <Icon icon="alert-triangle" classes="icon-inline mr-2" />
-                    {i18n.t("fill_out_application")}
-                  </div>
-                  {siteView.site.application_question.match({
-                    some: question => (
-                      <div
-                        className="md-div"
-                        dangerouslySetInnerHTML={mdToHtml(question)}
-                      />
-                    ),
-                    none: <></>,
-                  })}
-                </div>
-              </div>
+        <div className="form-group row">
+          <label
+            className="col-sm-2 col-form-label"
+            htmlFor="register-verify-password"
+          >
+            {i18n.t("verify_password")}
+          </label>
+          <div className="col-sm-10">
+            <input
+              type="password"
+              id="register-verify-password"
+              value={this.state.registerForm.password_verify}
+              autoComplete="new-password"
+              onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
+              maxLength={60}
+              className="form-control"
+              required
+            />
+          </div>
+        </div>
 
-              <div className="form-group row">
-                <label
-                  className="col-sm-2 col-form-label"
-                  htmlFor="application_answer"
-                >
-                  {i18n.t("answer")}
-                </label>
-                <div className="col-sm-10">
-                  <MarkdownTextArea
-                    initialContent={None}
-                    initialLanguageId={None}
-                    placeholder={None}
-                    buttonTitle={None}
-                    maxLength={None}
-                    onContentChange={this.handleAnswerChange}
-                    hideNavigationWarnings
-                    allLanguages={[]}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {this.state.captcha.isSome() && (
+        {siteView.local_site.require_application && (
+          <>
             <div className="form-group row">
-              <label className="col-sm-2" htmlFor="register-captcha">
-                <span className="mr-2">{i18n.t("enter_code")}</span>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={linkEvent(this, this.handleRegenCaptcha)}
-                  aria-label={i18n.t("captcha")}
-                >
-                  <Icon icon="refresh-cw" classes="icon-refresh-cw" />
-                </button>
+              <div className="offset-sm-2 col-sm-10">
+                <div className="mt-2 alert alert-warning" role="alert">
+                  <Icon icon="alert-triangle" classes="icon-inline mr-2" />
+                  {i18n.t("fill_out_application")}
+                </div>
+                {siteView.local_site.application_question.match({
+                  some: question => (
+                    <div
+                      className="md-div"
+                      dangerouslySetInnerHTML={mdToHtml(question)}
+                    />
+                  ),
+                  none: <></>,
+                })}
+              </div>
+            </div>
+
+            <div className="form-group row">
+              <label
+                className="col-sm-2 col-form-label"
+                htmlFor="application_answer"
+              >
+                {i18n.t("answer")}
               </label>
-              {this.showCaptcha()}
-              <div className="col-sm-6">
-                <input
-                  type="text"
-                  className="form-control"
-                  id="register-captcha"
-                  value={toUndefined(this.state.registerForm.captcha_answer)}
-                  onInput={linkEvent(
-                    this,
-                    this.handleRegisterCaptchaAnswerChange
-                  )}
-                  required
+              <div className="col-sm-10">
+                <MarkdownTextArea
+                  initialContent={None}
+                  initialLanguageId={None}
+                  placeholder={None}
+                  buttonTitle={None}
+                  maxLength={None}
+                  onContentChange={this.handleAnswerChange}
+                  hideNavigationWarnings
+                  allLanguages={[]}
                 />
               </div>
             </div>
-          )}
-          {siteView.site.enable_nsfw && (
-            <div className="form-group row">
-              <div className="col-sm-10">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    id="register-show-nsfw"
-                    type="checkbox"
-                    checked={this.state.registerForm.show_nsfw}
-                    onChange={linkEvent(
-                      this,
-                      this.handleRegisterShowNsfwChange
-                    )}
-                  />
-                  <label
-                    className="form-check-label"
-                    htmlFor="register-show-nsfw"
-                  >
-                    {i18n.t("show_nsfw")}
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-          <input
-            tabIndex={-1}
-            autoComplete="false"
-            name="a_password"
-            type="text"
-            className="form-control honeypot"
-            id="register-honey"
-            value={toUndefined(this.state.registerForm.honeypot)}
-            onInput={linkEvent(this, this.handleHoneyPotChange)}
-          />
+          </>
+        )}
+
+        {this.state.captcha.isSome() && (
           <div className="form-group row">
-            <div className="col-sm-10">
-              <button type="submit" className="btn btn-secondary">
-                {this.state.registerLoading ? (
-                  <Spinner />
-                ) : (
-                  this.titleName(siteView)
-                )}
+            <label className="col-sm-2" htmlFor="register-captcha">
+              <span className="mr-2">{i18n.t("enter_code")}</span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={linkEvent(this, this.handleRegenCaptcha)}
+                aria-label={i18n.t("captcha")}
+              >
+                <Icon icon="refresh-cw" classes="icon-refresh-cw" />
               </button>
+            </label>
+            {this.showCaptcha()}
+            <div className="col-sm-6">
+              <input
+                type="text"
+                className="form-control"
+                id="register-captcha"
+                value={toUndefined(this.state.registerForm.captcha_answer)}
+                onInput={linkEvent(
+                  this,
+                  this.handleRegisterCaptchaAnswerChange
+                )}
+                required
+              />
             </div>
           </div>
-        </form>
-      ),
-      none: <></>,
-    });
+        )}
+        {siteView.local_site.enable_nsfw && (
+          <div className="form-group row">
+            <div className="col-sm-10">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  id="register-show-nsfw"
+                  type="checkbox"
+                  checked={this.state.registerForm.show_nsfw}
+                  onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="register-show-nsfw"
+                >
+                  {i18n.t("show_nsfw")}
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+        <input
+          tabIndex={-1}
+          autoComplete="false"
+          name="a_password"
+          type="text"
+          className="form-control honeypot"
+          id="register-honey"
+          value={toUndefined(this.state.registerForm.honeypot)}
+          onInput={linkEvent(this, this.handleHoneyPotChange)}
+        />
+        <div className="form-group row">
+          <div className="col-sm-10">
+            <button type="submit" className="btn btn-secondary">
+              {this.state.registerLoading ? (
+                <Spinner />
+              ) : (
+                this.titleName(siteView)
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
+    );
   }
 
   showCaptcha() {
@@ -483,17 +505,18 @@ export class Signup extends Component<any, State> {
 
   async handleRegisterSubmit(i: Signup, event: any) {
     event.preventDefault();
-    i.state.registerLoading = true;
+    i.setState({ registerLoading: true });
     i.setState(i.state);
     let isPi = i.isPiBrowser;
     const { ethereum } = window;
     let isMetaMaks = Boolean(ethereum && ethereum.isMetaMask);
     if (isPi) {
-      i.handlePiRegisterLoginFree(i, event);
-      // i.handlePiRegisterWithFee(i, event);
+      //i.handlePiRegisterLoginFree(i, event);
+      i.handlePiRegisterWithFee(i, event);
       return;
     } else if (isMetaMaks) {
-      i.handleWeb3RegisterLoginFree(i, event);
+      //i.handleWeb3RegisterLoginFree(i, event);
+      i.handleWeb3RegisterFree(i, event);
       return;
     } else {
       i.setState({ registerLoading: true });
@@ -598,6 +621,7 @@ export class Signup extends Component<any, State> {
         if (data.jwt.isSome()) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
+          location.reload();
         } else {
           if (data.verify_email_sent) {
             toast(i18n.t("verify_email_sent"));
@@ -623,6 +647,49 @@ export class Signup extends Component<any, State> {
       } else if (op == UserOperation.GetSite) {
         let data = wsJsonToRes<GetSiteResponse>(msg, GetSiteResponse);
         this.setState({ siteRes: data });
+      } else if (op == UserOperation.GetToken) {
+        let data = wsJsonToRes<GetCaptchaResponse>(msg, GetCaptchaResponse);
+        data.ok.match({
+          some: res => {
+            this.setState({ token: Some(data) });
+            this.setState(s => ((s.web3RegisterForm.ea.token = res.uuid), s));
+          },
+          none: void 0,
+        });
+      } else if (op == UserOperation.Web3Register) {
+        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
+        this.setState(this.emptyState);
+        // Only log them in if a jwt was set
+        if (data.jwt.isSome()) {
+          UserService.Instance.login(data);
+          this.props.history.push("/communities");
+          location.reload();
+        } else {
+          if (data.verify_email_sent) {
+            toast(i18n.t("verify_email_sent"));
+          }
+          if (data.registration_created) {
+            toast(i18n.t("registration_application_sent"));
+          }
+          this.props.history.push("/");
+        }
+      } else if (op == UserOperation.PiRegister) {
+        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
+        this.setState(this.emptyState);
+        // Only log them in if a jwt was set
+        if (data.jwt.isSome()) {
+          UserService.Instance.login(data);
+          this.props.history.push("/communities");
+          location.reload();
+        } else {
+          if (data.verify_email_sent) {
+            toast(i18n.t("verify_email_sent"));
+          }
+          if (data.registration_created) {
+            toast(i18n.t("registration_application_sent"));
+          }
+          this.props.history.push("/");
+        }
       }
     }
   }
@@ -637,19 +704,19 @@ export class Signup extends Component<any, State> {
       some: res => (i.state.web3LoginForm.token = res),
       none: null,
     });
-    i.state.web3LoginForm.address = ethereum.selectedAddress;
+    i.state.web3LoginForm.account = ethereum.selectedAddress;
     i.state.web3LoginForm.info = new LoginForm({
       username_or_email: i.state.registerForm.username,
       password: i.state.registerForm.password,
     });
-    i.state.web3LoginForm.cli_time = new Date().getTime();
+    i.state.web3LoginForm.epoch = new Date().getTime();
     let text =
       "LOGIN:" +
       i.state.registerForm.username +
       ";TOKEN:" +
       i.state.web3LoginForm.token +
       ";TIME:" +
-      i.state.web3LoginForm.cli_time;
+      i.state.web3LoginForm.epoch;
     ethereum
       .request({
         method: "personal_sign",
@@ -661,7 +728,45 @@ export class Signup extends Component<any, State> {
         i.state.web3LoginForm.signature = signature;
 
         console.log(JSON.stringify(i.state.web3LoginForm));
-        //WebSocketService.Instance.send(wsClient.web3Login(i.state.web3LoginForm));
+        WebSocketService.Instance.send(
+          wsClient.web3Login(i.state.web3LoginForm)
+        );
+      })
+      .catch(error => console.error(error));
+  }
+
+  async handleWeb3RegisterFree(i: Signup, event: any) {
+    const { ethereum } = window;
+    var accounts = await ethereum.request({
+      method: "eth_requestAccounts",
+    });
+    //console.log(JSON.stringify(i.state.registerForm.captcha_answer.unwrap()));
+    // i.state.registerForm.captcha_uuid.match({
+    //   some: res => (i.state.web3RegisterForm.info.captcha_uuid = res),
+    //   none: null,
+    // });
+    i.state.web3RegisterForm.ea.account = ethereum.selectedAddress;
+    i.state.web3RegisterForm.info = i.state.registerForm;
+    i.state.web3RegisterForm.ea.epoch = new Date().getTime();
+    let text =
+      "LOGIN:" +
+      i.state.web3RegisterForm.ea.account +
+      ";TOKEN:" +
+      i.state.web3RegisterForm.ea.token +
+      ";TIME:" +
+      i.state.web3RegisterForm.ea.epoch;
+    console.log(text);
+    ethereum
+      .request({
+        method: "personal_sign",
+        params: [`0x${utf8ToHex(text)}`, ethereum.selectedAddress],
+      })
+      .then(_signature => {
+        i.state.web3RegisterForm.ea.signature = Some(_signature.toString());
+        i.setState(i.state);
+        WebSocketService.Instance.send(
+          wsClient.web3Register(i.state.web3RegisterForm)
+        );
       })
       .catch(error => console.error(error));
   }
@@ -706,12 +811,12 @@ export class Signup extends Component<any, State> {
     };
 
     event.preventDefault();
-    i.state.registerLoading = true;
+    i.setState({ registerLoading: true });
     i.setState(i.state);
     piUser = await authenticatePiUser();
-    i.state.piLoginForm.pi_username = piUser.user.username;
-    i.state.piLoginForm.pi_uid = piUser.user.uid;
-    i.state.piLoginForm.pi_token = piUser.accessToken;
+    i.state.piLoginForm.ea.account = piUser.user.username;
+    i.state.piLoginForm.ea.uuid = piUser.user.uid;
+    i.state.piLoginForm.ea.token = piUser.accessToken;
     i.state.piLoginForm.info = {
       username_or_email: i.state.registerForm.username,
       password: i.state.registerForm.password,
@@ -822,7 +927,7 @@ export class Signup extends Component<any, State> {
           alert("WePi register payment:" + JSON.stringify(data));
           if (data.status >= 200 && data.status < 300) {
             event.preventDefault();
-            i.state.registerLoading = true;
+            i.setState({ registerLoading: true });
             i.setState(i.state);
             //i.state.loginForm.username_or_email = i.state.registerForm.username;
             //i.state.loginForm.password = i.state.registerForm.password;

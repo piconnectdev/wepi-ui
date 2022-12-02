@@ -1,4 +1,4 @@
-import { None, Some } from "@sniptt/monads";
+import { None } from "@sniptt/monads";
 import { Component, createRef, linkEvent, RefObject } from "inferno";
 import { NavLink } from "inferno-router";
 import {
@@ -145,9 +145,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           })
         );
 
-        if (this.props.siteRes.site_view.isSome()) {
-          this.fetchUnreads();
-        }
+        this.fetchUnreads();
       }
 
       this.requestNotificationPermission();
@@ -235,27 +233,22 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   // TODO class active corresponding to current page
   navbar() {
+    let siteView = this.props.siteRes.site_view;
     return (
       <nav className="navbar navbar-expand-md navbar-light shadow-sm p-0 px-3">
-        <div className="container">
-          {this.props.siteRes.site_view.match({
-            some: siteView => (
-              <NavLink
-                to="/"
-                onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
-                title={siteView.site.description.unwrapOr(siteView.site.name)}
-                className="d-flex align-items-center navbar-brand mr-md-3"
-              >
-                {siteView.site.icon.match({
-                  some: icon =>
-                    showAvatars() && <PictrsImage src={icon} icon />,
-                  none: <></>,
-                })}
-                {siteView.site.name}
-              </NavLink>
-            ),
-            none: <></>,
-          })}
+        <div className="container-lg">
+          <NavLink
+            to="/"
+            onMouseUp={linkEvent(this, this.handleHideExpandNavbar)}
+            title={siteView.site.description.unwrapOr(siteView.site.name)}
+            className="d-flex align-items-center navbar-brand mr-md-3"
+          >
+            {siteView.site.icon.match({
+              some: icon => showAvatars() && <PictrsImage src={icon} icon />,
+              none: <></>,
+            })}
+            {siteView.site.name}
+          </NavLink>
           {UserService.Instance.myUserInfo.isSome() && (
             <>
               <ul className="navbar-nav ml-auto">
@@ -300,7 +293,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   </li>
                 </ul>
               )}
-              {this.amAdmin && (
+              {amAdmin() && (
                 <ul className="navbar-nav ml-1">
                   <li className="nav-item">
                     <NavLink
@@ -390,7 +383,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
               </li>*/}
             </ul>
             <ul className="navbar-nav my-2">
-              {this.amAdmin && (
+              {amAdmin() && (
                 <li className="nav-item">
                   <NavLink
                     to="/admin"
@@ -406,35 +399,39 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             {!this.context.router.history.location.pathname.match(
               /^\/search/
             ) && (
-              <form
-                className="form-inline mr-2"
-                onSubmit={linkEvent(this, this.handleSearchSubmit)}
-              >
-                <input
-                  id="search-input"
-                  className={`form-control mr-0 search-input ${
-                    this.state.toggleSearch ? "show-input" : "hide-input"
-                  }`}
-                  onInput={linkEvent(this, this.handleSearchParam)}
-                  value={this.state.searchParam}
-                  ref={this.searchTextField}
-                  type="text"
-                  placeholder={i18n.t("search")}
-                  onBlur={linkEvent(this, this.handleSearchBlur)}
-                ></input>
-                <label className="sr-only" htmlFor="search-input">
-                  {i18n.t("search")}
-                </label>
-                <button
-                  name="search-btn"
-                  onClick={linkEvent(this, this.handleSearchBtn)}
-                  className="px-1 btn btn-link"
-                  style="color: var(--gray)"
-                  aria-label={i18n.t("search")}
-                >
-                  <Icon icon="search" />
-                </button>
-              </form>
+              <ul className="navbar-nav">
+                <li className="nav-item">
+                  <form
+                    className="form-inline mr-1"
+                    onSubmit={linkEvent(this, this.handleSearchSubmit)}
+                  >
+                    <input
+                      id="search-input"
+                      className={`form-control mr-0 search-input ${
+                        this.state.toggleSearch ? "show-input" : "hide-input"
+                      }`}
+                      onInput={linkEvent(this, this.handleSearchParam)}
+                      value={this.state.searchParam}
+                      ref={this.searchTextField}
+                      disabled={!this.state.toggleSearch}
+                      type="text"
+                      placeholder={i18n.t("search")}
+                      onBlur={linkEvent(this, this.handleSearchBlur)}
+                    ></input>
+                    <label className="sr-only" htmlFor="search-input">
+                      {i18n.t("search")}
+                    </label>
+                    <button
+                      name="search-btn"
+                      onClick={linkEvent(this, this.handleSearchBtn)}
+                      className="px-1 btn btn-link nav-link"
+                      aria-label={i18n.t("search")}
+                    >
+                      <Icon icon="search" />
+                    </button>
+                  </form>
+                </li>
+              </ul>
             )}
             {UserService.Instance.myUserInfo.isSome() ? (
               <>
@@ -480,7 +477,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     </li>
                   </ul>
                 )}
-                {this.amAdmin && (
+                {amAdmin() && (
                   <ul className="navbar-nav my-2">
                     <li className="nav-item">
                       <NavLink
@@ -626,13 +623,10 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   get moderatesSomething(): boolean {
     return (
+      amAdmin() ||
       UserService.Instance.myUserInfo.map(m => m.moderates).unwrapOr([])
         .length > 0
     );
-  }
-
-  get amAdmin(): boolean {
-    return amAdmin(Some(this.props.siteRes.admins));
   }
 
   handleToggleExpandNavbar(i: Navbar) {
@@ -711,7 +705,10 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         GetReportCountResponse
       );
       this.setState({
-        unreadReportCount: data.post_reports + data.comment_reports,
+        unreadReportCount:
+          data.post_reports +
+          data.comment_reports +
+          data.private_message_reports.unwrapOr(0),
       });
       this.sendReportUnread();
     } else if (op == UserOperation.GetUnreadRegistrationApplicationCount) {
@@ -779,7 +776,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
     });
     WebSocketService.Instance.send(wsClient.getReportCount(reportCountForm));
 
-    if (this.amAdmin) {
+    if (amAdmin()) {
       console.log("Fetching applications...");
 
       let applicationCountForm = new GetUnreadRegistrationApplicationCount({

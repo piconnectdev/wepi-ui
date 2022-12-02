@@ -21,16 +21,13 @@ export class Instances extends Component<any, InstancesState> {
   }
 
   get documentTitle(): string {
-    return this.state.siteRes.site_view.match({
-      some: siteView => `${i18n.t("instances")} - ${siteView.site.name}`,
-      none: "",
-    });
+    return `${i18n.t("instances")} - ${this.state.siteRes.site_view.site.name}`;
   }
 
   render() {
     return this.state.siteRes.federated_instances.match({
       some: federated_instances => (
-        <div className="container">
+        <div className="container-lg">
           <HtmlTags
             title={this.documentTitle}
             path={this.context.router.route.match.url}
