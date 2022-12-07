@@ -11,7 +11,9 @@ import {
   LemmyHttp,
   Login as LoginForm,
   LoginResponse,
+  PiAgreeRegister,
   PiLogin as PiLoginForm,
+  PiRegister,
   Register,
   SiteView,
   toUndefined,
@@ -310,7 +312,7 @@ export class Signup extends Component<any, State> {
           </div>
         </div>
 
-        <div className="form-group row">
+        {/* <div className="form-group row">
           <label
             className="col-sm-2 col-form-label"
             htmlFor="register-verify-password"
@@ -329,7 +331,7 @@ export class Signup extends Component<any, State> {
               required
             />
           </div>
-        </div>
+        </div> */}
 
         {siteView.local_site.require_application && (
           <>
@@ -436,13 +438,24 @@ export class Signup extends Component<any, State> {
         />
         <div className="form-group row">
           <div className="col-sm-10">
-            <button type="submit" className="btn btn-secondary">
-              {this.state.registerLoading ? (
-                <Spinner />
-              ) : (
-                this.titleName(siteView)
-              )}
-            </button>
+            {!this.isPiBrowser && (
+              <button type="submit" className="btn btn-secondary">
+                {this.state.registerLoading ? (
+                  <Spinner />
+                ) : (
+                  "Wallet " + this.titleName(siteView)
+                )}
+              </button>
+            )}
+            {this.isPiBrowser && (
+              <button type="submit" className="btn btn-secondary">
+                {this.state.registerLoading ? (
+                  <Spinner />
+                ) : (
+                  this.titleName(siteView)
+                )}
+              </button>
+            )}
           </div>
         </div>
       </form>
@@ -519,7 +532,7 @@ export class Signup extends Component<any, State> {
       i.handleWeb3RegisterFree(i, event);
       return;
     } else {
-      i.setState({ registerLoading: true });
+      //i.setState({ registerLoading: true });
       WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
     }
   }
@@ -746,6 +759,7 @@ export class Signup extends Component<any, State> {
     //   none: null,
     // });
     i.state.web3RegisterForm.ea.account = ethereum.selectedAddress;
+    i.state.registerForm.password_verify = i.state.registerForm.password;
     i.state.web3RegisterForm.info = i.state.registerForm;
     i.state.web3RegisterForm.ea.epoch = new Date().getTime();
     let text =
@@ -763,6 +777,7 @@ export class Signup extends Component<any, State> {
       })
       .then(_signature => {
         i.state.web3RegisterForm.ea.signature = Some(_signature.toString());
+
         i.setState(i.state);
         WebSocketService.Instance.send(
           wsClient.web3Register(i.state.web3RegisterForm)
@@ -782,6 +797,7 @@ export class Signup extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
+        console.log("LoginFree: :" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -790,10 +806,14 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
+      console.log(
+        "LoginFree: onIncompletePaymentFound:" + JSON.stringify(payment)
+      );
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
+        pi_token: piUser.accessToken,
         auth: null,
         dto: null,
       });
@@ -821,24 +841,41 @@ export class Signup extends Component<any, State> {
       username_or_email: i.state.registerForm.username,
       password: i.state.registerForm.password,
     };
+    i.state.registerForm.password_verify = i.state.registerForm.password;
     i.setState(i.state);
-    let useHttp = false;
-    if (useHttp === true) {
-      //console.log(JSON.stringify(i.state.piLoginForm));
-      var data = await PiLogin(i.state.piLoginForm);
-      this.state = this.emptyState;
-      this.setState(this.state);
-      UserService.Instance.login(data);
-      // WebSocketService.Instance.send(
-      //   wsClient.userJoin({
-      //     auth: auth().unwrap(),
-      //   })
-      // );
-      toast(i18n.t("logged_in"));
-      this.props.history.push("/");
-    } else {
-      WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
-    }
+    var ea = new ExternalAccount({
+      account: piUser.user.username,
+      token: piUser.accessToken,
+      epoch: 0,
+      signature: None,
+      provider: Some("PiNetwork"),
+      extra: None,
+      uuid: piUser.user.uid,
+    });
+    var piRegisterForm = new PiRegister({
+      info: i.state.registerForm,
+      ea: ea,
+    });
+    // let useHttp = false;
+    // if (useHttp === true) {
+    //   //console.log(JSON.stringify(i.state.piLoginForm));
+    //   var data = await PiLogin(i.state.piLoginForm);
+    //   this.state = this.emptyState;
+    //   this.setState(this.state);
+    //   UserService.Instance.login(data);
+    //   // WebSocketService.Instance.send(
+    //   //   wsClient.userJoin({
+    //   //     auth: auth().unwrap(),
+    //   //   })
+    //   // );
+    //   toast(i18n.t("logged_in"));
+    //   this.props.history.push("/");
+    // } else {
+
+    // }
+    //WebSocketService.Instance.send(wsClient.piRegister(i.state.piLoginForm));
+    console.log("LoginFree: piRegisterForm:" + JSON.stringify(piRegisterForm));
+    WebSocketService.Instance.send(wsClient.piRegister(piRegisterForm));
   }
 
   async handlePiRegisterWithFee(i: Signup, event: any) {
@@ -846,12 +883,13 @@ export class Signup extends Component<any, State> {
 
     var config = {
       amount: 0.01,
-      memo: "wepi:account",
+      memo: "reg",
       metadata: {
         ref_id: "",
       },
     };
 
+    console.log("LoginFee: config:" + JSON.stringify(config));
     var piUser;
 
     const authenticatePiUser = async () => {
@@ -862,6 +900,7 @@ export class Signup extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
+        console.log("LoginFee: authenticatePiUser:" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -870,10 +909,14 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
+      console.log(
+        "LoginFee: onIncompletePaymentFound:" + JSON.stringify(payment)
+      );
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
         pi_uid: piUser.user.uid,
+        pi_token: piUser.accessToken,
         auth: null,
         dto: null,
       });
@@ -891,10 +934,27 @@ export class Signup extends Component<any, State> {
       paymentConfig
     ) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body
+      console.log("LoginFee: onReadyForApprovalRegister:" + payment_id);
+      var ea = new ExternalAccount({
+        account: piUser.user.username,
+        token: piUser.accessToken,
+        epoch: 0,
+        signature: None,
+        provider: Some("PiNetwork"),
+        extra: None,
+        uuid: piUser.user.uid,
+      });
+      var agree = new PiAgreeRegister({
+        ea: ea,
+        info: i.state.registerForm,
+        paymentid: payment_id.toString(),
+      });
       const { data } = await axios.post("/pi/agree", {
         paymentid: payment_id,
-        pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
+        ea: ea,
+        //pi_username: piUser.user.username,
+        //pi_uid: piUser.user.uid,
+        //pi_token: piUser.accessToken,
         info,
         paymentConfig,
       });
@@ -902,7 +962,7 @@ export class Signup extends Component<any, State> {
         //payment was approved continue with flow
         return data;
       } else {
-        alert("WePi approve register error:" + JSON.stringify(data));
+        alert("Approve register error:" + JSON.stringify(data));
       }
     };
 
@@ -914,17 +974,36 @@ export class Signup extends Component<any, State> {
       paymentConfig
     ) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
+      console.log(
+        "LoginFee: onReadyForCompletionRegister:" +
+          payment_id +
+          " - txid:" +
+          txid
+      );
+      var ea = new ExternalAccount({
+        account: piUser.user.username,
+        token: piUser.accessToken,
+        epoch: 0,
+        signature: None,
+        provider: Some("PiNetwork"),
+        extra: None,
+        uuid: piUser.user.uid,
+      });
+      console.log("LoginFee: Post:" + JSON.stringify(ea));
       axios
         .post("/pi/register", {
           paymentid: payment_id,
-          pi_username: piUser.user.username,
-          pi_uid: piUser.user.uid,
+          //pi_username: piUser.user.username,
+          //pi_uid: piUser.user.uid,
+          //pi_token: piUser.accessToken,
+          ea: ea,
           txid,
           info,
           paymentConfig,
         })
         .then(data => {
-          alert("WePi register payment:" + JSON.stringify(data));
+          console.log("LoginFee: Pi Register payment:" + JSON.stringify(data));
+          alert("Pi Register payment:" + JSON.stringify(data));
           if (data.status >= 200 && data.status < 300) {
             event.preventDefault();
             i.setState({ registerLoading: true });
@@ -938,7 +1017,7 @@ export class Signup extends Component<any, State> {
             WebSocketService.Instance.send(wsClient.login(lf));
             return true;
           } else {
-            alert("WePi complete register error:" + JSON.stringify(data));
+            alert("Pi register error:" + JSON.stringify(data));
             return false;
           }
         });
@@ -946,12 +1025,12 @@ export class Signup extends Component<any, State> {
     };
 
     const onCancel = paymentId => {
-      console.log("Register payment cancelled", paymentId);
+      console.log("Pi payment cancelled", paymentId);
     };
 
     const onError = (error, paymentId) => {
-      console.log("Register error", error, paymentId);
-      alert("WePi onError:" + JSON.stringify(error));
+      console.log("Pi Register error", error, paymentId);
+      alert("Pi onError:" + JSON.stringify(error));
     };
 
     const createPiRegister = async (info, config) => {
@@ -976,7 +1055,7 @@ export class Signup extends Component<any, State> {
       piUser = await authenticatePiUser();
       await createPiRegister(info, config);
     } catch (err) {
-      alert("WePi register catch error:" + JSON.stringify(err));
+      alert("Pi register catch error:" + JSON.stringify(err));
     }
   }
 }

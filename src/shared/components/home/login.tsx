@@ -163,15 +163,17 @@ export class Login extends Component<any, State> {
                   required
                   maxLength={60}
                 />
-                {/* <button
-                  type="button"
-                  className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
-                  disabled={!validEmail(this.state.loginForm.username_or_email)}
-                  title={i18n.t("no_password_reset")}
-                >
-                  <a href="https://wepi.social/register">{i18n.t("forgot_password")}</a>
-
-                </button> */}
+                {
+                  <button
+                    type="button"
+                    //onClick={linkEvent(this, this.handlePasswordReset)}
+                    className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
+                    //disabled={!validEmail(this.state.loginForm.username_or_email)}
+                    title={i18n.t("no_password_reset")}
+                  >
+                    <a href="/signup">{i18n.t("forgot_password")}</a>
+                  </button>
+                }
               </div>
             </div>
             <div className="form-group row">
@@ -295,6 +297,7 @@ export class Login extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
+        console.log("Login: authenticatePiUser:" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -303,6 +306,7 @@ export class Login extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
+      console.log("Login: onIncompletePaymentFound:" + JSON.stringify(payment));
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
@@ -328,7 +332,7 @@ export class Login extends Component<any, State> {
     i.state.piLoginForm.ea.account = piUser.user.username;
     i.state.piLoginForm.ea.extra = piUser.user.uid;
     i.state.piLoginForm.ea.token = piUser.accessToken;
-
+    i.state.piLoginForm.info = i.state.loginForm;
     i.setState(i.state);
     let useHttp = false;
     if (useHttp === true) {
@@ -345,6 +349,7 @@ export class Login extends Component<any, State> {
       toast(i18n.t("logged_in"));
       this.props.history.push("/");
     }
+    console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
     WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
   }
 }
