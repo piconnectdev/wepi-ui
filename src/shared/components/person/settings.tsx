@@ -1191,12 +1191,12 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handlePiAddressChange(i: Settings, event: any) {
-    i.state.saveUserSettingsForm.pi_address = event.target.value;
+    i.state.saveUserSettingsForm.pi_address = Some(event.target.value);
     i.setState(i.state);
   }
 
   handleWeb3AddresslChange(i: Settings, event: any) {
-    i.state.saveUserSettingsForm.web3_address = event.target.value;
+    i.state.saveUserSettingsForm.web3_address = Some(event.target.value);
     i.setState(i.state);
   }
 
