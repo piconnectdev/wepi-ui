@@ -13,6 +13,8 @@ import {
   PiAgreeRegister,
   PiLogin as PiLoginForm,
   PiRegister,
+  PiRegisterResponse,
+  PiRegisterWithFee,
   Register,
   SiteView,
   toUndefined,
@@ -701,6 +703,23 @@ export class Signup extends Component<any, State> {
           }
           this.props.history.push("/");
         }
+      } else if (op == UserOperation.PiRegisterWithFee) {
+        let data = wsJsonToRes<PiRegisterResponse>(msg, PiRegisterResponse);
+        this.setState(this.emptyState);
+        // Only log them in if a jwt was set
+        if (data.login.jwt.isSome()) {
+          UserService.Instance.login(data.login);
+          this.props.history.push("/communities");
+          location.reload();
+        } else {
+          if (data.login.verify_email_sent) {
+            toast(i18n.t("verify_email_sent"));
+          }
+          if (data.login.registration_created) {
+            toast(i18n.t("registration_application_sent"));
+          }
+          this.props.history.push("/");
+        }
       }
     }
   }
@@ -917,23 +936,28 @@ export class Signup extends Component<any, State> {
         extra: None,
         uuid: Some(piUser.user.uid),
       });
+      console.log("LoginFee: /pi/agree:" + payment_id);
       var agree = new PiAgreeRegister({
         ea: ea,
         info: i.state.registerForm,
         paymentid: payment_id.toString(),
       });
-      const { data } = await axios.post("/pi/agree", {
-        paymentid: payment_id,
-        ea: ea,
-        info,
-        paymentConfig,
-      });
-      if (data.status >= 200 && data.status < 300) {
-        //payment was approved continue with flow
-        return data;
-      } else {
-        console.log("LoginFee: /pi/agree:" + +JSON.stringify(data));
-      }
+      console.log("LoginFee: /pi/agree:" + JSON.stringify(agree));
+      console.log("LoginFee: /pi/agree, info:" + JSON.stringify(info));
+      console.log("LoginFee: /pi/agree, info:" + wsClient.piAgree(agree));
+      WebSocketService.Instance.send(wsClient.piAgree(agree));
+      // const { data } = await axios.post("/pi/agree", {
+      //   paymentid: payment_id,
+      //   ea: ea,
+      //   info,
+      //   paymentConfig,
+      // });
+      // if (data.status >= 200 && data.status < 300) {
+      //   //payment was approved continue with flow
+      //   return data;
+      // } else {
+      //   console.log("LoginFee: /pi/agree:" + JSON.stringify(data));
+      // }
     };
 
     // Update or change password
@@ -959,37 +983,48 @@ export class Signup extends Component<any, State> {
         extra: None,
         uuid: Some(piUser.user.uid),
       });
-      axios
-        .post("/pi/register", {
-          paymentid: payment_id,
-          ea: ea,
-          txid,
-          info,
-          paymentConfig,
-        })
-        .then(data => {
-          console.log("LoginFee: Pi Register payment:" + JSON.stringify(data));
-          if (data.status >= 200 && data.status < 300) {
-            event.preventDefault();
-            i.setState({ registerLoading: true });
-            i.setState(i.state);
-            //i.state.loginForm.username_or_email = i.state.registerForm.username;
-            //i.state.loginForm.password = i.state.registerForm.password;
-            //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
-            var lf: LoginForm;
-            lf.username_or_email = i.state.registerForm.username;
-            lf.password = i.state.registerForm.password;
-            WebSocketService.Instance.send(wsClient.login(lf));
-            return true;
-          } else {
-            console.log(
-              "LoginFee: /pi/register payment error:" + JSON.stringify(data)
-            );
-            alert("Pi register error:" + JSON.stringify(data));
-            return false;
-          }
-        });
-      return false;
+      var reg = new PiRegisterWithFee({
+        ea: ea,
+        info: info,
+        paymentid: payment_id.toString(),
+        txid: txid,
+      });
+      console.log(
+        "LoginFee: /pi/agree, reg:" + wsClient.piRegisterWithFee(reg)
+      );
+      WebSocketService.Instance.send(wsClient.piRegisterWithFee(reg));
+      return true;
+      // axios
+      //   .post("/pi/register", {
+      //     paymentid: payment_id,
+      //     ea: ea,
+      //     txid,
+      //     info,
+      //     paymentConfig,
+      //   })
+      //   .then(data => {
+      //     console.log("LoginFee: Pi Register payment:" + JSON.stringify(data));
+      //     if (data.status >= 200 && data.status < 300) {
+      //       event.preventDefault();
+      //       i.setState({ registerLoading: true });
+      //       i.setState(i.state);
+      //       //i.state.loginForm.username_or_email = i.state.registerForm.username;
+      //       //i.state.loginForm.password = i.state.registerForm.password;
+      //       //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
+      //       var lf: LoginForm;
+      //       lf.username_or_email = i.state.registerForm.username;
+      //       lf.password = i.state.registerForm.password;
+      //       WebSocketService.Instance.send(wsClient.login(lf));
+      //       return true;
+      //     } else {
+      //       console.log(
+      //         "LoginFee: /pi/register payment error:" + JSON.stringify(data)
+      //       );
+      //       alert("Pi register error:" + JSON.stringify(data));
+      //       return false;
+      //     }
+      //   });
+      // return false;
     };
 
     const onCancel = paymentId => {
