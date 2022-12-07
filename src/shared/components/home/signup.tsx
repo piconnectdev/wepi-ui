@@ -185,8 +185,7 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -711,7 +710,6 @@ export class Signup extends Component<any, State> {
     var accounts = await ethereum.request({
       method: "eth_requestAccounts",
     });
-    console.log(JSON.stringify(i.state.registerForm.captcha_answer.unwrap()));
     i.state.registerForm.captcha_uuid.match({
       some: res => (i.state.web3LoginForm.token = res),
       none: null,
@@ -735,11 +733,9 @@ export class Signup extends Component<any, State> {
         params: [`0x${utf8ToHex(text)}`, ethereum.selectedAddress],
       })
       .then(signature => {
-        console.log(ethereum.selectedAddress);
-        console.log(signature);
         i.state.web3LoginForm.signature = signature;
 
-        console.log(JSON.stringify(i.state.web3LoginForm));
+        //console.log(JSON.stringify(i.state.web3LoginForm));
         WebSocketService.Instance.send(
           wsClient.web3Login(i.state.web3LoginForm)
         );
@@ -796,7 +792,6 @@ export class Signup extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
-        console.log("LoginFree: :" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -805,9 +800,6 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      console.log(
-        "LoginFree: onIncompletePaymentFound:" + JSON.stringify(payment)
-      );
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
@@ -845,7 +837,6 @@ export class Signup extends Component<any, State> {
     });
     // let useHttp = false;
     // if (useHttp === true) {
-    //   //console.log(JSON.stringify(i.state.piLoginForm));
     //   var data = await PiLogin(i.state.piLoginForm);
     //   this.state = this.emptyState;
     //   this.setState(this.state);
@@ -887,7 +878,6 @@ export class Signup extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
-        console.log("LoginFee: authenticatePiUser:" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -896,9 +886,6 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      console.log(
-        "LoginFee: onIncompletePaymentFound:" + JSON.stringify(payment)
-      );
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
@@ -921,7 +908,6 @@ export class Signup extends Component<any, State> {
       paymentConfig
     ) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body
-      console.log("LoginFee: onReadyForApprovalRegister:" + payment_id);
       var ea = new ExternalAccount({
         account: piUser.user.username,
         token: piUser.accessToken,
@@ -973,13 +959,9 @@ export class Signup extends Component<any, State> {
         extra: None,
         uuid: Some(piUser.user.uid),
       });
-      console.log("LoginFee: Post:" + JSON.stringify(ea));
       axios
         .post("/pi/register", {
           paymentid: payment_id,
-          //pi_username: piUser.user.username,
-          //pi_uid: piUser.user.uid,
-          //pi_token: piUser.accessToken,
           ea: ea,
           txid,
           info,
@@ -1025,8 +1007,6 @@ export class Signup extends Component<any, State> {
     };
 
     const createPiRegister = async (info, config) => {
-      //piApiResult = null;
-      alert("WePi createPiRegister:" + JSON.stringify(config));
       window.Pi.createPayment(config, {
         // Callbacks you need to implement - read more about those in the detailed docs linked below:
         onReadyForServerApproval: payment_id =>
@@ -1047,7 +1027,6 @@ export class Signup extends Component<any, State> {
       await createPiRegister(info, config);
     } catch (err) {
       console.log("Pi Register error+" + JSON.stringify(err));
-      alert("End Pi register catch error:" + JSON.stringify(err));
     }
   }
 }

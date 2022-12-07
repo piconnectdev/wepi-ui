@@ -974,8 +974,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   setupBlockPersonChoices() {
@@ -1264,7 +1263,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handleChangePasswordSubmit(i: Settings, event: any) {
-    if (this.isPiBrowser) {
+    if (i.isPiBrowser) {
       this.handlePiLoginSubmit(i, event);
     } else {
       event.preventDefault();
@@ -1438,7 +1437,6 @@ export class Settings extends Component<any, SettingsState> {
           scopes,
           onIncompletePaymentFound
         );
-        console.log("Login: authenticatePiUser:" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
@@ -1447,7 +1445,6 @@ export class Settings extends Component<any, SettingsState> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      console.log("Login: onIncompletePaymentFound:" + JSON.stringify(payment));
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
@@ -1505,7 +1502,6 @@ export class Settings extends Component<any, SettingsState> {
     //   toast(i18n.t("logged_in"));
     //   this.props.history.push("/");
     // }
-    // console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
     WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 

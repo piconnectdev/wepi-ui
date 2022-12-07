@@ -94,8 +94,7 @@ export class Login extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get isForcePiAuth(): boolean {
@@ -306,7 +305,6 @@ export class Login extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      console.log("Login: onIncompletePaymentFound:" + JSON.stringify(payment));
       const { data } = await axios.post("/pi/found", {
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
@@ -336,7 +334,6 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
     // let useHttp = false;
     // if (useHttp === true) {
-    //   console.log(JSON.stringify(i.state.piLoginForm));
     //   var data = await PiLogin(i.state.piLoginForm);
     //   //this.state = this.emptyState;
     //   this.setState(this.state);

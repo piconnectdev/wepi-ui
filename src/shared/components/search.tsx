@@ -867,8 +867,6 @@ export class Search extends Component<any, SearchState> {
       limit: Some(fetchLimit),
       auth: auth(false).ok(),
     });
-    console.log("SearchForm: state" + JSON.stringify(this.state));
-    console.log("SearchForm:" + JSON.stringify(form));
     let resolveObjectForm = new ResolveObject({
       q: this.state.q,
       auth: auth(false).ok(),

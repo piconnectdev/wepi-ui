@@ -1875,6 +1875,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       piUser = await authenticatePiUser();
       await createPiPayment(info, config);
     } catch (err) {
+      console.log("Payment error: " + JSON.stringify(err));
       alert("PiPayment error:" + JSON.stringify(err));
     }
   }
