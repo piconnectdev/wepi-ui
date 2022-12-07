@@ -12,6 +12,7 @@ import {
   LoginResponse,
   PiAgreeRegister,
   PiLogin as PiLoginForm,
+  PiPaymentFound,
   PiRegister,
   PiRegisterResponse,
   PiRegisterWithFee,
@@ -26,6 +27,7 @@ import {
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import axios from "../../axios";
+import { httpBase } from "../../env";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
@@ -705,18 +707,23 @@ export class Signup extends Component<any, State> {
           this.props.history.push("/");
         }
       } else if (op == UserOperation.PiRegisterWithFee) {
-        let data = wsJsonToRes<PiRegisterResponse>(msg, PiRegisterResponse);
+        let dataResponse = wsJsonToRes<PiRegisterResponse>(
+          msg,
+          PiRegisterResponse
+        );
+        console.log("dataResponse:" + JSON.stringify(dataResponse));
         this.setState(this.emptyState);
+        let data = dataResponse.login;
         // Only log them in if a jwt was set
-        if (data.login.jwt.isSome()) {
-          UserService.Instance.login(data.login);
+        if (data.jwt.isSome()) {
+          UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();
         } else {
-          if (data.login.verify_email_sent) {
+          if (data.verify_email_sent) {
             toast(i18n.t("verify_email_sent"));
           }
-          if (data.login.registration_created) {
+          if (data.registration_created) {
             toast(i18n.t("registration_application_sent"));
           }
           this.props.history.push("/");
@@ -906,13 +913,37 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      const { data } = await axios.post("/pi/found", {
+      console.log(
+        "LoginFee: /pi/agree, onIncompletePaymentFound URL:" +
+          `${httpBase}/pi/found`
+      );
+      console.log(
+        "LoginFee: /pi/agree, onIncompletePaymentFound:" +
+          JSON.stringify(payment)
+      );
+      var found = new PiPaymentFound({
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
-        pi_token: piUser.accessToken,
-        auth: null,
-        dto: null,
+        pi_uid: Some(piUser.user.uid),
+        pi_token: Some(piUser.accessToken),
+        auth: None,
+        person_id: None,
+        comment: None,
+      });
+      //let client = new LemmyHttp(httpBase);
+      //return client.piPaymentFound(found);
+
+      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+      return;
+      const { data } = await axios.post(`${httpBase}/pi/found`, {
+        paymentid: payment.identifier,
+        pi_username: piUser.user.username,
+        pi_uid: Some(piUser.user.uid),
+        pi_token: Some(piUser.accessToken),
+        auth: None,
+        //person_id: None,
+        //comment: None,
+        dto: Some(payment),
       });
 
       if (data.status >= 200 && data.status < 300) {
