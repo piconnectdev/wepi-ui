@@ -1,4 +1,4 @@
-import { None } from "@sniptt/monads";
+import { None, Some } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import {
   ExternalAccount,
@@ -18,7 +18,6 @@ import axios from "../../axios";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
-  auth,
   isBrowser,
   setIsoData,
   toast,
@@ -95,7 +94,8 @@ export class Login extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get isForcePiAuth(): boolean {
@@ -330,26 +330,26 @@ export class Login extends Component<any, State> {
     i.setState({ loginLoading: true });
     piUser = await authenticatePiUser();
     i.state.piLoginForm.ea.account = piUser.user.username;
-    i.state.piLoginForm.ea.extra = piUser.user.uid;
+    i.state.piLoginForm.ea.extra = Some(piUser.user.uid);
     i.state.piLoginForm.ea.token = piUser.accessToken;
-    i.state.piLoginForm.info = i.state.loginForm;
+    //i.state.piLoginForm.info = i.state.loginForm;
     i.setState(i.state);
-    let useHttp = false;
-    if (useHttp === true) {
-      console.log(JSON.stringify(i.state.piLoginForm));
-      var data = await PiLogin(i.state.piLoginForm);
-      //this.state = this.emptyState;
-      this.setState(this.state);
-      UserService.Instance.login(data);
-      WebSocketService.Instance.send(
-        wsClient.userJoin({
-          auth: auth().unwrap(),
-        })
-      );
-      toast(i18n.t("logged_in"));
-      this.props.history.push("/");
-    }
-    console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
+    // let useHttp = false;
+    // if (useHttp === true) {
+    //   console.log(JSON.stringify(i.state.piLoginForm));
+    //   var data = await PiLogin(i.state.piLoginForm);
+    //   //this.state = this.emptyState;
+    //   this.setState(this.state);
+    //   UserService.Instance.login(data);
+    //   WebSocketService.Instance.send(
+    //     wsClient.userJoin({
+    //       auth: auth().unwrap(),
+    //     })
+    //   );
+    //   toast(i18n.t("logged_in"));
+    //   this.props.history.push("/");
+    // }
+    // console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
     WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
   }
 }

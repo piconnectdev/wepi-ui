@@ -1363,6 +1363,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       content: None,
       distinguished: Some(!comment.distinguished),
       language_id: Some(comment.language_id),
+      auth_sign: None,
       auth: auth().unwrap(),
     });
     WebSocketService.Instance.send(wsClient.editComment(form));
@@ -1757,7 +1758,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     var config = {
       amount: 0.1,
       //memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
-      memo: "wepi:tip:comment",
+      memo: "tip:comment",
       metadata: {
         id: i.props.node.comment_view.creator.id,
         post_id: i.props.node.comment_view.post.id,
@@ -1821,7 +1822,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       });
     };
 
-    const onReadyForApproval = async (payment_id, paymentConfig) => {
+    const onReadyForApproval = async (payment_id, info, paymentConfig) => {
       //make POST request to your app server /payments/approve endpoint with paymentId in the body
       const { data } = await axios.post("/pi/approve", {
         paymentid: payment_id,
@@ -1840,7 +1841,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     };
 
     // Update or change password
-    const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
+    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
       //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
       axios
         .post("/pi/complete", {
@@ -1881,7 +1882,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiBlockchainClick(i: CommentNode) {
     var config = {
       amount: 0.001,
-      memo: "wepi:comment",
+      memo: "comment",
       metadata: {
         id: i.props.node.comment_view.comment.id,
         own: i.props.node.comment_view.comment.creator_id,

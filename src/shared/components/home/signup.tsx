@@ -8,7 +8,6 @@ import {
   ExternalAccount,
   GetCaptchaResponse,
   GetSiteResponse,
-  LemmyHttp,
   Login as LoginForm,
   LoginResponse,
   PiAgreeRegister,
@@ -24,7 +23,6 @@ import {
   wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
-import { httpBase } from "../../../shared/env";
 import axios from "../../axios";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
@@ -187,7 +185,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -524,8 +523,8 @@ export class Signup extends Component<any, State> {
     const { ethereum } = window;
     let isMetaMaks = Boolean(ethereum && ethereum.isMetaMask);
     if (isPi) {
-      //i.handlePiRegisterLoginFree(i, event);
-      i.handlePiRegisterWithFee(i, event);
+      i.handlePiRegisterLoginFree(i, event);
+      //i.handlePiRegisterWithFee(i, event);
       return;
     } else if (isMetaMaks) {
       //i.handleWeb3RegisterLoginFree(i, event);
@@ -825,32 +824,20 @@ export class Signup extends Component<any, State> {
       }
     }; // Read more about this in the SDK reference
 
-    const PiLogin = async (form: PiLoginForm) => {
-      let client = new LemmyHttp(httpBase);
-      return client.piLogin(form);
-    };
-
     event.preventDefault();
-    i.setState({ registerLoading: true });
-    i.setState(i.state);
+
     piUser = await authenticatePiUser();
-    i.state.piLoginForm.ea.account = piUser.user.username;
-    i.state.piLoginForm.ea.uuid = piUser.user.uid;
-    i.state.piLoginForm.ea.token = piUser.accessToken;
-    i.state.piLoginForm.info = {
-      username_or_email: i.state.registerForm.username,
-      password: i.state.registerForm.password,
-    };
     i.state.registerForm.password_verify = i.state.registerForm.password;
     i.setState(i.state);
     var ea = new ExternalAccount({
       account: piUser.user.username,
       token: piUser.accessToken,
+      uuid: Some(piUser.user.uid),
+
       epoch: 0,
       signature: None,
       provider: Some("PiNetwork"),
       extra: None,
-      uuid: piUser.user.uid,
     });
     var piRegisterForm = new PiRegister({
       info: i.state.registerForm,
@@ -874,7 +861,8 @@ export class Signup extends Component<any, State> {
 
     // }
     //WebSocketService.Instance.send(wsClient.piRegister(i.state.piLoginForm));
-    console.log("LoginFree: piRegisterForm:" + JSON.stringify(piRegisterForm));
+    i.setState({ registerLoading: true });
+    i.setState(i.state);
     WebSocketService.Instance.send(wsClient.piRegister(piRegisterForm));
   }
 
@@ -889,7 +877,6 @@ export class Signup extends Component<any, State> {
       },
     };
 
-    console.log("LoginFee: config:" + JSON.stringify(config));
     var piUser;
 
     const authenticatePiUser = async () => {
@@ -942,7 +929,7 @@ export class Signup extends Component<any, State> {
         signature: None,
         provider: Some("PiNetwork"),
         extra: None,
-        uuid: piUser.user.uid,
+        uuid: Some(piUser.user.uid),
       });
       var agree = new PiAgreeRegister({
         ea: ea,
@@ -952,9 +939,6 @@ export class Signup extends Component<any, State> {
       const { data } = await axios.post("/pi/agree", {
         paymentid: payment_id,
         ea: ea,
-        //pi_username: piUser.user.username,
-        //pi_uid: piUser.user.uid,
-        //pi_token: piUser.accessToken,
         info,
         paymentConfig,
       });
@@ -962,7 +946,7 @@ export class Signup extends Component<any, State> {
         //payment was approved continue with flow
         return data;
       } else {
-        alert("Approve register error:" + JSON.stringify(data));
+        console.log("LoginFee: /pi/agree:" + +JSON.stringify(data));
       }
     };
 
@@ -987,7 +971,7 @@ export class Signup extends Component<any, State> {
         signature: None,
         provider: Some("PiNetwork"),
         extra: None,
-        uuid: piUser.user.uid,
+        uuid: Some(piUser.user.uid),
       });
       console.log("LoginFee: Post:" + JSON.stringify(ea));
       axios
@@ -1003,7 +987,6 @@ export class Signup extends Component<any, State> {
         })
         .then(data => {
           console.log("LoginFee: Pi Register payment:" + JSON.stringify(data));
-          alert("Pi Register payment:" + JSON.stringify(data));
           if (data.status >= 200 && data.status < 300) {
             event.preventDefault();
             i.setState({ registerLoading: true });
@@ -1017,6 +1000,9 @@ export class Signup extends Component<any, State> {
             WebSocketService.Instance.send(wsClient.login(lf));
             return true;
           } else {
+            console.log(
+              "LoginFee: /pi/register payment error:" + JSON.stringify(data)
+            );
             alert("Pi register error:" + JSON.stringify(data));
             return false;
           }
@@ -1026,11 +1012,16 @@ export class Signup extends Component<any, State> {
 
     const onCancel = paymentId => {
       console.log("Pi payment cancelled", paymentId);
+      i.setState({ registerLoading: false });
+      i.setState(i.state);
     };
 
     const onError = (error, paymentId) => {
-      console.log("Pi Register error", error, paymentId);
-      alert("Pi onError:" + JSON.stringify(error));
+      console.log(
+        "Pi Register error " + paymentId + " - " + +JSON.stringify(error)
+      );
+      i.setState({ registerLoading: false });
+      i.setState(i.state);
     };
 
     const createPiRegister = async (info, config) => {
@@ -1055,7 +1046,8 @@ export class Signup extends Component<any, State> {
       piUser = await authenticatePiUser();
       await createPiRegister(info, config);
     } catch (err) {
-      alert("Pi register catch error:" + JSON.stringify(err));
+      console.log("Pi Register error+" + JSON.stringify(err));
+      alert("End Pi register catch error:" + JSON.stringify(err));
     }
   }
 }
