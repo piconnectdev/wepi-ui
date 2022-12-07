@@ -9,11 +9,14 @@ import {
   CommunityBlockView,
   CommunityView,
   DeleteAccount,
+  ExternalAccount,
   GetSiteResponse,
   ListingType,
+  Login,
   LoginResponse,
   PersonBlockView,
   PersonViewSafe,
+  PiLogin,
   SaveUserSettings,
   SortType,
   toUndefined,
@@ -336,25 +339,27 @@ export class Settings extends Component<any, SettingsState> {
               />
             </div>
           </div>
-          <div className="form-group row">
-            <label
-              className="col-sm-5 col-form-label"
-              htmlFor="user-old-password"
-            >
-              {i18n.t("old_password")}
-            </label>
-            <div className="col-sm-7">
-              <input
-                type="password"
-                id="user-old-password"
-                className="form-control"
-                value={this.state.changePasswordForm.old_password}
-                autoComplete="new-password"
-                maxLength={60}
-                onInput={linkEvent(this, this.handleOldPasswordChange)}
-              />
+          {!this.isPiBrowser && (
+            <div className="form-group row">
+              <label
+                className="col-sm-5 col-form-label"
+                htmlFor="user-old-password"
+              >
+                {i18n.t("old_password")}
+              </label>
+              <div className="col-sm-7">
+                <input
+                  type="password"
+                  id="user-old-password"
+                  className="form-control"
+                  value={this.state.changePasswordForm.old_password}
+                  autoComplete="new-password"
+                  maxLength={60}
+                  onInput={linkEvent(this, this.handleOldPasswordChange)}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <div className="form-group">
             <button type="submit" className="btn btn-block btn-secondary mr-4">
               {this.state.changePasswordLoading ? (
@@ -969,7 +974,8 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   setupBlockPersonChoices() {
@@ -1258,13 +1264,17 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handleChangePasswordSubmit(i: Settings, event: any) {
-    event.preventDefault();
-    i.setState({ changePasswordLoading: true });
-    i.setState(s => ((s.changePasswordForm.auth = auth().unwrap()), s));
+    if (this.isPiBrowser) {
+      this.handlePiLoginSubmit(i, event);
+    } else {
+      event.preventDefault();
+      i.setState({ changePasswordLoading: true });
+      i.setState(s => ((s.changePasswordForm.auth = auth().unwrap()), s));
 
-    let form = new ChangePassword({ ...i.state.changePasswordForm });
+      let form = new ChangePassword({ ...i.state.changePasswordForm });
 
-    WebSocketService.Instance.send(wsClient.changePassword(form));
+      WebSocketService.Instance.send(wsClient.changePassword(form));
+    }
   }
 
   handleDeleteAccountShowConfirmToggle(i: Settings, event: any) {
@@ -1342,6 +1352,12 @@ export class Settings extends Component<any, SettingsState> {
         some: blocks => this.setState({ communityBlocks: blocks }),
         none: void 0,
       });
+    } else {
+      this.setState({
+        saveUserSettingsLoading: false,
+        changePasswordLoading: false,
+        deleteAccountLoading: false,
+      });
     }
   }
 
@@ -1396,6 +1412,101 @@ export class Settings extends Component<any, SettingsState> {
         console.log(error);
       }
     }
+  }
+
+  /*
+  handleChangePasswordSubmit(i: Settings, event: any) {
+    event.preventDefault();
+    i.setState({ changePasswordLoading: true });
+    i.setState(s => ((s.changePasswordForm.auth = auth().unwrap()), s));
+
+    let form = new ChangePassword({ ...i.state.changePasswordForm });
+
+    WebSocketService.Instance.send(wsClient.changePassword(form));
+  }
+  */
+  async handlePiLoginSubmit(i: Settings, event: any) {
+    //if (!this.isPiBrowser)
+    //  return;
+    var piUser;
+
+    const authenticatePiUser = async () => {
+      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+      const scopes = ["username", "payments"];
+      try {
+        var user = await window.Pi.authenticate(
+          scopes,
+          onIncompletePaymentFound
+        );
+        console.log("Login: authenticatePiUser:" + JSON.stringify(user));
+        return user;
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    const onIncompletePaymentFound = async payment => {
+      //do something with incompleted payment
+      console.log("Login: onIncompletePaymentFound:" + JSON.stringify(payment));
+      const { data } = await axios.post("/pi/found", {
+        paymentid: payment.identifier,
+        pi_username: piUser.user.username,
+        pi_uid: piUser.user.uid,
+        auth: null,
+        dto: null,
+      });
+
+      if (data.status >= 200 && data.status < 300) {
+        //payment was approved continue with flow
+        return data;
+      }
+    }; // Read more about this in the SDK reference
+
+    // const PiLogin = async (form: PiLoginForm) => {
+    //   let client = new LemmyHttp(httpBase);
+    //   return client.piLogin(form);
+    // };
+
+    event.preventDefault();
+    //i.setState({ loginLoading: true });
+    i.setState({ changePasswordLoading: true });
+    piUser = await authenticatePiUser();
+    var ea = new ExternalAccount({
+      account: piUser.user.username,
+      token: piUser.accessToken,
+      epoch: 0,
+      signature: None,
+      provider: Some("PiNetwork"),
+      extra: None,
+      uuid: Some(piUser.user.uid),
+    });
+
+    let form = new PiLogin({
+      ea: ea,
+      info: new Login({
+        username_or_email: ea.account,
+        password: i.state.changePasswordForm.new_password,
+      }),
+    });
+
+    i.setState(i.state);
+    // let useHttp = false;
+    // if (useHttp === true) {
+    //   console.log(JSON.stringify(i.state.piLoginForm));
+    //   var data = await PiLogin(i.state.piLoginForm);
+    //   //this.state = this.emptyState;
+    //   this.setState(this.state);
+    //   UserService.Instance.login(data);
+    //   WebSocketService.Instance.send(
+    //     wsClient.userJoin({
+    //       auth: auth().unwrap(),
+    //     })
+    //   );
+    //   toast(i18n.t("logged_in"));
+    //   this.props.history.push("/");
+    // }
+    // console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
+    WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 
   async handlePiBlockchain(i: Settings, event: any) {
