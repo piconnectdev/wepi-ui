@@ -187,6 +187,7 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
+    return true;
     return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
@@ -524,8 +525,8 @@ export class Signup extends Component<any, State> {
     const { ethereum } = window;
     let isMetaMaks = Boolean(ethereum && ethereum.isMetaMask);
     if (isPi) {
-      i.handlePiRegisterLoginFree(i, event);
-      //i.handlePiRegisterWithFee(i, event);
+      //i.handlePiRegisterLoginFree(i, event);
+      i.handlePiRegisterWithFee(i, event);
       return;
     } else if (isMetaMaks) {
       //i.handleWeb3RegisterLoginFree(i, event);
@@ -936,15 +937,14 @@ export class Signup extends Component<any, State> {
         extra: None,
         uuid: Some(piUser.user.uid),
       });
-      console.log("LoginFee: /pi/agree:" + payment_id);
       var agree = new PiAgreeRegister({
         ea: ea,
-        info: i.state.registerForm,
+        info: info,
         paymentid: payment_id.toString(),
       });
-      console.log("LoginFee: /pi/agree:" + JSON.stringify(agree));
-      console.log("LoginFee: /pi/agree, info:" + JSON.stringify(info));
-      console.log("LoginFee: /pi/agree, info:" + wsClient.piAgree(agree));
+      console.log(
+        "LoginFee: /pi/agree, PiAgreeRegister:" + wsClient.piAgree(agree)
+      );
       WebSocketService.Instance.send(wsClient.piAgree(agree));
       // const { data } = await axios.post("/pi/agree", {
       //   paymentid: payment_id,
@@ -986,11 +986,16 @@ export class Signup extends Component<any, State> {
       var reg = new PiRegisterWithFee({
         ea: ea,
         info: info,
-        paymentid: payment_id.toString(),
+        paymentid: payment_id,
         txid: txid,
       });
       console.log(
-        "LoginFee: /pi/agree, reg:" + wsClient.piRegisterWithFee(reg)
+        "LoginFee: /pi/onReadyForCompletionRegister, info:" +
+          wsClient.register(info)
+      );
+      console.log(
+        "LoginFee: /pi/onReadyForCompletionRegister, reg:" +
+          wsClient.piRegisterWithFee(reg)
       );
       WebSocketService.Instance.send(wsClient.piRegisterWithFee(reg));
       return true;
