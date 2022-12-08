@@ -259,26 +259,13 @@ export class Login extends Component<any, State> {
         let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
         this.setState(this.emptyState);
         UserService.Instance.login(data);
-        // WebSocketService.Instance.send(
-        //   wsClient.userJoin({
-        //     auth: auth().unwrap(),
-        //   })
-        // );
-        //toast(i18n.t("logged_in"));
         this.props.history.push("/");
         location.reload();
       } else if (op == UserOperation.PiLogin) {
         // TODO: UUID check
         let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        //this.state = this.emptyState;
         this.setState(this.emptyState);
         UserService.Instance.login(data);
-        // WebSocketService.Instance.send(
-        //   wsClient.userJoin({
-        //     auth: auth().unwrap(),
-        //   })
-        // );
-        //toast(i18n.t("logged_in"));
         this.props.history.push("/");
         location.reload();
       } else if (op == UserOperation.PasswordReset) {
@@ -310,22 +297,6 @@ export class Login extends Component<any, State> {
       }
     };
 
-    // const onIncompletePaymentFound = async payment => {
-    //   //do something with incompleted payment
-    //   const { data } = await axios.post("/pi/found", {
-    //     paymentid: payment.identifier,
-    //     pi_username: piUser.user.username,
-    //     pi_uid: piUser.user.uid,
-    //     auth: null,
-    //     dto: null,
-    //   });
-
-    //   if (data.status >= 200 && data.status < 300) {
-    //     //payment was approved continue with flow
-    //     return data;
-    //   }
-    // }; // Read more about this in the SDK reference
-
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
       var found = new PiPaymentFound({
@@ -355,7 +326,7 @@ export class Login extends Component<any, State> {
       account: piUser.user.username,
       token: piUser.accessToken,
       epoch: 0,
-      signature: None,
+      signature: Some(piUser.user.uid),
       provider: Some("PiNetwork"),
       extra: None,
       uuid: Some(piUser.user.uid),
@@ -369,30 +340,6 @@ export class Login extends Component<any, State> {
       //   password: i.state.loginForm.password,
       // }),
     });
-
-    console.log("Domain:" + window.location.hostname);
-    // i.state.piLoginForm.domain = Some(window.location.hostname);
-    // i.state.piLoginForm.ea.account = piUser.user.username;
-    // i.state.piLoginForm.ea.extra = Some(piUser.user.uid);
-    // i.state.piLoginForm.ea.token = piUser.accessToken;
-    //i.state.piLoginForm.info = i.state.loginForm;
-    i.setState(i.state);
-    // let useHttp = false;
-    // if (useHttp === true) {
-    //   var data = await PiLogin(i.state.piLoginForm);
-    //   //this.state = this.emptyState;
-    //   this.setState(this.state);
-    //   UserService.Instance.login(data);
-    //   WebSocketService.Instance.send(
-    //     wsClient.userJoin({
-    //       auth: auth().unwrap(),
-    //     })
-    //   );
-    //   toast(i18n.t("logged_in"));
-    //   this.props.history.push("/");
-    // }
-    // console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
-    console.log("Login: :" + wsClient.piLogin(form));
     WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 }

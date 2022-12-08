@@ -167,41 +167,8 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         });
     }
 
-    if (this.isPiBrowser) {
-      /*
-      var piUser;
-      const authenticatePiUser = async () => {
-          // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-          const scopes = ['username','payments'];      
-          try {
-              /// HOW TO CALL Pi.authenticate Global/Init
-              var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-              return user;
-          } catch(err) {
-              alert("Pi.authenticate error:" + JSON.stringify(err));
-              console.log(err)
-          }
-      };
-      const onIncompletePaymentFound = async (payment) => { 
-        const { data } = await axios.post('/pi/found', {
-            paymentid: payment.identifier,
-            pi_username: piUser.user.username,
-            pi_uid: piUser.user.uid,
-            auth: null,
-            dto: null
-        });
-        if (data.status >= 200 && data.status < 300) {
-            //payment was approved continue with flow
-            //alert(payment);
-            return data;
-        }
-      }; // Read more about this in the SDK reference
-      try {
-        piUser = authenticatePiUser();
-      } catch(err) {
-      }
-      */
-    }
+    // if (this.isPiBrowser) {
+    // }
   }
 
   componentWillUnmount() {

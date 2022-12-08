@@ -4,8 +4,8 @@ import { WebSocketService } from "./services";
 import { wsClient } from "./utils";
 
 export async function createPayment(
-  domain: string,
   config: any,
+  domain: string,
   auth: Option<string> = None,
   comment: Option<string> = None
 ) {
@@ -47,16 +47,10 @@ export async function createPayment(
       person_id: None,
       comment: comment,
       auth: auth,
-      //paymentConfig
     });
-    console.log("Payment onReadyForApproval: " + JSON.stringify(approve));
-    console.log(
-      "Payment onReadyForApproval wsClient: " + wsClient.piApprove(approve)
-    );
     WebSocketService.Instance.send(wsClient.piApprove(approve));
   };
 
-  // Update or change password
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
     var payment = new PiTip({
       domain: Some(domain),
@@ -69,22 +63,17 @@ export async function createPayment(
       txid,
       auth: auth,
     });
-    console.log("Payment onReadyForCompletion: " + JSON.stringify(payment));
-    console.log(
-      "Payment onReadyForApproval wsClient: " + wsClient.piPayment(payment)
-    );
     WebSocketService.Instance.send(wsClient.piPayment(payment));
   };
 
   const onCancel = paymentId => {
-    console.log("Payment cancelled: ", paymentId);
+    console.log("Pi Payment cancelled: ", paymentId);
   };
-  const onError = (error, paymentId) => {
-    console.log("Payment error: ", error, paymentId);
+  const onError = (err, paymentId) => {
+    console.log("Pi Payment error: ", paymentId + " " + JSON.stringify(err));
   };
 
   const createPiPayment = async config => {
-    //piApiResult = null;
     window.Pi.createPayment(config, {
       // Callbacks you need to implement - read more about those in the detailed docs linked below:
       onReadyForServerApproval: payment_id =>
@@ -98,14 +87,12 @@ export async function createPayment(
 
   try {
     piUser = await authenticatePiUser();
-    console.log("Payment authenticatePiUser: " + JSON.stringify(piUser));
-    console.log("Payment createPiPayment: " + JSON.stringify(config));
     await createPiPayment(config);
   } catch (err) {
-    console.log("Payment error: " + JSON.stringify(err));
-    alert("PiPayment error:" + JSON.stringify(err));
+    console.log("createPiPayment error: " + JSON.stringify(err));
   }
 }
+
 // import axios from './axios';
 // //import { * } from "./utils";
 // //const Pi = window.Pi;

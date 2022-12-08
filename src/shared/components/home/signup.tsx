@@ -25,8 +25,6 @@ import {
   wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
-import axios from "../../axios";
-import { httpBase } from "../../env";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
@@ -350,6 +348,7 @@ export class Signup extends Component<any, State> {
                   <br />
                   2. Use Pi Browser to register an account.
                   <br />
+                  3. Free register til 2023/02/28.
                 </div>
                 <div className="mt-2 alert alert-warning" role="alert">
                   <Icon icon="cake" classes="icon-inline mr-2" />
@@ -816,7 +815,6 @@ export class Signup extends Component<any, State> {
       })
       .then(signature => {
         i.state.web3LoginForm.signature = signature;
-
         //console.log(JSON.stringify(i.state.web3LoginForm));
         WebSocketService.Instance.send(
           wsClient.web3Login(i.state.web3LoginForm)
@@ -830,11 +828,6 @@ export class Signup extends Component<any, State> {
     var accounts = await ethereum.request({
       method: "eth_requestAccounts",
     });
-    //console.log(JSON.stringify(i.state.registerForm.captcha_answer.unwrap()));
-    // i.state.registerForm.captcha_uuid.match({
-    //   some: res => (i.state.web3RegisterForm.info.captcha_uuid = res),
-    //   none: null,
-    // });
     i.state.web3RegisterForm.ea.account = ethereum.selectedAddress;
     i.state.registerForm.password_verify = i.state.registerForm.password;
     i.state.web3RegisterForm.info = i.state.registerForm;
@@ -919,23 +912,6 @@ export class Signup extends Component<any, State> {
       info: i.state.registerForm,
       ea: ea,
     });
-    // let useHttp = false;
-    // if (useHttp === true) {
-    //   var data = await PiLogin(i.state.piLoginForm);
-    //   this.state = this.emptyState;
-    //   this.setState(this.state);
-    //   UserService.Instance.login(data);
-    //   // WebSocketService.Instance.send(
-    //   //   wsClient.userJoin({
-    //   //     auth: auth().unwrap(),
-    //   //   })
-    //   // );
-    //   toast(i18n.t("logged_in"));
-    //   this.props.history.push("/");
-    // } else {
-
-    // }
-    //WebSocketService.Instance.send(wsClient.piRegister(i.state.piLoginForm));
     i.setState({ registerLoading: true });
     i.setState(i.state);
     WebSocketService.Instance.send(wsClient.piRegister(piRegisterForm));
@@ -945,9 +921,10 @@ export class Signup extends Component<any, State> {
     if (!this.isPiBrowser) return;
 
     var config = {
-      amount: 0.01,
-      memo: "reg",
+      amount: 1,
+      memo: "register",
       metadata: {
+        host: window.location.hostname,
         ref_id: "",
       },
     };
@@ -983,22 +960,6 @@ export class Signup extends Component<any, State> {
 
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
-      const { data } = await axios.post(`${httpBase}/pi/found`, {
-        paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: Some(piUser.user.uid),
-        pi_token: Some(piUser.accessToken),
-        auth: None,
-        //person_id: None,
-        //comment: None,
-        dto: Some(payment),
-      });
-
-      if (data.status >= 200 && data.status < 300) {
-        //payment was approved continue with flow
-        //alert(payment);
-        return data;
-      }
     }; // Read more about this in the SDK reference
 
     const onReadyForApprovalRegister = async (
@@ -1006,7 +967,6 @@ export class Signup extends Component<any, State> {
       info,
       paymentConfig
     ) => {
-      //make POST request to your app server /payments/approve endpoint with paymentId in the body
       var ea = new ExternalAccount({
         account: piUser.user.username,
         token: piUser.accessToken,
@@ -1022,43 +982,20 @@ export class Signup extends Component<any, State> {
         info: info,
         paymentid: payment_id.toString(),
       });
-      console.log(
-        "LoginFee: /pi/agree, PiAgreeRegister:" + wsClient.piAgree(agree)
-      );
       WebSocketService.Instance.send(wsClient.piAgree(agree));
-      // const { data } = await axios.post("/pi/agree", {
-      //   paymentid: payment_id,
-      //   ea: ea,
-      //   info,
-      //   paymentConfig,
-      // });
-      // if (data.status >= 200 && data.status < 300) {
-      //   //payment was approved continue with flow
-      //   return data;
-      // } else {
-      //   console.log("LoginFee: /pi/agree:" + JSON.stringify(data));
-      // }
     };
 
-    // Update or change password
     const onReadyForCompletionRegister = (
       payment_id,
       txid,
       info,
       paymentConfig
     ) => {
-      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-      console.log(
-        "LoginFee: onReadyForCompletionRegister:" +
-          payment_id +
-          " - txid:" +
-          txid
-      );
       var ea = new ExternalAccount({
         account: piUser.user.username,
         token: piUser.accessToken,
         epoch: 0,
-        signature: None,
+        signature: Some(piUser.user.uid),
         provider: Some("PiNetwork"),
         extra: None,
         uuid: Some(piUser.user.uid),
@@ -1070,51 +1007,12 @@ export class Signup extends Component<any, State> {
         paymentid: payment_id,
         txid: txid,
       });
-      console.log(
-        "LoginFee: /pi/onReadyForCompletionRegister, info:" +
-          wsClient.register(info)
-      );
-      console.log(
-        "LoginFee: /pi/onReadyForCompletionRegister, reg:" +
-          wsClient.piRegisterWithFee(reg)
-      );
       WebSocketService.Instance.send(wsClient.piRegisterWithFee(reg));
       return true;
-      // axios
-      //   .post("/pi/register", {
-      //     paymentid: payment_id,
-      //     ea: ea,
-      //     txid,
-      //     info,
-      //     paymentConfig,
-      //   })
-      //   .then(data => {
-      //     console.log("LoginFee: Pi Register payment:" + JSON.stringify(data));
-      //     if (data.status >= 200 && data.status < 300) {
-      //       event.preventDefault();
-      //       i.setState({ registerLoading: true });
-      //       i.setState(i.state);
-      //       //i.state.loginForm.username_or_email = i.state.registerForm.username;
-      //       //i.state.loginForm.password = i.state.registerForm.password;
-      //       //WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
-      //       var lf: LoginForm;
-      //       lf.username_or_email = i.state.registerForm.username;
-      //       lf.password = i.state.registerForm.password;
-      //       WebSocketService.Instance.send(wsClient.login(lf));
-      //       return true;
-      //     } else {
-      //       console.log(
-      //         "LoginFee: /pi/register payment error:" + JSON.stringify(data)
-      //       );
-      //       alert("Pi register error:" + JSON.stringify(data));
-      //       return false;
-      //     }
-      //   });
-      // return false;
     };
 
     const onCancel = paymentId => {
-      console.log("Pi payment cancelled", paymentId);
+      console.log("Pi Payment cancelled", paymentId);
       i.setState({ registerLoading: false });
       i.setState(i.state);
     };
@@ -1147,6 +1045,8 @@ export class Signup extends Component<any, State> {
       piUser = await authenticatePiUser();
       await createPiRegister(info, config);
     } catch (err) {
+      i.setState({ registerLoading: false });
+      i.setState(i.state);
       console.log("Pi Register error+" + JSON.stringify(err));
     }
   }

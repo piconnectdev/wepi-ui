@@ -14,8 +14,8 @@ import {
   SubscribedType,
   toUndefined,
 } from "lemmy-js-client";
-import axios from "../../axios";
 import { i18n } from "../../i18next";
+import { createPayment } from "../../pisdk";
 import { UserService, WebSocketService } from "../../services";
 import {
   amAdmin,
@@ -691,7 +691,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     };
 
     var config = {
-      memo: "wepi:community",
+      memo: "group",
       metadata: {
         id: i.props.community_view.community.id,
         name: i.props.community_view.community.name,
@@ -733,8 +733,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   async handlePiBlockchainClick(i: Sidebar) {
     var config = {
-      amount: 0.001,
-      memo: "wepi:community",
+      amount: 0.000001,
+      memo: "group",
       metadata: {
         id: i.props.community_view.community.id,
         name: i.props.community_view.community.name,
@@ -747,6 +747,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         sign: i.props.community_view.community.srv_sign,
       },
     };
+    await createPayment(config, window.location.hostname);
+    /*
     var info = {
       own: null,
       comment: i.props.community_view.community.id,
@@ -856,7 +858,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       await createPiPayment(info, config);
     } catch (err) {
       alert("PiPayment error:" + JSON.stringify(err));
-    }
+    } */
   }
 
   handlePurgeCommunityShow(i: Sidebar) {

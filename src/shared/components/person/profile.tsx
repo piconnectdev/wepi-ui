@@ -1016,7 +1016,7 @@ export class Profile extends Component<any, ProfileState> {
       .match({
         some: person => {
           config = {
-            memo: "profile:" + person.name,
+            memo: "profile",
             metadata: {
               id: person.id,
               name: person.name,
@@ -1031,20 +1031,6 @@ export class Profile extends Component<any, ProfileState> {
         none: void 0,
       });
 
-    // var config = {
-    //   memo: "profile:" + i.state.view. .person.name,
-    //   metadata: {
-    //     id: i.state.view.,
-    //     name: i.person.name,
-    //     display: i.person.display_name,
-    //     actor_id: i.person.actor_id,
-    //     t: i.person.published,
-    //     u: i.person.updated,
-    //     s: i.person.auth_sign,
-    //   },
-    // };
-
-    console.log("Save profile " + JSON.stringify(config));
     var str = utf8ToHex(JSON.stringify(config));
     if (isMetaMaskInstalled()) {
       try {
@@ -1079,7 +1065,7 @@ export class Profile extends Component<any, ProfileState> {
       .match({
         some: person => {
           config = {
-            amount: 0.001,
+            amount: 0.000001,
             memo: "profile",
             metadata: {
               id: person.id,
@@ -1095,137 +1081,10 @@ export class Profile extends Component<any, ProfileState> {
         none: void 0,
       });
 
-    // var config = {
-    //   amount: 0.001,
-    //   memo: "profile",
-    //   metadata: {
-    //     id: i.person.id,
-    //     name: i.person.name,
-    //     display: i.person.display_name,
-    //     actor_id: i.person.actor_id,
-    //     t: i.person.published,
-    //     u: i.person.updated,
-    //     s: i.person.srv_sign,
-    //   },
-    // };
-    console.log("Save profile to blockchain");
     try {
-      await createPayment(window.location.hostname, config);
+      await createPayment(config, window.location.hostname);
     } catch (err) {
-      alert("Pi.authenticate error:" + JSON.stringify(err));
-      console.log(err);
+      console.log("Pi createPayment for profile error:" + JSON.stringify(err));
     }
-    /*    
-    var info = {
-      own: null,
-      comment: i.person.id,
-    };
-    var piUser;
-
-    const authenticatePiUser = async () => {
-      // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-      const scopes = ["username", "payments"];
-      try {
-        /// HOW TO CALL Pi.authenticate Global/Init
-        var user = await window.Pi.authenticate(
-          scopes,
-          onIncompletePaymentFound
-        );
-        return user;
-      } catch (err) {
-        alert("Pi.authenticate error:" + JSON.stringify(err));
-        console.log(err);
-      }
-    };
-    const onIncompletePaymentFound = async payment => {
-      const { data } = await axios.post("/pi/found", {
-        paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
-        person_id: null,
-        comment: null,
-        auth: null,
-        dto: null,
-      });
-
-      if (data.status >= 200 && data.status < 300) {
-        //payment was approved continue with flow
-        //alert(payment);
-        return data;
-      }
-    }; // Read more about this in the SDK reference
-
-    const createPiPayment = async (info, config) => {
-      //piApiResult = null;
-      window.Pi.createPayment(config, {
-        // Callbacks you need to implement - read more about those in the detailed docs linked below:
-        onReadyForServerApproval: payment_id =>
-          onReadyForApproval(payment_id, info, config),
-        onReadyForServerCompletion: (payment_id, txid) =>
-          onReadyForCompletion(payment_id, txid, info, config),
-        onCancel: onCancel,
-        onError: onError,
-      });
-    };
-
-    const onReadyForApproval = async (payment_id, info, paymentConfig) => {
-      //make POST request to your app server /payments/approve endpoint with paymentId in the body
-      const { data } = await axios.post("/pi/approve", {
-        paymentid: payment_id,
-        pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
-        person_id: info.own,
-        comment: info.comment,
-        paymentConfig,
-      });
-      if (data.status >= 200 && data.status < 300) {
-        //payment was approved continue with flow
-        return data;
-      } else {
-        //alert("Payment approve error: " + JSON.stringify(data));
-      }
-    };
-
-    // Update or change password
-    const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
-      //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-      axios
-        .post("/pi/complete", {
-          paymentid: payment_id,
-          pi_username: piUser.user.username,
-          pi_uid: piUser.user.uid,
-          person_id: info.own,
-          comment: info.comment,
-          txid,
-          paymentConfig,
-        })
-        .then(data => {
-          //alert("Completing payment data: " + JSON.stringify(data));
-
-          if (data.status >= 200 && data.status < 300) {
-            return true;
-          } else {
-            alert("Completing payment error: " + JSON.stringify(data));
-          }
-          return false;
-        });
-      return false;
-    };
-
-    const onCancel = paymentId => {
-      console.log("Payment cancelled: ", paymentId);
-    };
-    const onError = (error, paymentId) => {
-      console.log("Payment error: ", error, paymentId);
-    };
-
-    try {
-      piUser = await authenticatePiUser();
-
-      await createPiPayment(info, config);
-    } catch (err) {
-      alert("PiPayment error:" + JSON.stringify(err));
-    }
-    */
   }
 }
