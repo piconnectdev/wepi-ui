@@ -94,7 +94,13 @@ export class Login extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    if (isBrowser()) {
+      if (navigator.userAgent.includes("PiBrowser")) return true;
+      if (window.Pi != null) {
+        return true;
+      }
+    }
+    return false;
   }
 
   get isForcePiAuth(): boolean {

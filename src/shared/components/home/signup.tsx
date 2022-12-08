@@ -33,6 +33,7 @@ import { UserService, WebSocketService } from "../../services";
 import {
   isBrowser,
   joinLemmyUrl,
+  joinPiUrl,
   mdToHtml,
   setIsoData,
   toast,
@@ -190,7 +191,7 @@ export class Signup extends Component<any, State> {
 
   get isPiBrowser(): boolean {
     return true;
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -335,6 +336,65 @@ export class Signup extends Component<any, State> {
             />
           </div>
         </div> */}
+
+        {this.isPiBrowser && (
+          <>
+            <div className="form-group row">
+              <div className="offset-sm-2 col-sm-10">
+                <div className="mt-2 alert alert-warning" role="alert">
+                  <Icon icon="star" classes="icon-inline mr-2" />
+                  {/* {i18n.t("fill_out_application")} */}
+                  To join this server, you must:
+                  <br />
+                  1. <a href={joinPiUrl}>Join Pi Network</a>
+                  <br />
+                  2. Use Pi Browser to register an account.
+                  <br />
+                </div>
+                <div className="mt-2 alert alert-warning" role="alert">
+                  <Icon icon="cake" classes="icon-inline mr-2" />
+                  REWARD
+                  <br />
+                  1. Everyone can push Posts, Comments ... to Pi Network
+                  blockchain and get reward.
+                  <br />
+                  2. Members get reward when they contribute contents and
+                  someone push to blockchain.
+                </div>
+                {/* {siteView.local_site.application_question.match({
+                  some: question => (
+                    <div
+                      className="md-div"
+                      dangerouslySetInnerHTML={mdToHtml(question)}
+                    />
+                  ),
+                  none: <></>,
+                })} */}
+              </div>
+            </div>
+
+            <div className="form-group row">
+              <label
+                className="col-sm-2 col-form-label"
+                htmlFor="application_answer"
+              >
+                {/* {i18n.t("answer")} */}
+              </label>
+              {/* <div className="col-sm-10">
+                <MarkdownTextArea
+                  initialContent={None}
+                  initialLanguageId={None}
+                  placeholder={None}
+                  buttonTitle={None}
+                  maxLength={None}
+                  onContentChange={this.handleAnswerChange}
+                  hideNavigationWarnings
+                  allLanguages={[]}
+                />
+              </div> */}
+            </div>
+          </>
+        )}
 
         {siteView.local_site.require_application && (
           <>
@@ -715,7 +775,7 @@ export class Signup extends Component<any, State> {
         this.setState(this.emptyState);
         let data = dataResponse.login;
         // Only log them in if a jwt was set
-        if (data.jwt.isSome()) {
+        if (dataResponse.success) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();

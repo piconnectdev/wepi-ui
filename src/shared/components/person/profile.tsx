@@ -22,9 +22,9 @@ import {
 } from "lemmy-js-client";
 import moment from "moment";
 import { Subscription } from "rxjs";
-import axios from "../../axios";
 import { i18n } from "../../i18next";
 import { InitialFetchRequest, PersonDetailsView } from "../../interfaces";
+import { createPayment } from "../../pisdk";
 import { UserService, WebSocketService } from "../../services";
 import {
   auth,
@@ -1054,7 +1054,7 @@ export class Profile extends Component<any, ProfileState> {
   async handlePiBlockchainClick(i: PersonViewSafe) {
     var config = {
       amount: 0.001,
-      memo: "wepi:profile",
+      memo: "profile",
       metadata: {
         id: i.person.id,
         name: i.person.name,
@@ -1065,6 +1065,13 @@ export class Profile extends Component<any, ProfileState> {
         s: i.person.srv_sign,
       },
     };
+    try {
+      await createPayment(window.location.hostname, config);
+    } catch (err) {
+      alert("Pi.authenticate error:" + JSON.stringify(err));
+      console.log(err);
+    }
+    /*    
     var info = {
       own: null,
       comment: i.person.id,
@@ -1175,5 +1182,6 @@ export class Profile extends Component<any, ProfileState> {
     } catch (err) {
       alert("PiPayment error:" + JSON.stringify(err));
     }
+    */
   }
 }
