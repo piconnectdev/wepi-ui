@@ -6,8 +6,8 @@ import { wsClient } from "./utils";
 export async function createPayment(
   config: any,
   domain: string,
-  auth: Option<string> = None,
-  comment: Option<string> = None
+  comment: Option<string> = None,
+  auth: Option<string> = None
 ) {
   var piUser;
   const authenticatePiUser = async () => {

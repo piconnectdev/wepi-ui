@@ -1812,12 +1812,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         //cid: i.props.post_view.community.id,
         post_id: i.props.post_view.post.id,
         address: i.props.post_view.creator.pi_address,
+        desc: "tip page;" + i.props.post_view.creator.name,
         t: i.props.post_view.post.published,
         u: i.props.post_view.post.updated,
       },
     };
     try {
-      await createPayment(config, window.location.hostname);
+      await createPayment(
+        config,
+        window.location.hostname,
+        Some(i.props.post_view.creator.id)
+      );
     } catch (err) {
       console.log("Create Pi tip for page error:" + JSON.stringify(err));
     }

@@ -358,7 +358,7 @@ export class Signup extends Component<any, State> {
                   blockchain and get reward.
                   <br />
                   2. Members get reward when they contribute contents and
-                  someone push to blockchain.
+                  someone push it to blockchain.
                 </div>
                 {/* {siteView.local_site.application_question.match({
                   some: question => (
@@ -586,8 +586,8 @@ export class Signup extends Component<any, State> {
     const { ethereum } = window;
     let isMetaMaks = Boolean(ethereum && ethereum.isMetaMask);
     if (isPi) {
-      //i.handlePiRegisterLoginFree(i, event);
-      i.handlePiRegisterWithFee(i, event);
+      i.handlePiRegisterLoginFree(i, event);
+      //i.handlePiRegisterWithFee(i, event);
       return;
     } else if (isMetaMaks) {
       //i.handleWeb3RegisterLoginFree(i, event);

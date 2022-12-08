@@ -1763,6 +1763,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         post_id: i.props.node.comment_view.post.id,
         comment_id: i.props.node.comment_view.comment.id,
         address: i.props.node.comment_view.creator.pi_address,
+        comment: "tip note;" + i.props.node.comment_view.creator.name,
         t: i.props.node.comment_view.comment.published,
         u: i.props.node.comment_view.comment.updated,
       },
@@ -1770,13 +1771,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     var info = {
       own: i.props.node.comment_view.comment.creator_id,
       comment:
-        "tip commentt;" +
+        "tip note;" +
         i.props.node.comment_view.creator.name +
         ";" +
         i.props.node.comment_view.comment.id,
     };
     try {
-      await createPayment(config, window.location.hostname);
+      await createPayment(
+        config,
+        window.location.hostname,
+        Some(i.props.node.comment_view.creator.id)
+      );
     } catch (err) {
       console.log("Create Pi Tip for note error:" + JSON.stringify(err));
     }
