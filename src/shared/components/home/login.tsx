@@ -97,9 +97,9 @@ export class Login extends Component<any, State> {
   get isPiBrowser(): boolean {
     if (isBrowser()) {
       if (navigator.userAgent.includes("PiBrowser")) return true;
-      if (window.Pi != null) {
-        return true;
-      }
+      // if (window.Pi != null) {
+      //   return true;
+      // }
     }
     return false;
   }
@@ -351,9 +351,30 @@ export class Login extends Component<any, State> {
     event.preventDefault();
     i.setState({ loginLoading: true });
     piUser = await authenticatePiUser();
-    i.state.piLoginForm.ea.account = piUser.user.username;
-    i.state.piLoginForm.ea.extra = Some(piUser.user.uid);
-    i.state.piLoginForm.ea.token = piUser.accessToken;
+    var ea = new ExternalAccount({
+      account: piUser.user.username,
+      token: piUser.accessToken,
+      epoch: 0,
+      signature: None,
+      provider: Some("PiNetwork"),
+      extra: None,
+      uuid: Some(piUser.user.uid),
+    });
+    let form = new PiLoginForm({
+      domain: Some(window.location.hostname),
+      ea: ea,
+      info: undefined,
+      // info: new LoginForm({
+      //   username_or_email: ea.account,
+      //   password: i.state.loginForm.password,
+      // }),
+    });
+
+    console.log("Domain:" + window.location.hostname);
+    // i.state.piLoginForm.domain = Some(window.location.hostname);
+    // i.state.piLoginForm.ea.account = piUser.user.username;
+    // i.state.piLoginForm.ea.extra = Some(piUser.user.uid);
+    // i.state.piLoginForm.ea.token = piUser.accessToken;
     //i.state.piLoginForm.info = i.state.loginForm;
     i.setState(i.state);
     // let useHttp = false;
@@ -371,6 +392,7 @@ export class Login extends Component<any, State> {
     //   this.props.history.push("/");
     // }
     // console.log("Login: :" + JSON.stringify(i.state.piLoginForm));
-    WebSocketService.Instance.send(wsClient.piLogin(i.state.piLoginForm));
+    console.log("Login: :" + wsClient.piLogin(form));
+    WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 }

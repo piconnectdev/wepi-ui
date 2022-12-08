@@ -1479,6 +1479,7 @@ export class Settings extends Component<any, SettingsState> {
     });
 
     let form = new PiLogin({
+      domain: Some(window.location.hostname),
       ea: ea,
       info: new Login({
         username_or_email: ea.account,

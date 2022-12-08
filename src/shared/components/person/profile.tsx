@@ -11,7 +11,6 @@ import {
   GetPersonDetails,
   GetPersonDetailsResponse,
   GetSiteResponse,
-  PersonViewSafe,
   PostResponse,
   PurgeItemResponse,
   SortType,
@@ -605,7 +604,7 @@ export class Profile extends Component<any, ProfileState> {
                 <a
                   className="btn btn-secondary btn-block  mr-2 "
                   href="#"
-                  onClick={linkEvent(pv, this.handleBlockchainClick)}
+                  onClick={linkEvent(this, this.handleBlockchainClick)}
                 >
                   {i18n.t("Blockchain")}
                 </a>
@@ -1000,8 +999,8 @@ export class Profile extends Component<any, ProfileState> {
     return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
-  async handleBlockchainClick(i: PersonViewSafe) {
-    if (this.isPiBrowser) {
+  async handleBlockchainClick(i: Profile) {
+    if (i.isPiBrowser) {
       await this.handlePiBlockchainClick(i);
       return;
     }
@@ -1011,19 +1010,41 @@ export class Profile extends Component<any, ProfileState> {
       return Boolean(ethereum && ethereum.isMetaMask);
     };
 
-    var config = {
-      memo: "wepi:profile:" + i.person.name,
-      metadata: {
-        id: i.person.id,
-        name: i.person.name,
-        display: i.person.display_name,
-        actor_id: i.person.actor_id,
-        t: i.person.published,
-        u: i.person.updated,
-        s: i.person.auth_sign,
-      },
-    };
+    var config;
+    i.state.personRes
+      .map(r => r.person_view.person)
+      .match({
+        some: person => {
+          config = {
+            memo: "profile:" + person.name,
+            metadata: {
+              id: person.id,
+              name: person.name,
+              display: person.display_name,
+              actor_id: person.actor_id,
+              t: person.published,
+              u: person.updated,
+              s: person.auth_sign,
+            },
+          };
+        },
+        none: void 0,
+      });
 
+    // var config = {
+    //   memo: "profile:" + i.state.view. .person.name,
+    //   metadata: {
+    //     id: i.state.view.,
+    //     name: i.person.name,
+    //     display: i.person.display_name,
+    //     actor_id: i.person.actor_id,
+    //     t: i.person.published,
+    //     u: i.person.updated,
+    //     s: i.person.auth_sign,
+    //   },
+    // };
+
+    console.log("Save profile " + JSON.stringify(config));
     var str = utf8ToHex(JSON.stringify(config));
     if (isMetaMaskInstalled()) {
       try {
@@ -1051,20 +1072,43 @@ export class Profile extends Component<any, ProfileState> {
     }
   }
 
-  async handlePiBlockchainClick(i: PersonViewSafe) {
-    var config = {
-      amount: 0.001,
-      memo: "profile",
-      metadata: {
-        id: i.person.id,
-        name: i.person.name,
-        display: i.person.display_name,
-        actor_id: i.person.actor_id,
-        t: i.person.published,
-        u: i.person.updated,
-        s: i.person.srv_sign,
-      },
-    };
+  async handlePiBlockchainClick(i: Profile) {
+    var config;
+    i.state.personRes
+      .map(r => r.person_view.person)
+      .match({
+        some: person => {
+          config = {
+            amount: 0.001,
+            memo: "profile",
+            metadata: {
+              id: person.id,
+              name: person.name,
+              display: person.display_name,
+              actor_id: person.actor_id,
+              t: person.published,
+              u: person.updated,
+              s: person.srv_sign,
+            },
+          };
+        },
+        none: void 0,
+      });
+
+    // var config = {
+    //   amount: 0.001,
+    //   memo: "profile",
+    //   metadata: {
+    //     id: i.person.id,
+    //     name: i.person.name,
+    //     display: i.person.display_name,
+    //     actor_id: i.person.actor_id,
+    //     t: i.person.published,
+    //     u: i.person.updated,
+    //     s: i.person.srv_sign,
+    //   },
+    // };
+    console.log("Save profile to blockchain");
     try {
       await createPayment(window.location.hostname, config);
     } catch (err) {
