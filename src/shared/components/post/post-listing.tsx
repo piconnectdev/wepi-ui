@@ -1788,7 +1788,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             params: [
               {
                 from: accounts[0],
-                to: i.props.post_view.creator.web3_address || web3TipAddress,
+                to:
+                  i.props.post_view.creator.web3_address.unwrap() ||
+                  web3TipAddress,
                 gasPrice: gasPrice,
                 value: eth01,
                 data: "0x" + str,

@@ -1737,7 +1737,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               {
                 from: accounts[0],
                 to:
-                  i.props.node.comment_view.creator.web3_address ||
+                  i.props.node.comment_view.creator.web3_address.unwrap() ||
                   web3TipAddress,
                 gasPrice: gasPrice,
                 value: eth01,
