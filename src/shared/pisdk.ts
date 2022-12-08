@@ -49,12 +49,16 @@ export async function createPayment(
       auth: auth,
       //paymentConfig
     });
+    console.log("Payment onReadyForApproval: " + JSON.stringify(approve));
+    console.log(
+      "Payment onReadyForApproval wsClient: " + wsClient.piApprove(approve)
+    );
     WebSocketService.Instance.send(wsClient.piApprove(approve));
   };
 
   // Update or change password
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
-    var tip = new PiTip({
+    var payment = new PiTip({
       domain: Some(domain),
       pi_token: piUser.accessToken,
       pi_username: piUser.user.username,
@@ -65,7 +69,11 @@ export async function createPayment(
       txid,
       auth: auth,
     });
-    WebSocketService.Instance.send(wsClient.piPayment(tip));
+    console.log("Payment onReadyForCompletion: " + JSON.stringify(payment));
+    console.log(
+      "Payment onReadyForApproval wsClient: " + wsClient.piPayment(payment)
+    );
+    WebSocketService.Instance.send(wsClient.piPayment(payment));
   };
 
   const onCancel = paymentId => {

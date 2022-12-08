@@ -1001,7 +1001,7 @@ export class Profile extends Component<any, ProfileState> {
 
   async handleBlockchainClick(i: Profile) {
     if (i.isPiBrowser) {
-      await this.handlePiBlockchainClick(i);
+      await i.handlePiBlockchainClick(i);
       return;
     }
     const isMetaMaskInstalled = () => {
