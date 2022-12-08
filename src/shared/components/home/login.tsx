@@ -8,13 +8,13 @@ import {
   LoginResponse,
   PasswordReset,
   PiLogin as PiLoginForm,
+  PiPaymentFound,
   UserOperation,
   wsJsonToRes,
   wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
 import { httpBase } from "../../../shared/env";
-import axios from "../../axios";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
@@ -40,6 +40,7 @@ export class Login extends Component<any, State> {
 
   emptyState: State = {
     piLoginForm: {
+      domain: None,
       ea: new ExternalAccount({
         account: undefined,
         token: undefined,
@@ -309,20 +310,37 @@ export class Login extends Component<any, State> {
       }
     };
 
+    // const onIncompletePaymentFound = async payment => {
+    //   //do something with incompleted payment
+    //   const { data } = await axios.post("/pi/found", {
+    //     paymentid: payment.identifier,
+    //     pi_username: piUser.user.username,
+    //     pi_uid: piUser.user.uid,
+    //     auth: null,
+    //     dto: null,
+    //   });
+
+    //   if (data.status >= 200 && data.status < 300) {
+    //     //payment was approved continue with flow
+    //     return data;
+    //   }
+    // }; // Read more about this in the SDK reference
+
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      const { data } = await axios.post("/pi/found", {
+      var found = new PiPaymentFound({
+        domain: Some(window.location.hostname),
         paymentid: payment.identifier,
         pi_username: piUser.user.username,
-        pi_uid: piUser.user.uid,
-        auth: null,
-        dto: null,
+        pi_uid: Some(piUser.user.uid),
+        pi_token: piUser.accessToken,
+        auth: None,
+        person_id: None,
+        comment: None,
       });
 
-      if (data.status >= 200 && data.status < 300) {
-        //payment was approved continue with flow
-        return data;
-      }
+      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+      return;
     }; // Read more about this in the SDK reference
 
     const PiLogin = async (form: PiLoginForm) => {
