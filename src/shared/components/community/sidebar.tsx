@@ -681,7 +681,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   async handleBlockchainClick(i: Sidebar) {
     if (i.isPiBrowser) {
-      await this.handlePiBlockchainClick(i);
+      await i.handlePiBlockchainClick(i);
       return;
     }
     const isMetaMaskInstalled = () => {
