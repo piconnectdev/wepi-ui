@@ -1706,7 +1706,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handleBlockchainClick(i: PostListing) {
-    if (this.isPiBrowser) return;
+    if (i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1759,7 +1759,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handleTipPostClick(i: PostListing) {
     if (!i.props.post_view.creator.web3_address) return;
-    if (this.isPiBrowser) return;
+    if (i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1816,7 +1816,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         u: i.props.post_view.post.updated,
       },
     };
-    await createPayment(config, window.location.hostname);
+    try {
+      await createPayment(config, window.location.hostname);
+    } catch (err) {
+      console.log("Create Pi tip for page error:" + JSON.stringify(err));
+    }
   }
 
   async handlePiBlockchainClick(i: PostListing) {
@@ -1838,11 +1842,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         sign: i.props.post_view.post.auth_sign,
       },
     };
-
+    console.log("Create Payment for Page");
     try {
       await createPayment(config, window.location.hostname);
     } catch (err) {
-      console.log("Create Pi Payment error:" + JSON.stringify(err));
+      console.log("Create Pi Payment for page error:" + JSON.stringify(err));
     }
   }
 

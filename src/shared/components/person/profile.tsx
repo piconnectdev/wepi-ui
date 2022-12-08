@@ -500,6 +500,13 @@ export class Profile extends Component<any, ProfileState> {
                             {i18n.t("block_user")}
                           </button>
                         )}
+                        <a
+                          className="d-flex align-self-start btn btn-secondary mr-2"
+                          href="#"
+                          onClick={linkEvent(this, this.handleBlockchainClick)}
+                        >
+                          {i18n.t("Blockchain")}
+                        </a>
                       </>
                     )}
 
@@ -579,8 +586,8 @@ export class Profile extends Component<any, ProfileState> {
                   </span>
                 </div>
               </div>
-              <div className="flex-grow-1 unselectable pointer mx-2"></div>
-              {!this.amCurrentUser && (
+              {/* <div className="flex-grow-1 unselectable pointer mx-2"></div> */}
+              {/* {!this.amCurrentUser && (
                 <>
                   <a
                     className={`d-flex align-self-start btn btn-secondary mr-2 ${
@@ -598,9 +605,9 @@ export class Profile extends Component<any, ProfileState> {
                     {i18n.t("send_message")}
                   </Link>
                 </>
-              )}
+              )} */}
               <hr />
-              <div className="mb-2">
+              {/* <div className="mb-2">
                 <a
                   className="btn btn-secondary btn-block  mr-2 "
                   href="#"
@@ -608,7 +615,7 @@ export class Profile extends Component<any, ProfileState> {
                 >
                   {i18n.t("Blockchain")}
                 </a>
-              </div>
+              </div> */}
             </div>
 
             {pv.person.bio.match({

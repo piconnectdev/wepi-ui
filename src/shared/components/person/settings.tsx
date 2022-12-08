@@ -1496,7 +1496,11 @@ export class Settings extends Component<any, SettingsState> {
         s: luv.person.auth_sign,
       },
     };
-    await createPayment(config, window.location.hostname);
+    try {
+      await createPayment(config, window.location.hostname);
+    } catch (err) {
+      console.log("Create Pi Payment for person error:" + JSON.stringify(err));
+    }
     // var info = {
     //   own: luv.person.id,
     //   comment: luv.person.name,

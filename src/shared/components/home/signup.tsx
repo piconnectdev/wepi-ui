@@ -918,7 +918,7 @@ export class Signup extends Component<any, State> {
   }
 
   async handlePiRegisterWithFee(i: Signup, event: any) {
-    if (!this.isPiBrowser) return;
+    if (!i.isPiBrowser) return;
 
     var config = {
       amount: 1,

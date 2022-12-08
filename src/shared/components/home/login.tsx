@@ -278,7 +278,7 @@ export class Login extends Component<any, State> {
   }
 
   async handlePiLoginSubmit(i: Login, event: any) {
-    //if (!this.isPiBrowser)
+    //if (!i.isPiBrowser)
     //  return;
     var piUser;
 

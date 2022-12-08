@@ -680,7 +680,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   async handleBlockchainClick(i: Sidebar) {
-    if (this.isPiBrowser) {
+    if (i.isPiBrowser) {
       await this.handlePiBlockchainClick(i);
       return;
     }
@@ -747,7 +747,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         sign: i.props.community_view.community.srv_sign,
       },
     };
-    await createPayment(config, window.location.hostname);
+    try {
+      await createPayment(config, window.location.hostname);
+    } catch (err) {
+      console.log("Create Payment for group error");
+    }
     /*
     var info = {
       own: null,

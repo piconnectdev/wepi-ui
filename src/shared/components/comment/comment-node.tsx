@@ -1659,7 +1659,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   async handleBlockchainComment(i: CommentNode) {
-    if (this.isPiBrowser) return;
+    if (i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1682,7 +1682,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     };
     var str = utf8ToHex(JSON.stringify(config));
     if (isMetaMaskInstalled()) {
-      console.log("handleBlockchainComment");
       try {
         var accounts = await ethereum.request({
           method: "eth_requestAccounts",
@@ -1710,7 +1709,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   async handleTipComment(i: CommentNode) {
     if (!i.props.node.comment_view.creator.web3_address) return;
-    if (this.isPiBrowser) return;
+    if (i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1776,7 +1775,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         ";" +
         i.props.node.comment_view.comment.id,
     };
-    await createPayment(config, window.location.hostname);
+    try {
+      await createPayment(config, window.location.hostname);
+    } catch (err) {
+      console.log("Create Pi Tip for note error:" + JSON.stringify(err));
+    }
     // var piUser;
     // const authenticatePiUser = async () => {
     //   // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
@@ -1897,7 +1900,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         sign: i.props.node.comment_view.comment.srv_sign,
       },
     };
-    await createPayment(config, window.location.hostname);
+    try {
+      await createPayment(config, window.location.hostname);
+    } catch (err) {
+      console.log("Create Pi Payment for note error:" + JSON.stringify(err));
+    }
     // var info = {
     //   own: i.props.node.comment_view.comment.creator_id,
     //   comment: i.props.node.comment_view.comment.id,
