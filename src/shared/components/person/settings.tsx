@@ -203,6 +203,8 @@ export class Settings extends Component<any, SettingsState> {
             luv.local_user.send_notifications_to_email
           ),
           matrix_user_id: luv.person.matrix_user_id,
+          web3_address: luv.person.web3_address,
+          pi_address: luv.person.pi_address,
         },
       };
     }
