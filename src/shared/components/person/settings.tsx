@@ -1415,7 +1415,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   async handlePiLoginSubmit(i: Settings, event: any) {
-    //if (!this.isPiBrowser)
+    //if (!i.isPiBrowser)
     //  return;
     var piUser;
 
@@ -1501,111 +1501,5 @@ export class Settings extends Component<any, SettingsState> {
     } catch (err) {
       console.log("Create Pi Payment for person error:" + JSON.stringify(err));
     }
-    // var info = {
-    //   own: luv.person.id,
-    //   comment: luv.person.name,
-    // };
-    // var piUser;
-
-    // const authenticatePiUser = async () => {
-    //   // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-    //   const scopes = ["username", "payments"];
-    //   try {
-    //     /// HOW TO CALL Pi.authenticate Global/Init
-    //     var user = await window.Pi.authenticate(
-    //       scopes,
-    //       onIncompletePaymentFound
-    //     );
-    //     return user;
-    //   } catch (err) {
-    //     alert("Pi.authenticate error:" + JSON.stringify(err));
-    //     console.log(err);
-    //   }
-    // };
-    // const onIncompletePaymentFound = async payment => {
-    //   const { data } = await axios.post("/pi/found", {
-    //     paymentid: payment.identifier,
-    //     pi_username: piUser.user.username,
-    //     pi_uid: piUser.user.uid,
-    //     auth: null,
-    //     dto: null,
-    //   });
-
-    //   if (data.status >= 200 && data.status < 300) {
-    //     //payment was approved continue with flow
-    //     //alert(payment);
-    //     return data;
-    //   }
-    // }; // Read more about this in the SDK reference
-
-    // const createPiPayment = async (info, config) => {
-    //   //piApiResult = null;
-    //   window.Pi.createPayment(config, {
-    //     // Callbacks you need to implement - read more about those in the detailed docs linked below:
-    //     onReadyForServerApproval: payment_id =>
-    //       onReadyForApproval(payment_id, info, config),
-    //     onReadyForServerCompletion: (payment_id, txid) =>
-    //       onReadyForCompletion(payment_id, txid, info, config),
-    //     onCancel: onCancel,
-    //     onError: onError,
-    //   });
-    // };
-
-    // const onReadyForApproval = async (payment_id, info, paymentConfig) => {
-    //   //make POST request to your app server /payments/approve endpoint with paymentId in the body
-    //   const { data } = await axios.post("/pi/approve", {
-    //     paymentid: payment_id,
-    //     pi_username: piUser.user.username,
-    //     pi_uid: piUser.user.uid,
-    //     person_id: info.own,
-    //     comment: info.comment,
-    //     //paymentConfig
-    //   });
-    //   if (data.status >= 200 && data.status < 300) {
-    //     //payment was approved continue with flow
-    //     return data;
-    //   } else {
-    //     //alert("Payment approve error: " + JSON.stringify(data));
-    //   }
-    // };
-
-    // // Update or change password
-    // const onReadyForCompletion = (payment_id, txid, info, paymentConfig) => {
-    //   //make POST request to your app server /payments/complete endpoint with paymentId and txid in the body
-    //   axios
-    //     .post("/pi/complete", {
-    //       paymentid: payment_id,
-    //       pi_username: piUser.user.username,
-    //       pi_uid: piUser.user.uid,
-    //       person_id: info.own,
-    //       comment: info.comment,
-    //       txid,
-    //       //paymentConfig,
-    //     })
-    //     .then(data => {
-    //       if (data.status >= 200 && data.status < 300) {
-    //         return true;
-    //       } else {
-    //         alert("Payment complete error: " + JSON.stringify(data));
-    //       }
-    //       return false;
-    //     });
-    //   return false;
-    // };
-
-    // const onCancel = paymentId => {
-    //   console.log("Payment cancelled: ", paymentId);
-    // };
-    // const onError = (error, paymentId) => {
-    //   console.log("Payment error: ", error, paymentId);
-    // };
-
-    // try {
-    //   piUser = await authenticatePiUser();
-
-    //   await createPiPayment(info, config);
-    // } catch (err) {
-    //   alert("PiPayment error:" + JSON.stringify(err));
-    // }
   }
 }
