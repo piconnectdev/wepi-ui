@@ -733,7 +733,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   async handlePiBlockchainClick(i: Sidebar) {
     var config = {
-      amount: 0.000001,
+      amount: 0.00001,
       memo: "group",
       metadata: {
         id: i.props.community_view.community.id,

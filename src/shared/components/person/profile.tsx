@@ -1072,7 +1072,7 @@ export class Profile extends Component<any, ProfileState> {
       .match({
         some: person => {
           config = {
-            amount: 0.000001,
+            amount: 0.00001,
             memo: "profile",
             metadata: {
               id: person.id,

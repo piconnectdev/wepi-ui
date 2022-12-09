@@ -1790,7 +1790,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   async handlePiBlockchainClick(i: CommentNode) {
     var config = {
-      amount: 0.000001,
+      amount: 0.00001,
       memo: "note",
       metadata: {
         id: i.props.node.comment_view.comment.id,

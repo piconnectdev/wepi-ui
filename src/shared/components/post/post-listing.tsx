@@ -1832,7 +1832,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handlePiBlockchainClick(i: PostListing) {
     var config = {
-      amount: 0.000001,
+      amount: 0.00001,
       memo: "page",
       metadata: {
         id: i.props.post_view.post.id,

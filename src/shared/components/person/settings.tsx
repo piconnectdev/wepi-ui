@@ -1483,7 +1483,7 @@ export class Settings extends Component<any, SettingsState> {
     let mui = UserService.Instance.myUserInfo.unwrap();
     let luv = mui.local_user_view;
     var config = {
-      amount: 0.000001,
+      amount: 0.00001,
       //memo: ('wepi:profile:'+luv.person.name).substr(0,28),
       memo: "person",
       metadata: {
