@@ -1823,7 +1823,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.post_view.creator.id)
+        Some(i.props.post_view.post.id)
       );
     } catch (err) {
       console.log("Create Pi tip for page error:" + JSON.stringify(err));
@@ -1851,7 +1851,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
     console.log("Create Payment for Page");
     try {
-      await createPayment(config, window.location.hostname);
+      await createPayment(
+        config,
+        window.location.hostname,
+        Some(i.props.post_view.post.id)
+      );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));
     }

@@ -1499,7 +1499,11 @@ export class Settings extends Component<any, SettingsState> {
       },
     };
     try {
-      await createPayment(config, window.location.hostname);
+      await createPayment(
+        config,
+        window.location.hostname,
+        Some(luv.person.id)
+      );
     } catch (err) {
       console.log("Create Pi Payment for person error:" + JSON.stringify(err));
     }

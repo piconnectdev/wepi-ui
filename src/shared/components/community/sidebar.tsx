@@ -748,7 +748,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       },
     };
     try {
-      await createPayment(config, window.location.hostname);
+      await createPayment(
+        config,
+        window.location.hostname,
+        Some(i.props.community_view.community.id)
+      );
     } catch (err) {
       console.log("Create Payment for group error");
     }

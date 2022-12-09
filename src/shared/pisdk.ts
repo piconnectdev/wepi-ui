@@ -6,6 +6,7 @@ import { wsClient } from "./utils";
 export async function createPayment(
   config: any,
   domain: string,
+  object_id: Option<string> = None,
   comment: Option<string> = None,
   auth: Option<string> = None
 ) {
@@ -44,7 +45,7 @@ export async function createPayment(
       pi_token: piUser.accessToken,
       pi_uid: Some(piUser.user.uid),
       paymentid: payment_id,
-      person_id: None,
+      object_id: object_id,
       comment: comment,
       auth: auth,
     });
@@ -58,7 +59,7 @@ export async function createPayment(
       pi_username: piUser.user.username,
       pi_uid: Some(piUser.user.uid),
       paymentid: payment_id,
-      person_id: None,
+      object_id: object_id,
       comment: comment,
       txid,
       auth: auth,
