@@ -278,15 +278,14 @@ export class CommunityForm extends Component<
                   capitalizeFirstLetter(i18n.t("create"))
                 )}
               </button>
-              {this.props.community_view.isSome() && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={linkEvent(this, this.handleCancel)}
-                >
-                  {i18n.t("cancel")}
-                </button>
-              )}
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={linkEvent(this, this.handleCancel)}
+              >
+                {i18n.t("cancel")}
+              </button>
             </div>
           </div>
         </form>
