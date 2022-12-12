@@ -95,6 +95,8 @@ function buildThemeList(): string[] {
     "litely",
     "litely-red",
     "nord",
+    "wepi",
+    "pi-network",
   ];
   if (fs.existsSync(extraThemesFolder)) {
     let dirThemes = fs.readdirSync(extraThemesFolder);
@@ -196,7 +198,7 @@ server.get("/*", async (req, res) => {
            <script>window.isoData = ${serializeO(isoData)}</script>
            <script>window.lemmyConfig = ${serialize(config)}</script>
            <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-           <script>Pi.init({ version: "2.0", sandbox: true })</script>
+           <script>Pi.init({ version: "2.0"})</script>
 
            <!-- A remote debugging utility for mobile -->
            ${erudaStr}
@@ -208,7 +210,7 @@ server.get("/*", async (req, res) => {
            ${helmet.meta.toString()}
 
            <!-- Required meta tags -->
-           <meta name="Description" content="WePi">
+           <meta name="Description" content="WePi - Beta">
            <meta charset="utf-8">
            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 

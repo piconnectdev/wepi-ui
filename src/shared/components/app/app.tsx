@@ -32,12 +32,22 @@ export class App extends Component<any, any> {
                     id="favicon"
                     rel="shortcut icon"
                     type="image/x-icon"
-                    href={icon || favIconUrl}
+                    href={favIconUrl}
                   />
                   <link rel="apple-touch-icon" href={icon || favIconPngUrl} />
                 </Helmet>
               ),
-              none: <></>,
+              none: (
+                <Helmet>
+                  <link
+                    id="favicon"
+                    rel="shortcut icon"
+                    type="image/x-icon"
+                    href={favIconUrl}
+                  />
+                  <link rel="apple-touch-icon" href={favIconPngUrl} />
+                </Helmet>
+              ),
             })}
             <Navbar siteRes={siteRes} />
             <div className="mt-4 p-0 fl-1">

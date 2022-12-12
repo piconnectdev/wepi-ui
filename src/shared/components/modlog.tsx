@@ -120,9 +120,9 @@ export class Modlog extends Component<any, ModlogState> {
     this.state = this.emptyState;
     this.handlePageChange = this.handlePageChange.bind(this);
 
-    this.state.communityId = this.props.match.params.community_id
-      ? Some(this.props.match.params.community_id)
-      : None;
+    //this.state.communityId = this.props.match.params.community_id
+    //  ? Some(this.props.match.params.community_id)
+    //  : None;
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);

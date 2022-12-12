@@ -54,7 +54,7 @@ if (isBrowser()) {
 
 export const wsClient = new LemmyWebsocket();
 
-export const favIconUrl = "/static/assets/icons/favicon.svg";
+export const favIconUrl = "/static/assets/icons/favicon.ico";
 export const favIconPngUrl = "/static/assets/icons/apple-touch-icon.png";
 // TODO
 // export const defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
@@ -481,7 +481,7 @@ export async function setTheme(theme: string, forceReload = false) {
   }
   // This is only run on a force reload
   if (theme == "browser") {
-    theme = "darkly";
+    theme = "litely";
   }
 
   let themeList = await fetchThemeList();

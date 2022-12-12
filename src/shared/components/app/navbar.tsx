@@ -22,6 +22,7 @@ import {
   amAdmin,
   auth,
   canCreateCommunity,
+  favIconPngUrl,
   isBrowser,
   notifyComment,
   notifyPrivateMessage,
@@ -212,9 +213,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
           >
             {siteView.site.icon.match({
               some: icon => showAvatars() && <PictrsImage src={icon} icon />,
-              none: <></>,
+              none: <PictrsImage src={favIconPngUrl} icon />,
             })}
-            {siteView.site.name}
+            {siteView.site.name} - Beta
           </NavLink>
           {UserService.Instance.myUserInfo.isSome() && (
             <>
@@ -337,9 +338,9 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                     {i18n.t("create_community")}
                   </NavLink>
                 </li>
-              )}{" "}
+              )}
               {/*
-              <li class="nav-item">
+              <li className="nav-item">
                 <a
                   className="nav-link"
                   title={i18n.t("support_lemmy")}
