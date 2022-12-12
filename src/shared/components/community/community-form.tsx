@@ -351,7 +351,8 @@ export class CommunityForm extends Component<
   }
 
   handleCancel(i: CommunityForm) {
-    i.props.onCancel();
+    //i.props.onCancel();
+    window.location.href = "/";
   }
 
   handleIconUpload(url: string) {

@@ -596,7 +596,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   handleCancel(i: PostForm) {
-    i.props.onCancel();
+    //i.props.onCancel();
+    window.location.href = "/";
   }
 
   handlePreviewToggle(i: PostForm, event: any) {
