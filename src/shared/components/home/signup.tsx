@@ -348,7 +348,7 @@ export class Signup extends Component<any, State> {
                   <br />
                   2. Use Pi Browser to register an account.
                   <br />
-                  3. Register with fee to confirm KYCed.
+                  3. Register with fee to support team.
                 </div>
                 <div className="mt-2 alert alert-warning" role="alert">
                   <Icon icon="cake" classes="icon-inline mr-2" />
@@ -933,7 +933,7 @@ export class Signup extends Component<any, State> {
     if (!i.isPiBrowser) return;
 
     var config = {
-      amount: 1,
+      amount: 0.1,
       memo: "register",
       metadata: {
         host: window.location.hostname,
