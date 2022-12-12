@@ -348,7 +348,7 @@ export class Signup extends Component<any, State> {
                   <br />
                   2. Use Pi Browser to register an account.
                   <br />
-                  3. Free register til 2023/02/28.
+                  3. Register with fee to confirm KYCed.
                 </div>
                 <div className="mt-2 alert alert-warning" role="alert">
                   <Icon icon="cake" classes="icon-inline mr-2" />
@@ -518,6 +518,18 @@ export class Signup extends Component<any, State> {
                 )}
               </button>
             )}
+            {/* {this.isPiBrowser && ( */}
+            <button
+              type="button"
+              onClick={linkEvent(this, this.handlePiRegisterWithFee)}
+              className="btn btn-secondary"
+              //className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
+              //disabled={!validEmail(this.state.loginForm.username_or_email)}
+              title="Register with Fee"
+            >
+              Register with Fee
+            </button>
+            {/* )} */}
           </div>
         </div>
       </form>
