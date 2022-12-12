@@ -931,7 +931,9 @@ export class Signup extends Component<any, State> {
 
   async handlePiRegisterWithFee(i: Signup, event: any) {
     if (!i.isPiBrowser) return;
-
+    event.preventDefault();
+    i.setState({ registerLoading: true });
+    i.setState(i.state);
     var config = {
       amount: 0.1,
       memo: "register",
