@@ -4927,8 +4927,13 @@ lcid@^1.0.0:
     invert-kv "^1.0.0"
 
 "lemmy-js-client@https://github.com/piconnectdev/lemmy-js-client":
-  version "0.17.0-rc.54"
-  resolved "https://github.com/piconnectdev/lemmy-js-client#b7c1b6777b742c4c8f963d84a3ec95123f175530"
+  version "0.17.0-rc.56"
+  resolved "https://github.com/piconnectdev/lemmy-js-client#386940c4d2ff0d8a8d3e078761c0bf4f250f7a72"
+  dependencies:
+    "@sniptt/monads" "^0.5.10"
+    class-transformer "^0.5.1"
+    node-fetch "2.6.6"
+    reflect-metadata "^0.1.13"
 
 levn@^0.4.1:
   version "0.4.1"
@@ -5600,6 +5605,13 @@ node-fetch-npm@^2.0.2:
     encoding "^0.1.11"
     json-parse-better-errors "^1.0.0"
     safe-buffer "^5.1.1"
+
+node-fetch@2.6.6:
+  version "2.6.6"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.6.tgz#1751a7c01834e8e1697758732e9efb6eeadfaf89"
+  integrity sha512-Z8/6vRlTUChSdIgMa51jxQ4lrw/Jy5SOW10ObaA47/RElsAN2c5Pn8bTgFGWn/ibwzXTE8qwr1Yzx28vsecXEA==
+  dependencies:
+    whatwg-url "^5.0.0"
 
 node-fetch@^2.6.1:
   version "2.6.7"
