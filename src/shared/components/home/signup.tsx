@@ -112,9 +112,9 @@ export class Signup extends Component<any, State> {
       info: undefined,
     },
     form: {
-      username: undefined,
-      password: undefined,
-      password_verify: undefined,
+      username: "",
+      password: "",
+      password_verify: "",
       show_nsfw: false,
       captcha_uuid: undefined,
       captcha_answer: undefined,

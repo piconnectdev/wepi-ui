@@ -861,6 +861,7 @@ export class Settings extends Component<any, SettingsState> {
           {!this.isPiBrowser && (
             <div className="form-group">
               <button
+                type="button"
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handleBlockchain)}
               >
@@ -872,10 +873,11 @@ export class Settings extends Component<any, SettingsState> {
           {this.isPiBrowser && (
             <div className="form-group">
               <button
+                type="button"
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handlePiBlockchain)}
               >
-                {i18n.t("Verify Account")}
+                {i18n.t("Verify Pi Account")}
               </button>
             </div>
           )}
@@ -1222,7 +1224,11 @@ export class Settings extends Component<any, SettingsState> {
     i.setState({ saveUserSettingsLoading: true });
     let auth = myAuth();
     if (auth) {
-      let form: SaveUserSettings = { ...i.state.saveUserSettingsForm, auth };
+      let form: SaveUserSettings = {
+        ...i.state.saveUserSettingsForm,
+        auth,
+        sign_data: false,
+      };
       WebSocketService.Instance.send(wsClient.saveUserSettings(form));
     }
   }
@@ -1430,10 +1436,10 @@ export class Settings extends Component<any, SettingsState> {
     i.setState({ changePasswordLoading: true });
     piUser = await authenticatePiUser();
     var ea = new ExternalAccount();
-    (ea.account = piUser.user.username),
-      (ea.token = piUser.accessToken),
-      (ea.epoch = 0),
-      (ea.signature = piUser.user.uid);
+    ea.account = piUser.user.username;
+    ea.token = piUser.accessToken;
+    ea.epoch = 0;
+    ea.signature = piUser.user.uid;
     ea.provider = "PiNetwork";
     ea.extra = undefined;
     ea.uuid = piUser.user.uid;
@@ -1482,10 +1488,6 @@ export class Settings extends Component<any, SettingsState> {
         console.log(
           "Create Pi Payment for person error:" + JSON.stringify(err)
         );
-        // let mui = UserService.Instance.myUserInfo;
-        // if (mui) {
-        //   this.setState({ communityBlocks: mui.community_blocks });
-        // }
       }
     }
   }

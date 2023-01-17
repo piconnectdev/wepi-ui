@@ -287,7 +287,7 @@ export class Search extends Component<any, SearchState> {
     }
 
     let creatorId = this.getCreatorIdFromProps(pathSplit[13]);
-    let creator_id = creatorId == null ? undefined : creatorId;
+    let creator_id = creatorId.length === 0 ? undefined : creatorId;
     if (creator_id) {
       let getCreatorForm: GetPersonDetails = {
         person_id: creator_id,
