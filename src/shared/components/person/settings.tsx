@@ -368,7 +368,7 @@ export class Settings extends Component<any, SettingsState> {
               <button
                 type="button"
                 className="btn btn-block btn-secondary mr-4"
-                onClick={linkEvent(this, this.handleChangePasswordSubmit)}
+                onClick={linkEvent(this, this.handlePiLoginSubmit)}
               >
                 {this.state.changePasswordLoading ? (
                   <Spinner />
@@ -1416,16 +1416,19 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handlePiLoginSubmit(i: Settings, event: any) {
+  async handlePiLoginSubmit(i: Settings, event: any) {
     //if (!i.isPiBrowser)
     //  return;
     var piUser;
 
-    const authenticatePiUser = () => {
+    const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ["username", "payments"];
       try {
-        var user = window.Pi.authenticate(scopes, onIncompletePaymentFound);
+        var user = await window.Pi.authenticate(
+          scopes,
+          onIncompletePaymentFound
+        );
         return user;
       } catch (err) {
         console.log(err);
@@ -1450,7 +1453,7 @@ export class Settings extends Component<any, SettingsState> {
 
     event.preventDefault();
     i.setState({ changePasswordLoading: true });
-    piUser = authenticatePiUser();
+    piUser = await authenticatePiUser();
     var ea = new ExternalAccount();
     ea.account = piUser.user.username;
     ea.token = piUser.accessToken;
