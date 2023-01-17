@@ -1,4 +1,3 @@
-import { None, Option, Some } from "@sniptt/monads";
 import { Options, passwordStrength } from "check-password-strength";
 import { I18nKeys } from "i18next";
 import { Component, linkEvent } from "inferno";
@@ -16,8 +15,8 @@ import {
   PiRegister,
   PiRegisterWithFee,
   Register,
+  RegistrationMode,
   SiteView,
-  toUndefined,
   UserOperation,
   Web3Login as Web3LoginForm,
   Web3Register,
@@ -74,75 +73,85 @@ interface State {
   piLoginForm: PiLoginForm;
   web3LoginForm: Web3LoginForm;
   web3RegisterForm: Web3Register;
-  registerForm: Register;
+  form: Register;
+  // form: {
+  //   username?: string;
+  //   email?: string;
+  //   password?: string;
+  //   password_verify?: string;
+  //   show_nsfw: boolean;
+  //   captcha_uuid?: string;
+  //   captcha_answer?: string;
+  //   honeypot?: string;
+  //   answer?: string;
+  // };
   registerLoading: boolean;
-  captcha: Option<GetCaptchaResponse>;
+  captcha?: GetCaptchaResponse;
   captchaPlaying: boolean;
-  token: Option<GetCaptchaResponse>;
+  token?: GetCaptchaResponse;
   siteRes: GetSiteResponse;
 }
 
 export class Signup extends Component<any, State> {
   private isoData = setIsoData(this.context);
-  private subscription: Subscription;
-  private audio: HTMLAudioElement;
-  emptyState: State = {
-    token: None,
-    piLoginForm: new PiLoginForm({
-      domain: None,
-      ea: new ExternalAccount({
-        account: undefined,
-        token: undefined,
+  private subscription?: Subscription;
+  private audio?: HTMLAudioElement;
+  state: State = {
+    token: undefined,
+    piLoginForm: {
+      domain: undefined,
+      ea: {
+        account: "",
+        token: "",
         epoch: 0,
-        signature: None,
-        provider: None,
-        extra: None,
-        uuid: None,
-      }),
+        signature: undefined,
+        provider: undefined,
+        extra: undefined,
+        uuid: undefined,
+      },
       info: undefined,
-    }),
-    registerForm: new Register({
+    },
+    form: {
       username: undefined,
       password: undefined,
       password_verify: undefined,
       show_nsfw: false,
-      captcha_uuid: None,
-      captcha_answer: None,
-      honeypot: None,
-      answer: None,
-      email: None,
-    }),
+      captcha_uuid: undefined,
+      captcha_answer: undefined,
+      honeypot: undefined,
+      answer: undefined,
+      email: undefined,
+    },
     web3LoginForm: {
-      account: null,
-      signature: null,
-      token: null,
+      account: "",
+      signature: undefined,
+      token: "",
       epoch: 0,
       info: undefined,
     },
     web3RegisterForm: {
-      ea: new ExternalAccount({
-        account: undefined,
-        token: undefined,
+      ea: {
+        account: "",
+        token: "",
         epoch: 0,
-        signature: None,
-        provider: None,
-        extra: None,
-        uuid: None,
-      }),
-      info: new Register({
-        username: undefined,
-        password: undefined,
-        password_verify: undefined,
+        signature: undefined,
+        provider: undefined,
+        extra: undefined,
+        uuid: undefined,
+      },
+      info: {
+        username: "",
+        password: "",
+        password_verify: "",
         show_nsfw: false,
-        captcha_uuid: None,
-        captcha_answer: None,
-        honeypot: None,
-        answer: None,
-        email: None,
-      }),
+        captcha_uuid: undefined,
+        captcha_answer: undefined,
+        honeypot: undefined,
+        answer: undefined,
+        email: undefined,
+      },
     },
     registerLoading: false,
-    captcha: None,
     captchaPlaying: false,
     siteRes: this.isoData.site_res,
   };
@@ -150,7 +159,6 @@ export class Signup extends Component<any, State> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.state = this.emptyState;
     this.handleAnswerChange = this.handleAnswerChange.bind(this);
 
     this.parseMessage = this.parseMessage.bind(this);
@@ -164,7 +172,7 @@ export class Signup extends Component<any, State> {
 
   componentWillUnmount() {
     if (isBrowser()) {
-      this.subscription.unsubscribe();
+      this.subscription?.unsubscribe();
     }
   }
 
@@ -188,8 +196,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    //return true;
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -206,8 +214,6 @@ export class Signup extends Component<any, State> {
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
-          description={None}
-          image={None}
         />
         <div className="row">
           <div className="col-12 col-lg-6 offset-lg-3">
@@ -247,7 +253,7 @@ export class Signup extends Component<any, State> {
               type="text"
               id="register-username"
               className="form-control"
-              value={this.state.registerForm.username}
+              value={this.state.form.username}
               onInput={linkEvent(this, this.handleRegisterUsernameChange)}
               required
               minLength={3}
@@ -271,14 +277,15 @@ export class Signup extends Component<any, State> {
                   ? i18n.t("required")
                   : i18n.t("optional")
               }
-              value={toUndefined(this.state.registerForm.email)}
+              value={this.state.form.email}
               autoComplete="email"
               onInput={linkEvent(this, this.handleRegisterEmailChange)}
               required={siteView.local_site.require_email_verification}
               minLength={3}
             />
             {!siteView.local_site.require_email_verification &&
-              !this.state.registerForm.email.map(validEmail).unwrapOr(true) && (
+              this.state.form.email &&
+              !validEmail(this.state.form.email) && (
                 <div className="mt-2 mb-0 alert alert-warning" role="alert">
                   <Icon icon="alert-triangle" classes="icon-inline mr-2" />
                   {i18n.t("no_password_reset")}
@@ -298,7 +305,7 @@ export class Signup extends Component<any, State> {
             <input
               type="password"
               id="register-password"
-              value={this.state.registerForm.password}
+              value={this.state.form.password}
               autoComplete="new-password"
               onInput={linkEvent(this, this.handleRegisterPasswordChange)}
               minLength={10}
@@ -306,7 +313,7 @@ export class Signup extends Component<any, State> {
               className="form-control"
               required
             />
-            {this.state.registerForm.password && (
+            {this.state.form.password && (
               <div className={this.passwordColorClass}>
                 {i18n.t(this.passwordStrength as I18nKeys)}
               </div>
@@ -325,7 +332,7 @@ export class Signup extends Component<any, State> {
             <input
               type="password"
               id="register-verify-password"
-              value={this.state.registerForm.password_verify}
+              value={this.state.form.password_verify}
               autoComplete="new-password"
               onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
               maxLength={60}
@@ -335,32 +342,31 @@ export class Signup extends Component<any, State> {
           </div>
         </div> */}
 
-        {this.isPiBrowser && (
-          <>
-            <div className="form-group row">
-              <div className="offset-sm-2 col-sm-10">
-                <div className="mt-2 alert alert-warning" role="alert">
-                  <Icon icon="star" classes="icon-inline mr-2" />
-                  {/* {i18n.t("fill_out_application")} */}
-                  To join this server, you must:
-                  <br />
-                  1. <a href={joinPiUrl}>Join Pi Network</a>
-                  <br />
-                  2. Use Pi Browser to register an account.
-                  <br />
-                  3. Register with fee to support team.
-                </div>
-                <div className="mt-2 alert alert-warning" role="alert">
-                  <Icon icon="cake" classes="icon-inline mr-2" />
-                  REWARD
-                  <br />
-                  1. Everyone can push Posts, Comments ... to Pi Network
-                  blockchain and get reward.
-                  <br />
-                  2. Members get reward when they contribute contents and
-                  someone push it to blockchain.
-                </div>
-                {/* {siteView.local_site.application_question.match({
+        {this.isPiBrowser ||
+          (true && (
+            <>
+              <div className="form-group row">
+                <div className="offset-sm-2 col-sm-10">
+                  <div className="mt-2 alert alert-warning" role="alert">
+                    <Icon icon="star" classes="icon-inline mr-2" />
+                    {/* {i18n.t("fill_out_application")} */}
+                    To join this server, you must:
+                    <br />
+                    1. <a href={joinPiUrl}>Join Pi Network</a>
+                    <br />
+                    2. Use Pi Browser to register an account.
+                  </div>
+                  <div className="mt-2 alert alert-warning" role="alert">
+                    <Icon icon="cake" classes="icon-inline mr-2" />
+                    REWARD
+                    <br />
+                    1. Everyone can push Posts, Comments ... to Pi Network
+                    blockchain and get reward.
+                    <br />
+                    2. Members get reward when they contribute contents and
+                    someone push it to blockchain.
+                  </div>
+                  {/* {siteView.local_site.application_question.match({
                   some: question => (
                     <div
                       className="md-div"
@@ -369,17 +375,17 @@ export class Signup extends Component<any, State> {
                   ),
                   none: <></>,
                 })} */}
+                </div>
               </div>
-            </div>
 
-            <div className="form-group row">
-              <label
-                className="col-sm-2 col-form-label"
-                htmlFor="application_answer"
-              >
-                {/* {i18n.t("answer")} */}
-              </label>
-              {/* <div className="col-sm-10">
+              <div className="form-group row">
+                <label
+                  className="col-sm-2 col-form-label"
+                  htmlFor="application_answer"
+                >
+                  {/* {i18n.t("answer")} */}
+                </label>
+                {/* <div className="col-sm-10">
                 <MarkdownTextArea
                   initialContent={None}
                   initialLanguageId={None}
@@ -391,11 +397,12 @@ export class Signup extends Component<any, State> {
                   allLanguages={[]}
                 />
               </div> */}
-            </div>
-          </>
-        )}
+              </div>
+            </>
+          ))}
 
-        {siteView.local_site.require_application && (
+        {siteView.local_site.registration_mode ==
+          RegistrationMode.RequireApplication && (
           <>
             <div className="form-group row">
               <div className="offset-sm-2 col-sm-10">
@@ -403,15 +410,14 @@ export class Signup extends Component<any, State> {
                   <Icon icon="alert-triangle" classes="icon-inline mr-2" />
                   {i18n.t("fill_out_application")}
                 </div>
-                {siteView.local_site.application_question.match({
-                  some: question => (
-                    <div
-                      className="md-div"
-                      dangerouslySetInnerHTML={mdToHtml(question)}
-                    />
-                  ),
-                  none: <></>,
-                })}
+                {siteView.local_site.application_question && (
+                  <div
+                    className="md-div"
+                    dangerouslySetInnerHTML={mdToHtml(
+                      siteView.local_site.application_question
+                    )}
+                  />
+                )}
               </div>
             </div>
 
@@ -424,21 +430,17 @@ export class Signup extends Component<any, State> {
               </label>
               <div className="col-sm-10">
                 <MarkdownTextArea
-                  initialContent={None}
-                  initialLanguageId={None}
-                  placeholder={None}
-                  buttonTitle={None}
-                  maxLength={None}
                   onContentChange={this.handleAnswerChange}
                   hideNavigationWarnings
                   allLanguages={[]}
+                  siteLanguages={[]}
                 />
               </div>
             </div>
           </>
         )}
 
-        {this.state.captcha.isSome() && (
+        {this.state.captcha && (
           <div className="form-group row">
             <label className="col-sm-2" htmlFor="register-captcha">
               <span className="mr-2">{i18n.t("enter_code")}</span>
@@ -457,7 +459,7 @@ export class Signup extends Component<any, State> {
                 type="text"
                 className="form-control"
                 id="register-captcha"
-                value={toUndefined(this.state.registerForm.captcha_answer)}
+                value={this.state.form.captcha_answer}
                 onInput={linkEvent(
                   this,
                   this.handleRegisterCaptchaAnswerChange
@@ -475,7 +477,7 @@ export class Signup extends Component<any, State> {
                   className="form-check-input"
                   id="register-show-nsfw"
                   type="checkbox"
-                  checked={this.state.registerForm.show_nsfw}
+                  checked={this.state.form.show_nsfw}
                   onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
                 />
                 <label
@@ -495,17 +497,22 @@ export class Signup extends Component<any, State> {
           type="text"
           className="form-control honeypot"
           id="register-honey"
-          value={toUndefined(this.state.registerForm.honeypot)}
+          value={this.state.form.honeypot}
           onInput={linkEvent(this, this.handleHoneyPotChange)}
         />
         <div className="form-group row">
           <div className="col-sm-10">
             {!this.isPiBrowser && (
-              <button type="submit" className="btn btn-secondary">
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={true}
+              >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
-                  "Wallet " + this.titleName(siteView)
+                  this.titleName(siteView)
+                  //"Wallet " + this.titleName(siteView)
                 )}
               </button>
             )}
@@ -518,18 +525,6 @@ export class Signup extends Component<any, State> {
                 )}
               </button>
             )}
-            {/* {this.isPiBrowser && ( */}
-            <button
-              type="button"
-              onClick={linkEvent(this, this.handlePiRegisterWithFee)}
-              className="btn btn-secondary"
-              //className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
-              //disabled={!validEmail(this.state.loginForm.username_or_email)}
-              title="Register with Fee"
-            >
-              Register with Fee
-            </button>
-            {/* )} */}
           </div>
         </div>
       </form>
@@ -537,51 +532,46 @@ export class Signup extends Component<any, State> {
   }
 
   showCaptcha() {
-    return this.state.captcha.match({
-      some: captcha => (
-        <div className="col-sm-4">
-          {captcha.ok.match({
-            some: res => (
-              <>
-                <img
-                  className="rounded-top img-fluid"
-                  src={this.captchaPngSrc(res)}
-                  style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
-                  alt={i18n.t("captcha")}
-                />
-                {res.wav.isSome() && (
-                  <button
-                    className="rounded-bottom btn btn-sm btn-secondary btn-block"
-                    style="border-top-right-radius: 0; border-top-left-radius: 0;"
-                    title={i18n.t("play_captcha_audio")}
-                    onClick={linkEvent(this, this.handleCaptchaPlay)}
-                    type="button"
-                    disabled={this.state.captchaPlaying}
-                  >
-                    <Icon icon="play" classes="icon-play" />
-                  </button>
-                )}
-              </>
-            ),
-            none: <></>,
-          })}
-        </div>
-      ),
-      none: <></>,
-    });
+    let captchaRes = this.state.captcha?.ok;
+    return captchaRes ? (
+      <div className="col-sm-4">
+        <>
+          <img
+            className="rounded-top img-fluid"
+            src={this.captchaPngSrc(captchaRes)}
+            style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
+            alt={i18n.t("captcha")}
+          />
+          {captchaRes.wav && (
+            <button
+              className="rounded-bottom btn btn-sm btn-secondary btn-block"
+              style="border-top-right-radius: 0; border-top-left-radius: 0;"
+              title={i18n.t("play_captcha_audio")}
+              onClick={linkEvent(this, this.handleCaptchaPlay)}
+              type="button"
+              disabled={this.state.captchaPlaying}
+            >
+              <Icon icon="play" classes="icon-play" />
+            </button>
+          )}
+        </>
+      </div>
+    ) : (
+      <></>
+    );
   }
 
-  get passwordStrength() {
-    return passwordStrength(
-      this.state.registerForm.password,
-      passwordStrengthOptions
-    ).value;
+  get passwordStrength(): string | undefined {
+    let password = this.state.form.password;
+    return password
+      ? passwordStrength(password, passwordStrengthOptions).value
+      : undefined;
   }
 
   get passwordColorClass(): string {
     let strength = this.passwordStrength;
 
-    if (["weak", "medium"].includes(strength)) {
+    if (strength && ["weak", "medium"].includes(strength)) {
       return "text-warning";
     } else if (strength == "strong") {
       return "text-success";
@@ -590,7 +580,7 @@ export class Signup extends Component<any, State> {
     }
   }
 
-  async handleRegisterSubmit(i: Signup, event: any) {
+  handleRegisterSubmit(i: Signup, event: any) {
     event.preventDefault();
     i.setState({ registerLoading: true });
     i.setState(i.state);
@@ -607,54 +597,68 @@ export class Signup extends Component<any, State> {
       return;
     } else {
       //i.setState({ registerLoading: true });
-      WebSocketService.Instance.send(wsClient.register(i.state.registerForm));
+      let cForm = i.state.form;
+      if (cForm.username && cForm.password && cForm.password_verify) {
+        let form: Register = {
+          username: cForm.username,
+          password: cForm.password,
+          password_verify: cForm.password_verify,
+          email: cForm.email,
+          show_nsfw: cForm.show_nsfw,
+          captcha_uuid: cForm.captcha_uuid,
+          captcha_answer: cForm.captcha_answer,
+          honeypot: cForm.honeypot,
+          answer: cForm.answer,
+        };
+        WebSocketService.Instance.send(wsClient.register(form));
+      }
     }
   }
 
   handleRegisterUsernameChange(i: Signup, event: any) {
-    i.state.registerForm.username = event.target.value;
+    i.state.form.username = event.target.value;
     i.setState(i.state);
   }
 
   handleRegisterEmailChange(i: Signup, event: any) {
-    i.state.registerForm.email = Some(event.target.value);
-    if (i.state.registerForm.email.unwrap() == "") {
-      i.state.registerForm.email = None;
+    i.state.form.email = event.target.value;
+    if (i.state.form.email == "") {
+      i.state.form.email = undefined;
     }
     i.setState(i.state);
   }
 
   handleRegisterPasswordChange(i: Signup, event: any) {
-    i.state.registerForm.password = event.target.value;
+    i.state.form.password = event.target.value;
     i.setState(i.state);
   }
 
   handleRegisterPasswordVerifyChange(i: Signup, event: any) {
-    i.state.registerForm.password_verify = event.target.value;
+    i.state.form.password_verify = event.target.value;
     i.setState(i.state);
   }
 
   handleRegisterShowNsfwChange(i: Signup, event: any) {
-    i.state.registerForm.show_nsfw = event.target.checked;
+    i.state.form.show_nsfw = event.target.checked;
     i.setState(i.state);
   }
 
   handleRegisterCaptchaAnswerChange(i: Signup, event: any) {
-    i.state.registerForm.captcha_answer = Some(event.target.value);
+    i.state.form.captcha_answer = event.target.value;
     i.setState(i.state);
   }
 
   handleAnswerChange(val: string) {
-    this.setState(s => ((s.registerForm.answer = Some(val)), s));
+    this.setState(s => ((s.form.answer = val), s));
   }
 
   handleHoneyPotChange(i: Signup, event: any) {
-    i.state.registerForm.honeypot = Some(event.target.value);
+    i.state.form.honeypot = event.target.value;
     i.setState(i.state);
   }
 
   handleRegenCaptcha(i: Signup) {
-    i.audio = null;
+    i.audio = undefined;
     i.setState({ captchaPlaying: false });
     WebSocketService.Instance.send(wsClient.getCaptcha());
   }
@@ -662,28 +666,23 @@ export class Signup extends Component<any, State> {
   handleCaptchaPlay(i: Signup) {
     // This was a bad bug, it should only build the new audio on a new file.
     // Replays would stop prematurely if this was rebuilt every time.
-    i.state.captcha.match({
-      some: captcha =>
-        captcha.ok.match({
-          some: res => {
-            if (i.audio == null) {
-              let base64 = `data:audio/wav;base64,${res.wav}`;
-              i.audio = new Audio(base64);
-            }
+    let captchaRes = i.state.captcha?.ok;
+    if (captchaRes) {
+      if (!i.audio) {
+        let base64 = `data:audio/wav;base64,${captchaRes.wav}`;
+        i.audio = new Audio(base64);
+        i.audio.play();
 
-            i.audio.play();
+        i.setState({ captchaPlaying: true });
 
-            i.setState({ captchaPlaying: true });
-
-            i.audio.addEventListener("ended", () => {
-              i.audio.currentTime = 0;
-              i.setState({ captchaPlaying: false });
-            });
-          },
-          none: void 0,
-        }),
-      none: void 0,
-    });
+        i.audio.addEventListener("ended", () => {
+          if (i.audio) {
+            i.audio.currentTime = 0;
+            i.setState({ captchaPlaying: false });
+          }
+        });
+      }
+    }
   }
 
   captchaPngSrc(captcha: CaptchaResponse) {
@@ -695,17 +694,15 @@ export class Signup extends Component<any, State> {
     console.log(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
-      this.setState(this.emptyState);
-      this.setState(s => ((s.registerForm.captcha_answer = undefined), s));
+      this.setState(s => ((s.form.captcha_answer = undefined), s));
       // Refetch another captcha
       // WebSocketService.Instance.send(wsClient.getCaptcha());
       return;
     } else {
       if (op == UserOperation.Register) {
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
         // Only log them in if a jwt was set
-        if (data.jwt.isSome()) {
+        if (data.jwt) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();
@@ -719,35 +716,28 @@ export class Signup extends Component<any, State> {
           this.props.history.push("/");
         }
       } else if (op == UserOperation.GetCaptcha) {
-        let data = wsJsonToRes<GetCaptchaResponse>(msg, GetCaptchaResponse);
-        data.ok.match({
-          some: res => {
-            this.setState({ captcha: Some(data) });
-            this.setState(
-              s => ((s.registerForm.captcha_uuid = Some(res.uuid)), s)
-            );
-          },
-          none: void 0,
-        });
+        let data = wsJsonToRes<GetCaptchaResponse>(msg);
+        if (data.ok) {
+          this.setState({ captcha: data });
+          this.setState(s => ((s.form.captcha_uuid = data.ok?.uuid), s));
+        }
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
-        let data = wsJsonToRes<GetSiteResponse>(msg, GetSiteResponse);
+        let data = wsJsonToRes<GetSiteResponse>(msg);
         this.setState({ siteRes: data });
       } else if (op == UserOperation.GetToken) {
-        let data = wsJsonToRes<GetCaptchaResponse>(msg, GetCaptchaResponse);
-        data.ok.match({
-          some: res => {
-            this.setState({ token: Some(data) });
-            this.setState(s => ((s.web3RegisterForm.ea.token = res.uuid), s));
-          },
-          none: void 0,
-        });
+        let data = wsJsonToRes<GetCaptchaResponse>(msg);
+        if (data.ok) {
+          this.setState({ token: data });
+          let uuid = data.ok?.uuid;
+          this.setState(s => ((s.web3RegisterForm.ea.token = uuid), s));
+        }
       } else if (op == UserOperation.Web3Register) {
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
+        //this.setState(this.emptyState);
         // Only log them in if a jwt was set
-        if (data.jwt.isSome()) {
+        if (data.jwt) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();
@@ -761,10 +751,10 @@ export class Signup extends Component<any, State> {
           this.props.history.push("/");
         }
       } else if (op == UserOperation.PiRegister) {
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
+        //this.setState(this.emptyState);
         // Only log them in if a jwt was set
-        if (data.jwt.isSome()) {
+        if (data.jwt) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();
@@ -778,10 +768,10 @@ export class Signup extends Component<any, State> {
           this.props.history.push("/");
         }
       } else if (op == UserOperation.PiRegisterWithFee) {
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
+        //this.setState(this.emptyState);
         // Only log them in if a jwt was set
-        if (data.jwt.isSome()) {
+        if (data.jwt) {
           UserService.Instance.login(data);
           this.props.history.push("/communities");
           location.reload();
@@ -803,19 +793,20 @@ export class Signup extends Component<any, State> {
     var accounts = await ethereum.request({
       method: "eth_requestAccounts",
     });
-    i.state.registerForm.captcha_uuid.match({
-      some: res => (i.state.web3LoginForm.token = res),
-      none: null,
-    });
+    if (i.state.form.captcha_uuid) {
+      //i.state.web3LoginForm.token = res;
+    }
     i.state.web3LoginForm.account = ethereum.selectedAddress;
-    i.state.web3LoginForm.info = new LoginForm({
-      username_or_email: i.state.registerForm.username,
-      password: i.state.registerForm.password,
-    });
+    let login: LoginForm = {
+      username_or_email: i.state.form.username,
+      password: i.state.form.password,
+    };
+    i.state.web3LoginForm.info = login;
+
     i.state.web3LoginForm.epoch = new Date().getTime();
     let text =
       "LOGIN:" +
-      i.state.registerForm.username +
+      i.state.form.username +
       ";TOKEN:" +
       i.state.web3LoginForm.token +
       ";TIME:" +
@@ -841,8 +832,8 @@ export class Signup extends Component<any, State> {
       method: "eth_requestAccounts",
     });
     i.state.web3RegisterForm.ea.account = ethereum.selectedAddress;
-    i.state.registerForm.password_verify = i.state.registerForm.password;
-    i.state.web3RegisterForm.info = i.state.registerForm;
+    i.state.form.password_verify = i.state.form.password;
+    //i.state.web3RegisterForm.info = i.state.registerForm;
     i.state.web3RegisterForm.ea.epoch = new Date().getTime();
     let text =
       "LOGIN:" +
@@ -887,43 +878,42 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      var found = new PiPaymentFound({
-        domain: Some(window.location.hostname),
-        paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: Some(piUser.user.uid),
-        pi_token: piUser.accessToken,
-        auth: None,
-        person_id: None,
-        comment: None,
-      });
-      //let client = new LemmyHttp(httpBase);
-      //return client.piPaymentFound(found);
+      var found = new PiPaymentFound();
+      found.domain = window.location.hostname;
+      found.paymentid = payment.identifier;
+      found.pi_username = piUser.user.username;
+      found.pi_uid = piUser.user.uid;
+      found.pi_token = piUser.accessToken;
+      found.auth = undefined;
+      (found.person_id = undefined),
+        (found.comment = undefined),
+        //let client = new LemmyHttp(httpBase);
+        //return client.piPaymentFound(found);
 
-      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+        WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
 
     event.preventDefault();
 
     piUser = await authenticatePiUser();
-    i.state.registerForm.password_verify = i.state.registerForm.password;
+    i.state.form.password_verify = i.state.form.password;
     i.setState(i.state);
-    var ea = new ExternalAccount({
-      account: piUser.user.username,
-      token: piUser.accessToken,
-      uuid: Some(piUser.user.uid),
+    var ea = new ExternalAccount();
+    ea.account = piUser.user.username;
+    ea.token = piUser.accessToken;
+    ea.uuid = piUser.user.uid;
 
-      epoch: 0,
-      signature: None,
-      provider: Some("PiNetwork"),
-      extra: None,
-    });
-    var piRegisterForm = new PiRegister({
-      domain: Some(window.location.hostname),
-      info: i.state.registerForm,
-      ea: ea,
-    });
+    ea.epoch = 0;
+    (ea.signature = undefined),
+      (ea.provider = "PiNetwork"),
+      (ea.extra = undefined);
+
+    var piRegisterForm = new PiRegister();
+    piRegisterForm.domain = window.location.hostname;
+    piRegisterForm.info = i.state.form;
+    piRegisterForm.ea = ea;
+
     i.setState({ registerLoading: true });
     i.setState(i.state);
     WebSocketService.Instance.send(wsClient.piRegister(piRegisterForm));
@@ -961,16 +951,15 @@ export class Signup extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      var found = new PiPaymentFound({
-        domain: Some(window.location.hostname),
-        paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: Some(piUser.user.uid),
-        pi_token: piUser.accessToken,
-        auth: None,
-        person_id: None,
-        comment: None,
-      });
+      var found = new PiPaymentFound();
+      found.domain = window.location.hostname;
+      found.paymentid = payment.identifier;
+      found.pi_username = piUser.user.username;
+      found.pi_uid = piUser.user.uid;
+      found.pi_token = piUser.accessToken;
+      found.auth = undefined;
+      found.person_id = undefined;
+      found.comment = undefined;
 
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
@@ -981,22 +970,20 @@ export class Signup extends Component<any, State> {
       info,
       paymentConfig
     ) => {
-      var ea = new ExternalAccount({
-        account: piUser.user.username,
-        token: piUser.accessToken,
-        epoch: 0,
-        signature: None,
-        provider: Some("PiNetwork"),
-        extra: None,
-        uuid: Some(piUser.user.uid),
-      });
-      var agree = new PiAgreeRegister({
-        domain: Some(window.location.hostname),
-        ea: ea,
-        info: info,
-        paymentid: payment_id.toString(),
-      });
-      WebSocketService.Instance.send(wsClient.piAgree(agree));
+      var ea = new ExternalAccount();
+      ea.account = piUser.user.username;
+      ea.token = piUser.accessToken;
+      ea.epoch = 0;
+      ea.signature = undefined;
+      ea.provider = "PiNetwork";
+      (ea.extra = undefined), (ea.uuid = piUser.user.uid);
+
+      var agree = new PiAgreeRegister();
+      agree.domain = window.location.hostname;
+      agree.ea = ea;
+      agree.info = info;
+      (agree.paymentid = payment_id.toString()),
+        WebSocketService.Instance.send(wsClient.piAgree(agree));
     };
 
     const onReadyForCompletionRegister = (
@@ -1005,22 +992,24 @@ export class Signup extends Component<any, State> {
       info,
       paymentConfig
     ) => {
-      var ea = new ExternalAccount({
-        account: piUser.user.username,
-        token: piUser.accessToken,
-        epoch: 0,
-        signature: Some(piUser.user.uid),
-        provider: Some("PiNetwork"),
-        extra: None,
-        uuid: Some(piUser.user.uid),
-      });
-      var reg = new PiRegisterWithFee({
-        domain: Some(window.location.hostname),
-        ea: ea,
-        info: info,
-        paymentid: payment_id,
-        txid: txid,
-      });
+      var ea = new ExternalAccount();
+
+      ea.account = piUser.user.username;
+      ea.token = piUser.accessToken;
+      ea.epoch = 0;
+      ea.signature = piUser.user.uid;
+      ea.provider = "PiNetwork";
+      ea.extra = undefined;
+      ea.uuid = piUser.user.uid;
+
+      var reg = new PiRegisterWithFee();
+
+      reg.domain = window.location.hostname;
+      reg.ea = ea;
+      reg.info = info;
+      reg.paymentid = payment_id;
+      reg.txid = txid;
+
       WebSocketService.Instance.send(wsClient.piRegisterWithFee(reg));
       return true;
     };
@@ -1051,7 +1040,7 @@ export class Signup extends Component<any, State> {
       });
     };
 
-    var info = i.state.registerForm;
+    var info = i.state.form;
     info.password_verify = info.password;
     info.show_nsfw = true;
 

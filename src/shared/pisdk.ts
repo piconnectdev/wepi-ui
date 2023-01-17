@@ -1,4 +1,3 @@
-import { None, Option, Some } from "@sniptt/monads";
 import { PiApprove, PiPaymentFound, PiTip } from "lemmy-js-client";
 import { WebSocketService } from "./services";
 import { wsClient } from "./utils";
@@ -6,9 +5,9 @@ import { wsClient } from "./utils";
 export async function createPayment(
   config: any,
   domain: string,
-  object_id: Option<string> = None,
-  comment: Option<string> = None,
-  auth: Option<string> = None
+  object_id?: string,
+  comment?: string,
+  auth?: string
 ) {
   var piUser;
   const authenticatePiUser = async () => {
@@ -24,46 +23,43 @@ export async function createPayment(
 
   const onIncompletePaymentFound = async payment => {
     //do something with incompleted payment
-    var found = new PiPaymentFound({
-      domain: Some(domain),
-      pi_username: piUser.user.username,
-      pi_token: piUser.accessToken,
-      pi_uid: Some(piUser.user.uid),
-      paymentid: payment.identifier,
-      auth: auth,
-      person_id: None,
-      comment: comment,
-    });
+    var found = new PiPaymentFound();
+    found.domain = domain;
+    found.pi_username = piUser.user.username;
+    found.pi_token = piUser.accessToken;
+    found.pi_uid = piUser.user.uid;
+    found.paymentid = payment.identifier;
+    found.auth = auth;
+    found.person_id = undefined;
+    found.comment = comment;
     WebSocketService.Instance.send(wsClient.piPaymentFound(found));
     return;
   }; // Read more about this in the SDK reference
 
   const onReadyForApproval = async (payment_id, paymentConfig) => {
-    var approve = new PiApprove({
-      domain: Some(domain),
-      pi_username: piUser.user.username,
-      pi_token: piUser.accessToken,
-      pi_uid: Some(piUser.user.uid),
-      paymentid: payment_id,
-      object_id: object_id,
-      comment: comment,
-      auth: auth,
-    });
+    var approve = new PiApprove();
+    approve.domain = domain;
+    approve.pi_username = piUser.user.username;
+    approve.pi_token = piUser.accessToken;
+    approve.pi_uid = piUser.user.uid;
+    approve.paymentid = payment_id;
+    approve.object_id = object_id;
+    approve.comment = comment;
+    approve.auth = auth;
     WebSocketService.Instance.send(wsClient.piApprove(approve));
   };
 
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
-    var payment = new PiTip({
-      domain: Some(domain),
-      pi_token: piUser.accessToken,
-      pi_username: piUser.user.username,
-      pi_uid: Some(piUser.user.uid),
-      paymentid: payment_id,
-      object_id: object_id,
-      comment: comment,
-      txid,
-      auth: auth,
-    });
+    var payment = new PiTip();
+    payment.domain = domain;
+    payment.pi_username = piUser.user.username;
+    payment.pi_token = piUser.accessToken;
+    payment.pi_uid = piUser.user.uid;
+    payment.paymentid = payment_id;
+    payment.object_id = object_id;
+    payment.comment = comment;
+    payment.auth = auth;
+    payment.txid = txid;
     WebSocketService.Instance.send(wsClient.piPayment(payment));
   };
 

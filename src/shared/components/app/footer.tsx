@@ -2,7 +2,6 @@ import { Component } from "inferno";
 import { GetSiteResponse } from "lemmy-js-client";
 import { i18n } from "../../i18next";
 import { joinLemmyUrl, joinPiUrl, repoUrl } from "../../utils";
-
 interface FooterProps {
   site: GetSiteResponse;
 }
@@ -30,7 +29,7 @@ export class Footer extends Component<FooterProps, any> {
                 {i18n.t("modlog")}
               </NavLink>
             </li>
-            {this.props.site.site_view.local_site.legal_information.isSome() && (
+            {this.props.site.site_view.local_site.legal_information && (
               <li className="nav-item">
                 <NavLink className="nav-link" to="/legal">
                   {i18n.t("legal_information")}

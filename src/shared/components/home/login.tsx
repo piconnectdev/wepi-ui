@@ -1,10 +1,8 @@
-import { None, Some } from "@sniptt/monads";
 import { Component, linkEvent } from "inferno";
 import {
   ExternalAccount,
   GetSiteResponse,
-  LemmyHttp,
-  Login as LoginForm,
+  Login as LoginI,
   LoginResponse,
   PasswordReset,
   PiLogin as PiLoginForm,
@@ -14,7 +12,6 @@ import {
   wsUserOp,
 } from "lemmy-js-client";
 import { Subscription } from "rxjs";
-import { httpBase } from "../../../shared/env";
 import { i18n } from "../../i18next";
 import { UserService, WebSocketService } from "../../services";
 import {
@@ -28,42 +25,26 @@ import { HtmlTags } from "../common/html-tags";
 import { Spinner } from "../common/icon";
 
 interface State {
-  piLoginForm: PiLoginForm;
-  loginForm: LoginForm;
+  form: {
+    username_or_email?: string;
+    password?: string;
+  };
   loginLoading: boolean;
   siteRes: GetSiteResponse;
 }
 
 export class Login extends Component<any, State> {
   private isoData = setIsoData(this.context);
-  private subscription: Subscription;
+  private subscription?: Subscription;
 
-  emptyState: State = {
-    piLoginForm: {
-      domain: None,
-      ea: new ExternalAccount({
-        account: undefined,
-        token: undefined,
-        epoch: 0,
-        signature: None,
-        provider: None,
-        extra: None,
-        uuid: None,
-      }),
-      info: undefined,
-    },
-    loginForm: new LoginForm({
-      username_or_email: undefined,
-      password: undefined,
-    }),
+  state: State = {
+    form: {},
     loginLoading: false,
     siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
-    //console.log('props', this.props)
-    this.state = this.emptyState;
 
     this.parseMessage = this.parseMessage.bind(this);
     this.subscription = wsSubscribe(this.parseMessage);
@@ -75,14 +56,14 @@ export class Login extends Component<any, State> {
 
   componentDidMount() {
     // Navigate to home if already logged in
-    if (UserService.Instance.myUserInfo.isSome()) {
+    if (UserService.Instance.myUserInfo) {
       this.context.router.history.push("/");
     }
   }
 
   componentWillUnmount() {
     if (isBrowser()) {
-      this.subscription.unsubscribe();
+      this.subscription?.unsubscribe();
     }
   }
 
@@ -115,8 +96,6 @@ export class Login extends Component<any, State> {
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
-          description={None}
-          image={None}
         />
         <div className="row">
           <div className="col-12 col-lg-6 offset-lg-3">{this.loginForm()}</div>
@@ -134,16 +113,16 @@ export class Login extends Component<any, State> {
             <div className="form-group row">
               <label
                 className="col-sm-2 col-form-label"
-                htmlFor="login-username"
+                htmlFor="login-email-or-username"
               >
-                {i18n.t("username")}
+                {i18n.t("email_or_username")}
               </label>
               <div className="col-sm-10">
                 <input
                   type="text"
                   className="form-control"
                   id="login-email-or-username"
-                  value={this.state.loginForm.username_or_email}
+                  value={this.state.form.username_or_email}
                   onInput={linkEvent(this, this.handleLoginUsernameChange)}
                   autoComplete="email"
                   required
@@ -162,24 +141,25 @@ export class Login extends Component<any, State> {
                 <input
                   type="password"
                   id="login-password"
-                  value={this.state.loginForm.password}
+                  value={this.state.form.password}
                   onInput={linkEvent(this, this.handleLoginPasswordChange)}
                   className="form-control"
                   autoComplete="current-password"
                   required
                   maxLength={60}
                 />
-                {
-                  <button
-                    type="button"
-                    //onClick={linkEvent(this, this.handlePasswordReset)}
-                    className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
-                    //disabled={!validEmail(this.state.loginForm.username_or_email)}
-                    title={i18n.t("no_password_reset")}
-                  >
-                    <a href="/signup">{i18n.t("forgot_password")}</a>
-                  </button>
-                }
+                <button
+                  type="button"
+                  //onClick={linkEvent(this, this.handlePasswordReset)}
+                  className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold pointer-events not-allowed"
+                  //disabled={
+                  //  !!this.state.form.username_or_email &&
+                  //  !validEmail(this.state.form.username_or_email)
+                  //}
+                  title={i18n.t("no_password_reset")}
+                >
+                  <a href="/signup">{i18n.t("forgot_password")}</a>
+                </button>
               </div>
             </div>
             <div className="form-group row">
@@ -188,22 +168,6 @@ export class Login extends Component<any, State> {
                   {this.state.loginLoading ? <Spinner /> : i18n.t("login")}
                 </button>
               </div>
-              <hr />
-              {this.isPiBrowser && (
-                <div className="col-sm-10">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={linkEvent(this, this.handlePiLoginSubmit)}
-                  >
-                    {this.state.loginLoading ? (
-                      <Spinner />
-                    ) : (
-                      "Login TEST (Do not use)"
-                    )}
-                  </button>
-                </div>
-              )}
             </div>
           </form>
         </div>
@@ -226,25 +190,35 @@ export class Login extends Component<any, State> {
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
     i.setState({ loginLoading: true });
-    WebSocketService.Instance.send(wsClient.login(i.state.loginForm));
+    let lForm = i.state.form;
+    let username_or_email = lForm.username_or_email;
+    let password = lForm.password;
+    if (username_or_email && password) {
+      let form: LoginI = {
+        username_or_email,
+        password,
+      };
+      WebSocketService.Instance.send(wsClient.login(form));
+    }
   }
 
   handleLoginUsernameChange(i: Login, event: any) {
-    i.state.loginForm.username_or_email = event.target.value;
+    i.state.form.username_or_email = event.target.value;
     i.setState(i.state);
   }
 
   handleLoginPasswordChange(i: Login, event: any) {
-    i.state.loginForm.password = event.target.value;
+    i.state.form.password = event.target.value;
     i.setState(i.state);
   }
 
   handlePasswordReset(i: Login, event: any) {
     event.preventDefault();
-    let resetForm = new PasswordReset({
-      email: i.state.loginForm.username_or_email,
-    });
-    WebSocketService.Instance.send(wsClient.passwordReset(resetForm));
+    let email = i.state.form.username_or_email;
+    if (email) {
+      let resetForm: PasswordReset = { email };
+      WebSocketService.Instance.send(wsClient.passwordReset(resetForm));
+    }
   }
 
   parseMessage(msg: any) {
@@ -252,26 +226,25 @@ export class Login extends Component<any, State> {
     console.log(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
-      this.setState(this.emptyState);
+      this.setState({ form: {} });
       return;
     } else {
       if (op == UserOperation.Login) {
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
         UserService.Instance.login(data);
         this.props.history.push("/");
         location.reload();
       } else if (op == UserOperation.PiLogin) {
         // TODO: UUID check
-        let data = wsJsonToRes<LoginResponse>(msg, LoginResponse);
-        this.setState(this.emptyState);
+        let data = wsJsonToRes<LoginResponse>(msg);
+        this.setState(this.state);
         UserService.Instance.login(data);
         this.props.history.push("/");
         location.reload();
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
-        let data = wsJsonToRes<GetSiteResponse>(msg, GetSiteResponse);
+        let data = wsJsonToRes<GetSiteResponse>(msg);
         this.setState({ siteRes: data });
       }
     }
@@ -299,47 +272,44 @@ export class Login extends Component<any, State> {
 
     const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
-      var found = new PiPaymentFound({
-        domain: Some(window.location.hostname),
-        paymentid: payment.identifier,
-        pi_username: piUser.user.username,
-        pi_uid: Some(piUser.user.uid),
-        pi_token: piUser.accessToken,
-        auth: None,
-        person_id: None,
-        comment: None,
-      });
-
-      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+      var found = new PiPaymentFound();
+      found.domain = window.location.hostname;
+      found.paymentid = payment.identifier;
+      found.pi_username = piUser.user.username;
+      found.pi_uid = piUser.user.uid;
+      found.pi_token = piUser.accessToken;
+      (found.auth = undefined),
+        (found.person_id = undefined),
+        (found.comment = undefined),
+        WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
 
-    const PiLogin = async (form: PiLoginForm) => {
-      let client = new LemmyHttp(httpBase);
-      return client.piLogin(form);
-    };
+    // const PiLogin = async (form: PiLoginForm) => {
+    //   let client = new LemmyHttp(httpBase);
+    //   return client.piLogin(form);
+    // };
 
     event.preventDefault();
     i.setState({ loginLoading: true });
     piUser = await authenticatePiUser();
-    var ea = new ExternalAccount({
-      account: piUser.user.username,
-      token: piUser.accessToken,
-      epoch: 0,
-      signature: Some(piUser.user.uid),
-      provider: Some("PiNetwork"),
-      extra: None,
-      uuid: Some(piUser.user.uid),
-    });
-    let form = new PiLoginForm({
-      domain: Some(window.location.hostname),
-      ea: ea,
-      info: undefined,
-      // info: new LoginForm({
-      //   username_or_email: ea.account,
-      //   password: i.state.loginForm.password,
-      // }),
-    });
+    var ea = new ExternalAccount();
+    ea.account = piUser.user.username;
+    ea.token = piUser.accessToken;
+    ea.epoch = 0;
+    ea.signature = piUser.user.uid;
+    ea.provider = "PiNetwork";
+    ea.extra = undefined;
+    ea.uuid = piUser.user.uid;
+    let form = new PiLoginForm();
+    form.domain = window.location.hostname;
+    form.ea = ea;
+    //form.info = null;
+    // info: new LoginForm({
+    //   username_or_email: ea.account,
+    //   password: i.state.loginForm.password,
+    // }),
+
     WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 }
