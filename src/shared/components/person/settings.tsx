@@ -1355,6 +1355,12 @@ export class Settings extends Component<any, SettingsState> {
       if (mui) {
         this.setState({ communityBlocks: mui.community_blocks });
       }
+    } else if (op == UserOperation.PiLogin) {
+      let data = wsJsonToRes<LoginResponse>(msg);
+      UserService.Instance.login(data);
+      this.setState({ changePasswordLoading: false });
+      window.scrollTo(0, 0);
+      toast(i18n.t("password_changed"));
     } else {
       this.setState({
         saveUserSettingsLoading: false,
