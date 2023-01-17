@@ -1323,14 +1323,12 @@ export class Settings extends Component<any, SettingsState> {
         this.setState({ personBlocks: mui.person_blocks });
       }
     } else if (op == UserOperation.BlockCommunity) {
-      let data = wsJsonToRes<BlockCommunityResponse>(
-        msg,
-        BlockCommunityResponse
-      );
-      updateCommunityBlock(data).match({
-        some: blocks => this.setState({ communityBlocks: blocks }),
-        none: void 0,
-      });
+      let data = wsJsonToRes<BlockCommunityResponse>(msg);
+      updateCommunityBlock(data);
+      let mui = UserService.Instance.myUserInfo;
+      if (mui) {
+        this.setState({ communityBlocks: mui.community_blocks });
+      }
     } else {
       this.setState({
         saveUserSettingsLoading: false,
@@ -1484,12 +1482,10 @@ export class Settings extends Component<any, SettingsState> {
         console.log(
           "Create Pi Payment for person error:" + JSON.stringify(err)
         );
-        let data = wsJsonToRes<BlockCommunityResponse>(msg);
-        updateCommunityBlock(data);
-        let mui = UserService.Instance.myUserInfo;
-        if (mui) {
-          this.setState({ communityBlocks: mui.community_blocks });
-        }
+        // let mui = UserService.Instance.myUserInfo;
+        // if (mui) {
+        //   this.setState({ communityBlocks: mui.community_blocks });
+        // }
       }
     }
   }
