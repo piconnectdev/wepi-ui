@@ -321,8 +321,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <button
                   className="btn btn-sm text-muted"
                   onClick={linkEvent(this, this.handleBlockchainComment)}
-                  aria-label={i18n.t("blockchain")}
-                  data-tippy-content={i18n.t("save to blockchain")}
+                  aria-label={i18n.t("mint NFT")}
+                  data-tippy-content={i18n.t("mint NFT on blockchain")}
                 >
                   <Icon icon="zap" classes="icon-inline" />
                 </button>
@@ -1726,6 +1726,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handleTipComment(i: CommentNode) {
     if (!i.props.node.comment_view.creator.web3_address) return;
     if (i.isPiBrowser) return;
+    /// TODO:
+    return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1812,7 +1814,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         id: i.props.node.comment_view.comment.id,
         own: i.props.node.comment_view.comment.creator_id,
         post_id: i.props.node.comment_view.comment.post_id,
-        parent_id: i.props.node.comment_view.comment.parent_id,
+        //parent_id: i.props.node.comment_view.comment.parent_id,
         ap_id: i.props.node.comment_view.comment.ap_id,
         content: i.props.node.comment_view.comment.content,
         t: i.props.node.comment_view.comment.published,

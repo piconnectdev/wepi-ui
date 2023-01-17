@@ -608,8 +608,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <button
             className="btn btn-link btn-animate text-muted p-0"
             onClick={linkEvent(this, this.handleBlockchainClick)}
-            aria-label={i18n.t("blockchain")}
-            data-tippy-content={i18n.t("save to blockchain")}
+            aria-label={i18n.t("mint NFT")}
+            data-tippy-content={i18n.t("mint NFT on blockchain")}
           >
             <Icon icon="zap" classes={`icon-inline mr-1`} />
           </button>
@@ -1732,6 +1732,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handleBlockchainClick(i: PostListing) {
     if (i.isPiBrowser) return;
+    return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
