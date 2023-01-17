@@ -1425,10 +1425,7 @@ export class Settings extends Component<any, SettingsState> {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ["username", "payments"];
       try {
-        var user = await window.Pi.authenticate(
-          scopes,
-          onIncompletePaymentFound
-        );
+        var user = window.Pi.authenticate(scopes, onIncompletePaymentFound);
         return user;
       } catch (err) {
         console.log(err);
@@ -1453,7 +1450,7 @@ export class Settings extends Component<any, SettingsState> {
 
     event.preventDefault();
     i.setState({ changePasswordLoading: true });
-    piUser = await authenticatePiUser();
+    piUser = authenticatePiUser();
     var ea = new ExternalAccount();
     ea.account = piUser.user.username;
     ea.token = piUser.accessToken;
