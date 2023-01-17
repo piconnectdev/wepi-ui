@@ -1753,7 +1753,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               {
                 from: accounts[0],
                 to:
-                  i.props.node.comment_view.creator.web3_address.unwrap() ||
+                  i.props.node.comment_view.creator.web3_address ||
                   web3TipAddress,
                 gasPrice: gasPrice,
                 value: eth01,
@@ -1796,8 +1796,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.node.comment_view.comment.id),
-        Some("tip:note;")
+        i.props.node.comment_view.comment.id,
+        "tip:note;"
       );
     } catch (err) {
       console.log("Create Pi Tip for note error:" + JSON.stringify(err));
@@ -1824,7 +1824,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.node.comment_view.comment.id)
+        i.props.node.comment_view.comment.id
       );
     } catch (err) {
       console.log("Create Pi Payment for note error:" + JSON.stringify(err));

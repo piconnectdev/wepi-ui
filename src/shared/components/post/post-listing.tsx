@@ -1813,9 +1813,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             params: [
               {
                 from: accounts[0],
-                to:
-                  i.props.post_view.creator.web3_address.unwrap() ||
-                  web3TipAddress,
+                to: i.props.post_view.creator.web3_address || web3TipAddress,
                 gasPrice: gasPrice,
                 value: eth01,
                 data: "0x" + str,
@@ -1848,7 +1846,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.post_view.post.id)
+        i.props.post_view.post.id
       );
     } catch (err) {
       console.log("Create Pi tip for page error:" + JSON.stringify(err));
@@ -1879,7 +1877,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.post_view.post.id)
+        i.props.post_view.post.id
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));
@@ -1888,7 +1886,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   async handleLinkBlockchainClick(i: PostListing) {
     var url = i.props.post_view.post.tx;
-    window.open(url.unwrapOr("/"), "_blank");
+    window.open(url, "_blank");
   }
 
   get crossPostParams(): string {

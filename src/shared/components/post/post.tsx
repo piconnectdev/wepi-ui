@@ -202,8 +202,8 @@ export class Post extends Component<any, PostState> {
     let pathSplit = req.path.split("/");
     let promises: Promise<any>[] = [];
 
-    let pathType = pathSplit.at(1);
-    let id = pathSplit.at(2) ? pathSplit.at(2) : undefined;
+    let pathType = pathSplit[1];
+    let id = pathSplit[2] ? pathSplit[2] : undefined;
     let auth = req.auth;
 
     let postForm: GetPost = {

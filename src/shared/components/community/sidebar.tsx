@@ -762,7 +762,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       await createPayment(
         config,
         window.location.hostname,
-        Some(i.props.community_view.community.id)
+        i.props.community_view.community.id
       );
     } catch (err) {
       console.log("Create Payment for group error");

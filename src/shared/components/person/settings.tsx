@@ -1350,7 +1350,7 @@ export class Settings extends Component<any, SettingsState> {
       const { ethereum } = window;
       return Boolean(ethereum && ethereum.isMetaMask);
     };
-    let mui = UserService.Instance.myUserInfo.unwrap();
+    let mui = UserService.Instance.myUserInfo;
     let luv = mui.local_user_view;
 
     var config = {
