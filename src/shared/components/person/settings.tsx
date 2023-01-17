@@ -349,15 +349,35 @@ export class Settings extends Component<any, SettingsState> {
               </div>
             </div>
           )}
-          <div className="form-group">
-            <button type="submit" className="btn btn-block btn-secondary mr-4">
-              {this.state.changePasswordLoading ? (
-                <Spinner />
-              ) : (
-                capitalizeFirstLetter(i18n.t("save"))
-              )}
-            </button>
-          </div>
+          {!this.isPiBrowser && (
+            <div className="form-group">
+              <button
+                type="submit"
+                className="btn btn-block btn-secondary mr-4"
+              >
+                {this.state.changePasswordLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("save"))
+                )}
+              </button>
+            </div>
+          )}
+          {this.isPiBrowser && (
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handleChangePasswordSubmit)}
+              >
+                {this.state.changePasswordLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("save"))
+                )}
+              </button>
+            </div>
+          )}
         </form>
       </>
     );
@@ -1396,12 +1416,12 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  async handlePiLoginSubmit(i: Settings, event: any) {
+  handlePiLoginSubmit(i: Settings, event: any) {
     //if (!i.isPiBrowser)
     //  return;
     var piUser;
 
-    const authenticatePiUser = async () => {
+    const authenticatePiUser = () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
       const scopes = ["username", "payments"];
       try {
@@ -1432,7 +1452,6 @@ export class Settings extends Component<any, SettingsState> {
     }; // Read more about this in the SDK reference
 
     event.preventDefault();
-    //i.setState({ loginLoading: true });
     i.setState({ changePasswordLoading: true });
     piUser = await authenticatePiUser();
     var ea = new ExternalAccount();
@@ -1459,7 +1478,7 @@ export class Settings extends Component<any, SettingsState> {
       form.info = login;
     }
     i.setState(i.state);
-    await WebSocketService.Instance.send(wsClient.piLogin(form));
+    WebSocketService.Instance.send(wsClient.piLogin(form));
   }
 
   async handlePiBlockchain(i: Settings, event: any) {
