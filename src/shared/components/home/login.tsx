@@ -226,7 +226,9 @@ export class Login extends Component<any, State> {
     console.log(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
-      this.setState({ form: {} });
+      this.setState({ loginLoading: false });
+      this.setState(this.state);
+      //this.setState({ form: {} });
       return;
     } else {
       if (op == UserOperation.Login) {

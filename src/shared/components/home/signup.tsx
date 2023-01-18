@@ -196,8 +196,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    //return true;
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -503,11 +503,7 @@ export class Signup extends Component<any, State> {
         <div className="form-group row">
           <div className="col-sm-10">
             {!this.isPiBrowser && (
-              <button
-                type="submit"
-                className="btn btn-secondary"
-                disabled={true}
-              >
+              <button type="submit" className="btn btn-secondary">
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
@@ -691,7 +687,7 @@ export class Signup extends Component<any, State> {
 
   parseMessage(msg: any) {
     let op = wsUserOp(msg);
-    console.log(msg);
+    console.log(JSON.stringify(msg));
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState(s => ((s.form.captcha_answer = undefined), s));
@@ -735,6 +731,7 @@ export class Signup extends Component<any, State> {
         }
       } else if (op == UserOperation.Web3Register) {
         let data = wsJsonToRes<LoginResponse>(msg);
+
         //this.setState(this.emptyState);
         // Only log them in if a jwt was set
         if (data.jwt) {
@@ -833,7 +830,7 @@ export class Signup extends Component<any, State> {
     });
     i.state.web3RegisterForm.ea.account = ethereum.selectedAddress;
     i.state.form.password_verify = i.state.form.password;
-    //i.state.web3RegisterForm.info = i.state.registerForm;
+    i.state.web3RegisterForm.info = i.state.form;
     i.state.web3RegisterForm.ea.epoch = new Date().getTime();
     let text =
       "LOGIN:" +
@@ -849,7 +846,7 @@ export class Signup extends Component<any, State> {
         params: [`0x${utf8ToHex(text)}`, ethereum.selectedAddress],
       })
       .then(_signature => {
-        i.state.web3RegisterForm.ea.signature = Some(_signature.toString());
+        i.state.web3RegisterForm.ea.signature = _signature.toString();
 
         i.setState(i.state);
         WebSocketService.Instance.send(

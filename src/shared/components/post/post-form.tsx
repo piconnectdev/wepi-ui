@@ -79,7 +79,7 @@ interface PostFormState {
     body?: string;
     nsfw?: boolean;
     language_id?: number;
-    community_id?: number;
+    community_id?: string;
     honeypot?: string;
   };
   suggestedTitle?: string;
