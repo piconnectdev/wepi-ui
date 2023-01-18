@@ -1795,11 +1795,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         i.props.node.comment_view.comment.id,
     };
     try {
+      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
         i.props.node.comment_view.comment.id,
-        "tip:note;"
+        "tip:note;",
+        auth
       );
     } catch (err) {
       console.log("Create Pi Tip for note error:" + JSON.stringify(err));
@@ -1823,10 +1825,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       },
     };
     try {
+      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
-        i.props.node.comment_view.comment.id
+        i.props.node.comment_view.comment.id,
+        auth
       );
     } catch (err) {
       console.log("Create Pi Payment for note error:" + JSON.stringify(err));

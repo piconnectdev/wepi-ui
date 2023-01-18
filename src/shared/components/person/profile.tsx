@@ -990,7 +990,8 @@ export class Profile extends Component<any, ProfileState> {
       };
 
       try {
-        await createPayment(config, window.location.hostname, person.id);
+        let auth = myAuth(false);
+        await createPayment(config, window.location.hostname, person.id, auth);
       } catch (err) {
         console.log(
           "Pi createPayment for profile error:" + JSON.stringify(err)

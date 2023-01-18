@@ -21,7 +21,7 @@ export async function createPayment(
     }
   };
 
-  const onIncompletePaymentFound = async payment => {
+  const onIncompletePaymentFound = async (payment) => {    
     //do something with incompleted payment
     var found = new PiPaymentFound();
     found.domain = domain;
@@ -32,6 +32,9 @@ export async function createPayment(
     found.auth = auth;
     found.person_id = undefined;
     found.comment = comment;
+    payment.metadata = undefined;
+    found.dto = payment; 
+    console.log(JSON.stringify(found));
     WebSocketService.Instance.send(wsClient.piPaymentFound(found));
     return;
   }; // Read more about this in the SDK reference

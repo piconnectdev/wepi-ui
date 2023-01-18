@@ -4981,7 +4981,7 @@ lcid@^1.0.0:
 
 "lemmy-js-client@https://github.com/piconnectdev/lemmy-js-client":
   version "0.17.0-rc.61"
-  resolved "https://github.com/piconnectdev/lemmy-js-client#5987e8b2752e0ec1e1d6cb15e2f4f806c79e6190"
+  resolved "https://github.com/piconnectdev/lemmy-js-client#58e602fec5d804bf2ef2d42cd0c80387e655b33d"
   dependencies:
     node-fetch "2.6.6"
 

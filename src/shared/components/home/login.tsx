@@ -272,7 +272,7 @@ export class Login extends Component<any, State> {
       }
     };
 
-    const onIncompletePaymentFound = async payment => {
+    const onIncompletePaymentFound = async (payment) => {
       //do something with incompleted payment
       var found = new PiPaymentFound();
       found.domain = window.location.hostname;
@@ -280,10 +280,13 @@ export class Login extends Component<any, State> {
       found.pi_username = piUser.user.username;
       found.pi_uid = piUser.user.uid;
       found.pi_token = piUser.accessToken;
-      (found.auth = undefined),
-        (found.person_id = undefined),
-        (found.comment = undefined),
-        WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+      found.auth = undefined;
+      found.person_id = undefined;
+      found.comment = undefined;
+      payment.metadata = undefined;
+      found.dto = payment;
+      console.log(JSON.stringify(found));
+      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
 

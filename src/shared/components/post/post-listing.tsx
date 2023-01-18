@@ -1844,10 +1844,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       },
     };
     try {
+      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
-        i.props.post_view.post.id
+        i.props.post_view.post.id,
+        auth
       );
     } catch (err) {
       console.log("Create Pi tip for page error:" + JSON.stringify(err));
@@ -1875,10 +1877,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
     console.log("Create Payment for Page");
     try {
+      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
-        i.props.post_view.post.id
+        i.props.post_view.post.id,
+        auth
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));

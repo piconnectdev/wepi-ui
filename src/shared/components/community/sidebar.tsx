@@ -759,10 +759,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       },
     };
     try {
+      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
-        i.props.community_view.community.id
+        i.props.community_view.community.id,
+        auth
       );
     } catch (err) {
       console.log("Create Payment for group error");
