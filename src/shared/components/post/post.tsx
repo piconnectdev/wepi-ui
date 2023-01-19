@@ -792,6 +792,8 @@ export class Post extends Component<any, PostState> {
         toast(i18n.t("purge_success"));
         this.context.router.history.push(`/`);
       }
+    } else if (op == UserOperation.PiPaymentFound) {
+      console.log("Post:" + JSON.stringify(msg));
     }
   }
 }

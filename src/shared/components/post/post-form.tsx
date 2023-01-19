@@ -718,6 +718,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       } else if (data.type_ == SearchType[SearchType.Url]) {
         this.setState({ crossPosts: data.posts });
       }
+    } else if (op == UserOperation.PiPaymentFound) {
+      console.log("Post:" + JSON.stringify(msg));
     }
   }
 }

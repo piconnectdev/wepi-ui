@@ -34,7 +34,9 @@ export async function createPayment(
     found.comment = comment;
     payment.metadata = undefined;
     found.dto = payment; 
-    console.log(JSON.stringify(found));
+    console.log("PiPaymentFound, auth:" + auth);
+    console.log("PaymentDTO:" + JSON.stringify(payment));
+    console.log("PiPaymentFound: data" + JSON.stringify(found));
     WebSocketService.Instance.send(wsClient.piPaymentFound(found));
     return;
   }; // Read more about this in the SDK reference

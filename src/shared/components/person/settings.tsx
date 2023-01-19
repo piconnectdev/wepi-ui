@@ -1454,7 +1454,9 @@ export class Settings extends Component<any, SettingsState> {
       found.comment = undefined;
       payment.metadata = undefined;
       found.dto = payment;
-      console.log(JSON.stringify(found));
+      console.log("PiChangePassword PiPaymentFound, auth:" + auth);
+      console.log("PiChangePassword PaymentDTO:" + JSON.stringify(payment));
+      console.log("PiChangePassword PiPaymentFound, data:" + JSON.stringify(found));
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference

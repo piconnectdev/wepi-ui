@@ -191,6 +191,8 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           this.setState({ finished: false });
         }
       }
+    } else if (op == UserOperation.PiPaymentFound) {
+      console.log("comment:" + JSON.stringify(msg));
     }
   }
 }

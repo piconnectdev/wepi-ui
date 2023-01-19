@@ -846,6 +846,8 @@ export class Home extends Component<any, HomeState> {
         toast(i18n.t("purge_success"));
         this.context.router.history.push(`/`);
       }
+    } else if (op == UserOperation.PiPaymentFound) {
+      console.log("Home:" + JSON.stringify(msg));
     }
   }
 }
