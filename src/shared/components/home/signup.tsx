@@ -196,8 +196,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    //return true;
-    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -503,7 +503,11 @@ export class Signup extends Component<any, State> {
         <div className="form-group row">
           <div className="col-sm-10">
             {!this.isPiBrowser && (
-              <button type="submit" className="btn btn-secondary">
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={true}
+              >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
