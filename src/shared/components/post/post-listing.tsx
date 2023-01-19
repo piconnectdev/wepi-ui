@@ -1843,8 +1843,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         u: i.props.post_view.post.updated,
       },
     };
+    let auth = myAuth(false);
+    console.log("Create tip for Page" + auth);
     try {
-      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
@@ -1875,9 +1876,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         sign: i.props.post_view.post.auth_sign,
       },
     };
-    console.log("Create Payment for Page");
+    let auth = myAuth(false);
+    console.log("Create payment for Page" + auth);
     try {
-      let auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,

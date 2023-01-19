@@ -196,8 +196,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    //return true;
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -873,7 +873,7 @@ export class Signup extends Component<any, State> {
       }
     };
 
-    const onIncompletePaymentFound = async (payment) => {
+    const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
       var found = new PiPaymentFound();
       found.domain = window.location.hostname;
@@ -948,7 +948,7 @@ export class Signup extends Component<any, State> {
       }
     };
 
-    const onIncompletePaymentFound = async (payment) => {
+    const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
       var found = new PiPaymentFound();
       found.domain = window.location.hostname;

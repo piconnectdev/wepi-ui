@@ -212,7 +212,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             {siteView.site.icon && showAvatars() && (
               <PictrsImage src={siteView.site.icon} icon />
             )}
-            {siteView.site.name} - Beta
+            {siteView.site.name}
           </NavLink>
           {UserService.Instance.myUserInfo && (
             <>
