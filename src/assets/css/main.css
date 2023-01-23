@@ -433,7 +433,7 @@ section {
 /* The company logo */
 
 .footer-distributed h3{
-  color:  #ffffff;
+  color:  #dee2e6;
   font: normal 30px 'Open Sans', cursive;
   margin: 0;
 }
@@ -445,7 +445,7 @@ section {
 /* Footer links */
 
 .footer-distributed .footer-links{
-  color:  #ffffff;
+  color:  #dee2e6;
   margin: 20px 0 12px;
   padding: 0;
 }
@@ -473,7 +473,7 @@ section {
 
 .footer-distributed .footer-center i{
  
-  color: #ffffff;
+  color: #dee2e6;
   font-size: 25px;
   width: 38px;
   height: 38px;
@@ -491,8 +491,8 @@ section {
 
 .footer-distributed .footer-center p{
   display: inline-block;
-  color: #ffffff;
-  font-weight:400;
+  color: #dee2e6;
+  font-weight:300;
   vertical-align: middle;
   margin:0;
 }
@@ -514,7 +514,7 @@ section {
   font-weight:300;
   font-size: 20px;
   left: 0;
-  color: #fff;
+  color: #dee2e6;
   display: inline-block;
   padding-right: 5px;
 }
@@ -539,7 +539,7 @@ section {
 
 .footer-distributed .footer-company-about span{
   display: block;
-  color:  #ffffff;
+  color:  #dee2e6;
   font-size: 14px;
   font-weight: bold;
   margin-bottom: 20px;
@@ -570,6 +570,9 @@ section {
 
 @media (max-width: 880px) {
 
+
+
+
   .footer-distributed{
     font: bold 14px sans-serif;
   }
@@ -579,12 +582,14 @@ section {
   .footer-distributed .footer-right{
     display: block;
     width: 100%;
-    margin-bottom: 40px;
+   
     text-align: center;
   }
 
   .footer-distributed .footer-center i{
     margin-left: 0;
   }
-
+  .footer-distributed .footer-center{
+    display: none;
+  }
 }
