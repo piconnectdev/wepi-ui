@@ -12,7 +12,7 @@ export class Paginator extends Component<PaginatorProps, any> {
   }
   render() {
     return (
-      <div className="my-2">
+      <div className="my-2 d-flex justify-content-center">
         <button
           className="btn btn-secondary mr-2"
           disabled={this.props.page == 1}
