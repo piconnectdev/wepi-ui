@@ -66,7 +66,7 @@ import {
 import { CommentForm } from "../comment/comment-form";
 import { CommentNodes } from "../comment/comment-nodes";
 import { HtmlTags } from "../common/html-tags";
-import { Icon, Spinner } from "../common/icon";
+import { Spinner } from "../common/icon";
 import { Sidebar } from "../community/sidebar";
 import { PostListing } from "./post-listing";
 
@@ -339,18 +339,18 @@ export class Post extends Component<any, PostState> {
                 />
                 <div className="d-block d-md-none">
                   <button
-                    className="btn btn-secondary d-inline-block mb-2 mr-3"
+                    className="btn btn-secondary d-inline-block w-100 mb-2 mr-3"
                     onClick={linkEvent(this, this.handleShowSidebarMobile)}
                   >
-                    {i18n.t("sidebar")}{" "}
-                    <Icon
+                    Chi tiết cộng đồng{" "}
+                    {/* <Icon
                       icon={
                         this.state.showSidebarMobile
                           ? `minus-square`
                           : `plus-square`
                       }
                       classes="icon-inline"
-                    />
+                    /> */}
                   </button>
                   {this.state.showSidebarMobile && this.sidebar()}
                 </div>
