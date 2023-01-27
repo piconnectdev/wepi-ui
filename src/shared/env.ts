@@ -25,6 +25,8 @@ if (isBrowser()) {
   host = externalHost;
   wsHost = lemmyConfig.wsHost || host;
   secure = window.location.protocol == "https:" ? "s" : "";
+  // force use https://wepi.social
+  // secure = "s";
 } else {
   // server-side
   externalHost = process.env.LEMMY_UI_LEMMY_EXTERNAL_HOST || testHost;
@@ -33,7 +35,7 @@ if (isBrowser()) {
   secure = process.env.LEMMY_UI_HTTPS == "true" ? "s" : "";
 }
 
-export const httpBaseInternal = `http://${host}`; // Don't use secure here
+export const httpBaseInternal = `http${secure}://${host}`; // Don't use secure here
 export const httpBase = `http${secure}://${host}`;
 export const wsUriBase = `ws${secure}://${wsHost}`;
 export const wsUri = `${wsUriBase}/api/v3/ws`;
