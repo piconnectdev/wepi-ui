@@ -57,7 +57,6 @@ import {
   notifyPost,
   nsfwCheck,
   postToCommentSortType,
-  relTags,
   restoreScrollPosition,
   saveCommentRes,
   saveScrollPosition,
@@ -71,7 +70,6 @@ import {
   wsSubscribe,
 } from "../../utils";
 import { CommentNodes } from "../comment/comment-nodes";
-import { DataTypeSelect } from "../common/data-type-select";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
 import { ListingTypeSelect } from "../common/listing-type-select";
@@ -320,7 +318,7 @@ export class Home extends Component<any, HomeState> {
                   dangerouslySetInnerHTML={mdToHtml(tagline)}
                 ></div>
               )}
-              <div className="d-block d-md-none"></div>
+              {/* <div className="d-block d-md-none">{this.mobileView()}</div> */}
               {this.posts()}
             </main>
             <aside className="d-none d-md-block col-md-4">
@@ -337,75 +335,21 @@ export class Home extends Component<any, HomeState> {
     return !!mui && mui.follows.length > 0;
   }
 
-  // mobileView() {
-  //   let siteRes = this.state.siteRes;
-  //   let siteView = siteRes.site_view;
-  //   return (
-  //     <div className="row">
-  //       <div className="col-12">
-  //         {this.hasFollows && (
-  //           <button
-  //             className="btn btn-secondary d-inline-block mb-2 mr-3"
-  //             onClick={linkEvent(this, this.handleShowSubscribedMobile)}
-  //           >
-  //             {i18n.t("subscribed")}{" "}
-  //             <Icon
-  //               icon={
-  //                 this.state.showSubscribedMobile
-  //                   ? `minus-square`
-  //                   : `plus-square`
-  //               }
-  //               classes="icon-inline"
-  //             />
-  //           </button>
-  //         )}
-  //         <button
-  //           className="btn btn-secondary d-inline-block mb-2 mr-3"
-  //           onClick={linkEvent(this, this.handleShowTrendingMobile)}
-  //         >
-  //           {i18n.t("trending")}{" "}
-  //           <Icon
-  //             icon={
-  //               this.state.showTrendingMobile ? `minus-square` : `plus-square`
-  //             }
-  //             classes="icon-inline"
-  //           />
-  //         </button>
-  //         <button
-  //           className="btn btn-secondary d-inline-block mb-2 mr-3"
-  //           onClick={linkEvent(this, this.handleShowSidebarMobile)}
-  //         >
-  //           {i18n.t("sidebar")}{" "}
-  //           <Icon
-  //             icon={
-  //               this.state.showSidebarMobile ? `minus-square` : `plus-square`
-  //             }
-  //             classes="icon-inline"
-  //           />
-  //         </button>
-  //         {this.state.showSidebarMobile && (
-  //           <SiteSidebar
-  //             site={siteView.site}
-  //             admins={siteRes.admins}
-  //             counts={siteView.counts}
-  //             online={siteRes.online}
-  //             showLocal={showLocal(this.isoData)}
-  //           />
-  //         )}
-  //         {this.state.showTrendingMobile && (
-  //           <div className="col-12 card border-secondary mb-3">
-  //             <div className="card-body">{this.trendingCommunities()}</div>
-  //           </div>
-  //         )}
-  //         {this.state.showSubscribedMobile && (
-  //           <div className="col-12 card border-secondary mb-3">
-  //             <div className="card-body">{this.subscribedCommunities()}</div>
-  //           </div>
-  //         )}
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  mobileView() {
+    let siteRes = this.state.siteRes;
+    let siteView = siteRes.site_view;
+    return (
+      <div>
+        <button
+          className="d-md-none btn btn-link btn-block mt-3 mb-0"
+          onClick={linkEvent(this, this.handleShowSidebarMobile)}
+        >
+          Nội quy sử dụng{" "}
+        </button>
+        {this.state.showSidebarMobile && <SiteSidebar site={siteView.site} />}
+      </div>
+    );
+  }
 
   mySidebar() {
     let siteRes = this.state.siteRes;
@@ -541,10 +485,12 @@ export class Home extends Component<any, HomeState> {
           <div>
             {this.selects()}
             {this.listings()}
+
             <Paginator
               page={this.state.page}
               onChange={this.handlePageChange}
             />
+            {this.mobileView()}
           </div>
         )}
       </div>
@@ -586,13 +532,13 @@ export class Home extends Component<any, HomeState> {
 
     return (
       <div className="mb-3">
-        <span className="mr-3">
+        {/* <span className="mr-3 d-flex justify-content-center">
           <DataTypeSelect
             type_={this.state.dataType}
             onChange={this.handleDataTypeChange}
           />
-        </span>
-        <span className="mr-3">
+        </span> */}
+        <span className="mr-3 d-flex justify-content-center">
           <ListingTypeSelect
             type_={this.state.listingType}
             showLocal={showLocal(this.isoData)}
@@ -600,10 +546,10 @@ export class Home extends Component<any, HomeState> {
             onChange={this.handleListingTypeChange}
           />
         </span>
-        <span className="mr-2">
+        <span className="mr-0">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
-        {this.state.listingType == ListingType.All && (
+        {/* {this.state.listingType == ListingType.All && (
           <>
             <a href={allRss} rel={relTags} title="RSS">
               <Icon icon="rss" classes="text-muted small" />
@@ -626,7 +572,7 @@ export class Home extends Component<any, HomeState> {
             </a>
             <link rel="alternate" type="application/atom+xml" href={frontRss} />
           </>
-        )}
+        )} */}
       </div>
     );
   }
