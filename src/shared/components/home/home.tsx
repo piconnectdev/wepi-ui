@@ -344,7 +344,7 @@ export class Home extends Component<any, HomeState> {
           className="d-md-none btn btn-link btn-block mt-3 mb-0"
           onClick={linkEvent(this, this.handleShowSidebarMobile)}
         >
-          Nội quy sử dụng{" "}
+          Điều khoản - Pháp lý{" "}
         </button>
         {this.state.showSidebarMobile && <SiteSidebar site={siteView.site} />}
       </div>
