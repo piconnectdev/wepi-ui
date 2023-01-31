@@ -18,9 +18,7 @@ export class Footer extends Component<FooterProps, any> {
           </h3>
 
           <p className="footer-links">
-            <a href="#" className="link-1">
-              Copyright © 2023
-            </a>
+            <a href="#" className="link-1"></a>
           </p>
 
           <p className="footer-company-name">Copyright © 2023</p>
@@ -30,13 +28,13 @@ export class Footer extends Component<FooterProps, any> {
           <div>
             <i className="fa fa-map-marker"></i>
             <p>
-              <span>Tòa nhà 69</span> Quận Bình Chánh, Hà Nội
+              <span>Tòa nhà 3</span> Quận Bình Chánh, Hà Nội
             </p>
           </div>
 
           <div>
             <i className="fa fa-phone"></i>
-            <p>+84.555.555.555</p>
+            <p>+7.981.162.555</p>
           </div>
 
           <div>
@@ -48,9 +46,9 @@ export class Footer extends Component<FooterProps, any> {
         </div>
 
         <div className="footer-right">
-          <p className="footer-company-about">
+          <p className="footer-company-about text-muted">
             <span>Mạng xã hội WePi</span>
-            Trực thuộc và quản lý bởi CK Capital.
+            Trực thuộc và quản lý bởi WePi Lab.
           </p>
 
           <div className="footer-icons">

@@ -491,7 +491,7 @@ section {
 
 .footer-distributed .footer-center p{
   display: inline-block;
-  color: #dee2e6;
+  color: #7a7c7d;
   font-weight:300;
   vertical-align: middle;
   margin:0;
@@ -531,7 +531,7 @@ section {
 
 .footer-distributed .footer-company-about{
   line-height: 20px;
-  color:  #92999f;
+  color:  #101010;
   font-size: 13px;
   font-weight: normal;
   margin: 0;
@@ -539,10 +539,11 @@ section {
 
 .footer-distributed .footer-company-about span{
   display: block;
-  color:  #dee2e6;
+  color:  #383a3d;
   font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 20px;
+  font-weight: normal;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .footer-distributed .footer-icons{
