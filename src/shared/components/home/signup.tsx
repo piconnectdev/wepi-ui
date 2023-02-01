@@ -196,8 +196,8 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    //return true;
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
   get useExtSignUp(): boolean {
@@ -503,11 +503,7 @@ export class Signup extends Component<any, State> {
         <div className="form-group row">
           <div className="col-sm-10">
             {!this.isPiBrowser && (
-              <button
-                type="submit"
-                className="btn btn-secondary"
-                disabled={true}
-              >
+              <button type="submit" className="btn btn-secondary">
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
@@ -695,6 +691,7 @@ export class Signup extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState(s => ((s.form.captcha_answer = undefined), s));
+      this.setState({ registerLoading: false });
       // Refetch another captcha
       // WebSocketService.Instance.send(wsClient.getCaptcha());
       return;
@@ -734,8 +731,8 @@ export class Signup extends Component<any, State> {
           this.setState(s => ((s.web3RegisterForm.ea.token = uuid), s));
         }
       } else if (op == UserOperation.Web3Register) {
+        this.setState({ registerLoading: false });
         let data = wsJsonToRes<LoginResponse>(msg);
-
         //this.setState(this.emptyState);
         // Only log them in if a jwt was set
         if (data.jwt) {
@@ -752,6 +749,7 @@ export class Signup extends Component<any, State> {
           this.props.history.push("/");
         }
       } else if (op == UserOperation.PiRegister) {
+        this.setState({ registerLoading: false });
         let data = wsJsonToRes<LoginResponse>(msg);
         //this.setState(this.emptyState);
         // Only log them in if a jwt was set

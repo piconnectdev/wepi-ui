@@ -227,7 +227,7 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState({ loginLoading: false });
-      this.setState(this.state);
+      //this.setState(this.state);
       //this.setState({ form: {} });
       return;
     } else {
@@ -238,8 +238,9 @@ export class Login extends Component<any, State> {
         location.reload();
       } else if (op == UserOperation.PiLogin) {
         // TODO: UUID check
+        this.setState({ loginLoading: false });
         let data = wsJsonToRes<LoginResponse>(msg);
-        this.setState(this.state);
+        //this.setState(this.state);
         UserService.Instance.login(data);
         this.props.history.push("/");
         location.reload();
@@ -272,7 +273,7 @@ export class Login extends Component<any, State> {
       }
     };
 
-    const onIncompletePaymentFound = async (payment) => {
+    const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
       var found = new PiPaymentFound();
       found.domain = window.location.hostname;

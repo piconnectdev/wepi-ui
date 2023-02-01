@@ -684,7 +684,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       }
     }
 
-    if (isBrowser() && this.state.form.community_id) {
+    if (
+      isBrowser() &&
+      this.state.form.community_id &&
+      this.choices !== undefined
+    ) {
       this.choices.setChoiceByValue(this.state.form.community_id.toString());
     }
     this.setState(this.state);

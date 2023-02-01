@@ -161,7 +161,6 @@ export class Post extends Component<any, PostState> {
   }
 
   fetchPost() {
-    this.setState({ commentsRes: undefined, postRes: undefined });
     let auth = myAuth(false);
     let postForm: GetPost = {
       id: this.state.postId,
@@ -498,6 +497,8 @@ export class Post extends Component<any, PostState> {
     i.setState({
       commentSort: CommentSortType[event.target.value],
       commentViewType: CommentViewType.Tree,
+      commentsRes: undefined,
+      postRes: undefined,
     });
     i.fetchPost();
   }
@@ -535,7 +536,10 @@ export class Post extends Component<any, PostState> {
 
   commentsTree() {
     let res = this.state.postRes;
-    let firstComment = this.state.commentTree.at(0)?.comment_view.comment;
+    let firstComment =
+      this.state.commentTree.length > 0
+        ? this.state.commentTree.at(0)?.comment_view.comment
+        : undefined;
     let depth = getDepthFromComment(firstComment);
     let showContextButton = depth ? depth > 0 : false;
 
