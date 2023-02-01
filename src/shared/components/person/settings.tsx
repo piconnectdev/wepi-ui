@@ -7,6 +7,7 @@ import {
   ChangePassword,
   CommunityBlockView,
   CommunityView,
+  CreateCommunity,
   DeleteAccount,
   ExternalAccount,
   GetSiteResponse,
@@ -571,14 +572,14 @@ export class Settings extends Component<any, SettingsState> {
               className="col-lg-3 col-form-label"
               htmlFor="user-pi-address"
             >
-              {i18n.t("Pi Network Address")}
+              Pi Network Address
             </label>
             <div className="col-lg-9">
               <input
                 type="text"
                 id="user-pi-address"
                 className="form-control"
-                placeholder={i18n.t("Pi Network Address ( G... )")}
+                placeholder="Pi Network Address ( G... )"
                 value={this.state.saveUserSettingsForm.pi_address}
                 onInput={linkEvent(this, this.handlePiAddressChange)}
                 pattern="^G[A-Za-z0-9]*$"
@@ -591,7 +592,7 @@ export class Settings extends Component<any, SettingsState> {
               className="col-lg-3 col-form-label"
               htmlFor="user-web3-address"
             >
-              {i18n.t("Web3 Address")}
+              Web3 Address
             </label>
             <div className="col-lg-9">
               <input
@@ -878,6 +879,18 @@ export class Settings extends Component<any, SettingsState> {
             </button>
           </div>
           <hr />
+          {/* Create User's Community */}
+          <div className="form-group">
+            <button
+              type="button"
+              className="btn btn-block btn-secondary mr-4"
+              onClick={linkEvent(this, this.handleCreateCommunitySubmit)}
+            >
+              Create Home
+            </button>
+          </div>
+          <hr />
+
           {!this.isPiBrowser && (
             <div className="form-group">
               <button
@@ -885,7 +898,7 @@ export class Settings extends Component<any, SettingsState> {
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handleBlockchain)}
               >
-                {i18n.t("Blockchain")}
+                Blockchain
               </button>
             </div>
           )}
@@ -897,7 +910,7 @@ export class Settings extends Component<any, SettingsState> {
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handlePiBlockchain)}
               >
-                {i18n.t("Verify Pi Account")}
+                Verify Pi Account
               </button>
             </div>
           )}
@@ -1052,7 +1065,21 @@ export class Settings extends Component<any, SettingsState> {
       WebSocketService.Instance.send(wsClient.blockPerson(blockUserForm));
     }
   }
-
+  // Create user's community
+  handleCreateCommunitySubmit() {
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth();
+    if (getUser && auth) {
+      let formUserHome: CreateCommunity = {
+        name: getUser.local_user_view.person.name,
+        title:
+          getUser.local_user_view.person.display_name ||
+          getUser.local_user_view.person.name,
+        auth: auth,
+      };
+      WebSocketService.Instance.send(wsClient.createCommunity(formUserHome));
+    }
+  }
   handleBlockCommunity(community_id: string) {
     let auth = myAuth();
     if (auth && community_id.length !== 0) {
@@ -1441,7 +1468,7 @@ export class Settings extends Component<any, SettingsState> {
       }
     };
 
-    const onIncompletePaymentFound = async (payment) => {
+    const onIncompletePaymentFound = async payment => {
       //do something with incompleted payment
       var found = new PiPaymentFound();
       found.domain = window.location.hostname;
@@ -1456,7 +1483,9 @@ export class Settings extends Component<any, SettingsState> {
       found.dto = payment;
       console.log("PiChangePassword PiPaymentFound, auth:" + auth);
       console.log("PiChangePassword PaymentDTO:" + JSON.stringify(payment));
-      console.log("PiChangePassword PiPaymentFound, data:" + JSON.stringify(found));
+      console.log(
+        "PiChangePassword PiPaymentFound, data:" + JSON.stringify(found)
+      );
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
@@ -1513,7 +1542,12 @@ export class Settings extends Component<any, SettingsState> {
       };
       try {
         let auth = myAuth(false);
-        await createPayment(config, window.location.hostname, luv.person.id, auth);
+        await createPayment(
+          config,
+          window.location.hostname,
+          luv.person.id,
+          auth
+        );
       } catch (err) {
         console.log(
           "Create Pi Payment for person error:" + JSON.stringify(err)
