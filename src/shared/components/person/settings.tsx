@@ -1079,6 +1079,7 @@ export class Settings extends Component<any, SettingsState> {
       };
       WebSocketService.Instance.send(wsClient.createCommunity(formUserHome));
     }
+    window.location.href = `/c/${getUser?.local_user_view.person.name}`;
   }
   handleBlockCommunity(community_id: string) {
     let auth = myAuth();
