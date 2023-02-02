@@ -168,6 +168,7 @@ export class Home extends Component<any, HomeState> {
           wsClient.communityJoin({ community_id: null })
         );
       }
+
       const taglines = this.state.siteRes.taglines;
       this.state = {
         ...this.state,
@@ -318,6 +319,7 @@ export class Home extends Component<any, HomeState> {
                   dangerouslySetInnerHTML={mdToHtml(tagline)}
                 ></div>
               )}
+              {this.notUser()}
               {/* <div className="d-block d-md-none">{this.mobileView()}</div> */}
               {this.posts()}
             </main>
@@ -334,7 +336,32 @@ export class Home extends Component<any, HomeState> {
     let mui = UserService.Instance.myUserInfo;
     return !!mui && mui.follows.length > 0;
   }
+  notUser() {
+    if (!UserService.Instance.myUserInfo && isBrowser()) {
+      return (
+        <div className="mb-4 mx-5">
+          <p className="text-center">Bạn chưa đăng nhập</p>
+          <a
+            href="/login"
+            className="btn btn-info btn-block"
+            role="button"
+            aria-pressed="true"
+          >
+            Đăng nhập
+          </a>
 
+          <a
+            href="/signup"
+            className="btn btn-info btn-block"
+            role="button"
+            aria-pressed="true"
+          >
+            Đăng ký
+          </a>
+        </div>
+      );
+    }
+  }
   mobileView() {
     let siteRes = this.state.siteRes;
     let siteView = siteRes.site_view;
@@ -642,6 +669,7 @@ export class Home extends Component<any, HomeState> {
   parseMessage(msg: any) {
     let op = wsUserOp(msg);
     console.log(msg);
+
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       return;
