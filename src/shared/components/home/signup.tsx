@@ -249,6 +249,7 @@ export class Signup extends Component<any, State> {
           </label>
 
           <div className="col-sm-10">
+            {/* Add Force lowwercase */}
             <input
               type="text"
               id="register-username"
@@ -257,7 +258,7 @@ export class Signup extends Component<any, State> {
               onInput={linkEvent(this, this.handleRegisterUsernameChange)}
               required
               minLength={3}
-              pattern="[a-zA-Z0-9_]+"
+              pattern="[a-z0-9_]+"
               title={i18n.t("community_reqs")}
             />
           </div>
