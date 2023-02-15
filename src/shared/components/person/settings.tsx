@@ -24,6 +24,7 @@ import {
   PiPaymentFound,
   PiWithdraw,
   SaveUserSettings,
+  SendPayment,
   SortType,
   UserOperation,
   wsJsonToRes,
@@ -135,6 +136,7 @@ interface SettingsState {
   depositLoading: boolean;
   withdrawValue: number;
   depositValue: number;
+  sendPaymentValue?: string;
   siteRes: GetSiteResponse;
 }
 
@@ -154,6 +156,7 @@ export class Settings extends Component<any, SettingsState> {
     withdrawValue: 0.0,
     depositLoading: false,
     depositValue: 0.0,
+    sendPaymentValue: undefined,
     balanceState: {},
     deleteAccountForm: {},
     personBlocks: [],
@@ -292,7 +295,9 @@ export class Settings extends Component<any, SettingsState> {
           <div className="card border-secondary mb-3">
             <div className="card-body">{this.depositHtmlForm()}</div>
           </div>
-
+          <div className="card border-secondary mb-3">
+            <div className="card-body">{this.sendPaymentHtmlForm()}</div>
+          </div>
           <div className="card border-secondary mb-3">
             <div className="card-body">{this.changePasswordHtmlForm()}</div>
           </div>
@@ -333,7 +338,7 @@ export class Settings extends Component<any, SettingsState> {
                 id="user-deposit"
                 className="form-control"
                 value={this.state.depositValue}
-                autoComplete="new-password"
+                //autoComplete="new-password"
                 maxLength={60}
                 onInput={linkEvent(this, this.handleDepositChange)}
               />
@@ -369,6 +374,49 @@ export class Settings extends Component<any, SettingsState> {
               </button>
             </div>
           )}
+        </form>
+      </>
+    );
+  }
+  sendPaymentHtmlForm() {
+    return (
+      <>
+        <h5>{i18n.t("Send Payment")}</h5>
+        <form onSubmit={linkEvent(this, this.handleChangePasswordSubmit)}>
+          <div className="form-group row">
+            <label
+              className="col-sm-5 col-form-label"
+              htmlFor="user-send-payment"
+            >
+              {i18n.t("PaymentId")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                type="text"
+                id="user-send-payment"
+                className="form-control"
+                value={this.state.sendPaymentValue}
+                //autoComplete="new-password"
+                maxLength={60}
+                onInput={linkEvent(this, this.handleSendPaymentChange)}
+              />
+            </div>
+          </div>
+          {
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handleSendPaymentSubmit)}
+              >
+                {this.state.depositLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("Pay (Admin only)"))
+                )}
+              </button>
+            </div>
+          }
         </form>
       </>
     );
@@ -1377,6 +1425,20 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
+  handleSendPaymentSubmit(i: Settings, event: any) {
+    console.log("handleSendPaymentSubmit:" + i.state.sendPaymentValue);
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: SendPayment = {
+        id: i.state.sendPaymentValue,
+        auth: auth,
+      };
+      console.log("Send handleSendPaymentSubmit");
+      WebSocketService.Instance.send(wsClient.piSendPayment(form));
+    }
+  }
+
   handleGetPaymentSubmit() {
     let getUser = UserService.Instance.myUserInfo;
     let auth = myAuth(true);
@@ -1586,6 +1648,11 @@ export class Settings extends Component<any, SettingsState> {
 
   handleDepositChange(i: Settings, event: any) {
     i.state.depositValue = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleSendPaymentChange(i: Settings, event: any) {
+    i.state.sendPaymentValue = event.target.value;
     i.setState(i.state);
   }
 
