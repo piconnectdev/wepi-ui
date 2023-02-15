@@ -4522,6 +4522,11 @@ icss-utils@^5.0.0, icss-utils@^5.1.0:
   resolved "https://registry.yarnpkg.com/icss-utils/-/icss-utils-5.1.0.tgz#c6be6858abd013d768e98366ae47e25d5887b1ae"
   integrity sha512-soFhflCVWLfRNOPU3iv5Z9VUdT44xFRbzjLsEzSr5AQmgqPMTHdU3PMT1Cf1ssx8fLNJDA1juftYl+PUcv3MqA==
 
+id128@^1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/id128/-/id128-1.6.6.tgz#cfbbf2c7569071694c7e55323dde40e457ae14e3"
+  integrity sha512-ExSXL9qcyQ7X/AfyO4ouARLnztm7Nmry1rwGi1nbrtSM90tjjqKzeMKqJfkw5bDdDX7XqdXIRzYYkVj5PU28Hg==
+
 iferr@^0.1.5, iferr@~0.1.5:
   version "0.1.5"
   resolved "https://registry.yarnpkg.com/iferr/-/iferr-0.1.5.tgz#c60eed69e6d8fdb6b3104a1fcbca1c192dc5b501"
@@ -5333,7 +5338,7 @@ leac@^0.6.0:
 
 "lemmy-js-client@https://github.com/piconnectdev/lemmy-js-client":
   version "0.17.0-rc.62"
-  resolved "https://github.com/piconnectdev/lemmy-js-client#577d62107be572f74c77d54da6bb9c36973f1cf5"
+  resolved "https://github.com/piconnectdev/lemmy-js-client#4c0960db5aaf4b08d17358755e96104fb23f0425"
   dependencies:
     node-fetch "2.6.6"
 

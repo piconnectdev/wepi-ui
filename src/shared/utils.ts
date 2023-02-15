@@ -1,4 +1,5 @@
 import emojiShortName from "emoji-short-name";
+import { Ulid, Uuid4 } from "id128";
 import {
   BlockCommunityResponse,
   BlockPersonResponse,
@@ -41,7 +42,6 @@ import { httpBase } from "./env";
 import { i18n, languages } from "./i18next";
 import { DataType, IsoData } from "./interfaces";
 import { UserService, WebSocketService } from "./services";
-
 var Tribute: any;
 if (isBrowser()) {
   Tribute = require("tributejs");
@@ -1155,6 +1155,18 @@ export function isBrowser() {
 
 export function isPiBrowser(): boolean {
   return isBrowser() && navigator.userAgent.includes("PiBrowser");
+}
+
+export function convertUUIDtoULID(uuid) {
+  var ulidToUuid = Uuid4.fromCanonical(uuid);
+  var uuidToUlid = Ulid.fromRaw(ulidToUuid.toRaw());
+  return uuidToUlid.toCanonical();
+  // const uuidBinary = uuid.split("-").map((hex) => parseInt(hex, 16));
+  // return uuidBinary
+  //   .slice(0, 8)
+  //   .map((byte) => byte.toString(32))
+  //   .concat(uuidBinary.slice(8).map((byte) => byte.toString(32)))
+  //   .join("");
 }
 
 export function setIsoData(context: any): IsoData {

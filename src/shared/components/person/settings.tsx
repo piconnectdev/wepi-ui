@@ -8,8 +8,12 @@ import {
   CommunityBlockView,
   CommunityView,
   CreateCommunity,
+  CreatePayment,
   DeleteAccount,
   ExternalAccount,
+  GetPayments,
+  GetPiBalances,
+  GetPiBalancesResponse,
   GetSiteResponse,
   ListingType,
   Login,
@@ -18,6 +22,7 @@ import {
   PersonViewSafe,
   PiLogin,
   PiPaymentFound,
+  PiWithdraw,
   SaveUserSettings,
   SortType,
   UserOperation,
@@ -33,6 +38,7 @@ import {
   choicesConfig,
   communitySelectName,
   communityToChoice,
+  convertUUIDtoULID,
   debounce,
   elementUrl,
   enableNsfw,
@@ -105,6 +111,12 @@ interface SettingsState {
     new_password_verify?: string;
     old_password?: string;
   };
+  balanceState: {
+    deposited?: number;
+    rewarded?: number;
+    withdrawed?: number;
+    amount?: number;
+  };
   deleteAccountForm: {
     password?: string;
   };
@@ -119,6 +131,10 @@ interface SettingsState {
   changePasswordLoading: boolean;
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
+  withdrawLoading: boolean;
+  depositLoading: boolean;
+  withdrawValue: number;
+  depositValue: number;
   siteRes: GetSiteResponse;
 }
 
@@ -134,6 +150,11 @@ export class Settings extends Component<any, SettingsState> {
     changePasswordLoading: false,
     deleteAccountLoading: false,
     deleteAccountShowConfirm: false,
+    withdrawLoading: false,
+    withdrawValue: 0.0,
+    depositLoading: false,
+    depositValue: 0.0,
+    balanceState: {},
     deleteAccountForm: {},
     personBlocks: [],
     communityBlocks: [],
@@ -265,6 +286,14 @@ export class Settings extends Component<any, SettingsState> {
         </div>
         <div className="col-12 col-md-6">
           <div className="card border-secondary mb-3">
+            <div className="card-body">{this.balanceHtmlForm()}</div>
+          </div>
+
+          <div className="card border-secondary mb-3">
+            <div className="card-body">{this.depositHtmlForm()}</div>
+          </div>
+
+          <div className="card border-secondary mb-3">
             <div className="card-body">{this.changePasswordHtmlForm()}</div>
           </div>
         </div>
@@ -286,6 +315,192 @@ export class Settings extends Component<any, SettingsState> {
           </div>
         </div>
       </div>
+    );
+  }
+
+  depositHtmlForm() {
+    return (
+      <>
+        <h5>{i18n.t("Deposit")}</h5>
+        <form onSubmit={linkEvent(this, this.handleChangePasswordSubmit)}>
+          <div className="form-group row">
+            <label className="col-sm-5 col-form-label" htmlFor="user-deposit">
+              {i18n.t("Amount")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                type="text"
+                id="user-deposit"
+                className="form-control"
+                value={this.state.depositValue}
+                autoComplete="new-password"
+                maxLength={60}
+                onInput={linkEvent(this, this.handleDepositChange)}
+              />
+            </div>
+          </div>
+          {!this.isPiBrowser && (
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handlePiDeposit)}
+              >
+                {this.state.depositLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("Deposit"))
+                )}
+              </button>
+            </div>
+          )}
+          {this.isPiBrowser && (
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handlePiDeposit)}
+              >
+                {this.state.depositLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("Deposit"))
+                )}
+              </button>
+            </div>
+          )}
+        </form>
+      </>
+    );
+  }
+
+  balanceHtmlForm() {
+    return (
+      <>
+        <h5>{i18n.t("Balances")}</h5>
+        <form>
+          <div className="form-group row">
+            <label className="col-sm-5 col-form-label" htmlFor="user-deposited">
+              {i18n.t("Deposited")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                readOnly={true}
+                type="text"
+                id="user-deposited"
+                className="form-control"
+                //value={1.0}
+                value={this.state.balanceState.deposited}
+                //autoComplete="new-password"
+                maxLength={60}
+                //onInput={linkEvent(this, this.handleNewPasswordChange)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label className="col-sm-5 col-form-label" htmlFor="user-rewarded">
+              {i18n.t("Rewarded")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                readOnly={true}
+                type="text"
+                id="user-rewarded"
+                className="form-control"
+                //value={1.0}
+                value={this.state.balanceState.rewarded}
+                //autoComplete="new-password"
+                maxLength={60}
+                //onInput={linkEvent(this, this.handleNewPasswordChange)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label
+              className="col-sm-5 col-form-label"
+              htmlFor="user-withdrawed"
+            >
+              {i18n.t("Withdrawed")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                type="text"
+                id="user-withdrawed"
+                className="form-control"
+                readOnly={true}
+                value={this.state.balanceState.withdrawed}
+                //autoComplete="new-password"
+                maxLength={60}
+                //onInput={linkEvent(this, this.handleNewPasswordVerifyChange)}
+              />
+            </div>
+          </div>
+          <div className="form-group row">
+            <label className="col-sm-5 col-form-label" htmlFor="user-amount">
+              {i18n.t("Amount")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                readOnly={true}
+                type="text"
+                id="user-amount"
+                className="form-control"
+                value={this.state.balanceState.amount}
+                //autoComplete="new-password"
+                maxLength={60}
+                //onInput={linkEvent(this, this.handleNewPasswordChange)}
+              />
+            </div>
+          </div>
+          {
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handlePiBalanceSubmit)}
+              >
+                {this.state.withdrawLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("Balance"))
+                )}
+              </button>
+            </div>
+          }
+          <div className="form-group row">
+            <label className="col-sm-5 col-form-label" htmlFor="user-withdraw">
+              {i18n.t("Withdraw Amount")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                type="text"
+                id="user-withdraw"
+                className="form-control"
+                value={this.state.withdrawValue}
+                //value={this.state.changePasswordForm.new_password_verify}
+                //autoComplete="new-password"
+                maxLength={60}
+                onInput={linkEvent(this, this.handleWithdrawChange)}
+              />
+            </div>
+          </div>
+          {
+            <div className="form-group">
+              <button
+                type="button"
+                className="btn btn-block btn-secondary mr-4"
+                onClick={linkEvent(this, this.handlePiWithdrawSubmit)}
+              >
+                {this.state.withdrawLoading ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(i18n.t("Withdraw"))
+                )}
+              </button>
+            </div>
+          }
+        </form>
+      </>
     );
   }
 
@@ -891,6 +1106,28 @@ export class Settings extends Component<any, SettingsState> {
           </div>
           <hr />
 
+          <div className="form-group">
+            <button
+              type="button"
+              className="btn btn-block btn-secondary mr-4"
+              onClick={linkEvent(this, this.handleCreatePaymentSubmit)}
+            >
+              Create Payment
+            </button>
+          </div>
+          <hr />
+
+          <div className="form-group">
+            <button
+              type="button"
+              className="btn btn-block btn-secondary mr-4"
+              onClick={linkEvent(this, this.handleGetPaymentSubmit)}
+            >
+              GetPayments
+            </button>
+          </div>
+          <hr />
+
           {!this.isPiBrowser && (
             <div className="form-group">
               <button
@@ -1081,6 +1318,86 @@ export class Settings extends Component<any, SettingsState> {
     }
     window.location.href = `/c/${getUser?.local_user_view.person.name}`;
   }
+
+  handlePiBalanceSubmit() {
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let formCheckBalance: GetPiBalances = {
+        domain: window.location.hostname,
+        asset: "PI",
+        auth: auth,
+      };
+      WebSocketService.Instance.send(wsClient.piBalances(formCheckBalance));
+    }
+  }
+
+  handlePiWithdrawSubmit(i: Settings, event: any) {
+    console.log("handlePiWithdrawSubmit:" + i.state.withdrawValue);
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: PiWithdraw = {
+        domain: window.location.hostname,
+        asset: "PI",
+        amount: Number(i.state.withdrawValue),
+        auth: auth,
+      };
+      console.log("Send PiWithdraw:" + JSON.stringify(form));
+      WebSocketService.Instance.send(wsClient.piWithdraw(form));
+    }
+  }
+
+  handleCreatePaymentSubmit(i: Settings, event: any) {
+    console.log("handleCreatePaymentSubmit:" + i.state.depositValue);
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: CreatePayment = {
+        domain: window.location.hostname,
+        obj_cat: "deposit",
+        //obj_id: string;
+        //ref_id: string;
+        comment: "",
+
+        //person_id?: None;
+        //person_name?: string;
+        //step?: number;
+        //a2u: true,
+        //pending?: boolean;
+        //page?: number;
+        //limit: 100,
+        //domain: window.location.hostname,
+        amount: Number(i.state.depositValue),
+        asset: "PI",
+        auth: auth,
+      };
+      console.log("Send piCreatePayment");
+      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
+    }
+  }
+
+  handleGetPaymentSubmit() {
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: GetPayments = {
+        //person_id?: None;
+        //person_name?: string;
+        //step?: number;
+        //a2u: true,
+        //pending?: boolean;
+        //page?: number;
+        limit: 100,
+        //domain: window.location.hostname,
+        //asset: "PI",
+        auth: auth,
+      };
+      console.log("Send GetPayments");
+      WebSocketService.Instance.send(wsClient.piGetPayments(form));
+    }
+  }
+
   handleBlockCommunity(community_id: string) {
     let auth = myAuth();
     if (auth && community_id.length !== 0) {
@@ -1267,6 +1584,16 @@ export class Settings extends Component<any, SettingsState> {
     i.setState(i.state);
   }
 
+  handleDepositChange(i: Settings, event: any) {
+    i.state.depositValue = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleWithdrawChange(i: Settings, event: any) {
+    i.state.withdrawValue = event.target.value;
+    i.setState(i.state);
+  }
+
   handleSaveSettingsSubmit(i: Settings, event: any) {
     event.preventDefault();
     i.setState({ saveUserSettingsLoading: true });
@@ -1389,7 +1716,19 @@ export class Settings extends Component<any, SettingsState> {
       this.setState({ changePasswordLoading: false });
       window.scrollTo(0, 0);
       toast(i18n.t("password_changed"));
+    } else if (op == UserOperation.GetPiBalances) {
+      let data = wsJsonToRes<GetPiBalancesResponse>(msg);
+      this.setState({
+        balanceState: {
+          deposited: data.deposited,
+          rewarded: data.rewarded,
+          withdrawed: data.withdrawed,
+          amount: data.amount,
+        },
+      });
+      toast(i18n.t("Get balances success"));
     } else {
+      console.log("settings parseMessage:" + JSON.stringify(msg));
       this.setState({
         saveUserSettingsLoading: false,
         changePasswordLoading: false,
@@ -1457,7 +1796,7 @@ export class Settings extends Component<any, SettingsState> {
     let auth = myAuth(false);
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-      const scopes = ["username", "payments"];
+      const scopes = ["username", "payments", "wallet_address"];
       try {
         var user = await window.Pi.authenticate(
           scopes,
@@ -1478,8 +1817,6 @@ export class Settings extends Component<any, SettingsState> {
       found.pi_uid = piUser.user.uid;
       found.pi_token = piUser.accessToken;
       found.auth = auth;
-      found.person_id = undefined;
-      found.comment = undefined;
       payment.metadata = undefined;
       found.dto = payment;
       console.log("PiChangePassword PiPaymentFound, auth:" + auth);
@@ -1527,8 +1864,7 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: 0.001,
-        //memo: ('wepi:profile:'+luv.person.name).substr(0,28),
-        memo: "person",
+        memo: "AU" + convertUUIDtoULID(luv.person.id),
         metadata: {
           id: luv.person.id,
           name: luv.person.name,
@@ -1541,17 +1877,55 @@ export class Settings extends Component<any, SettingsState> {
           s: luv.person.auth_sign,
         },
       };
+      console.log("handlePiBlockchain Object:" + JSON.stringify(config));
       try {
-        let auth = myAuth(false);
+        let auth = myAuth(true);
         await createPayment(
           config,
           window.location.hostname,
-          luv.person.id,
-          auth
+          auth,
+          "person",
+          luv.person.id
         );
       } catch (err) {
         console.log(
           "Create Pi Payment for person error:" + JSON.stringify(err)
+        );
+      }
+    }
+  }
+  async handlePiDeposit(i: Settings, event: any) {
+    if (UserService.Instance.myUserInfo) {
+      let mui = UserService.Instance.myUserInfo;
+      let luv = mui.local_user_view;
+      var config = {
+        amount: Number(i.state.depositValue),
+        memo: "AD" + convertUUIDtoULID(luv.person.id),
+        metadata: {
+          id: luv.person.id,
+          name: luv.person.name,
+          display: luv.person.display_name,
+          actor_id: luv.person.actor_id,
+          pi_address: luv.person.pi_address,
+          web3_address: luv.person.web3_address,
+          t: luv.person.published,
+          u: luv.person.updated,
+          s: luv.person.auth_sign,
+        },
+      };
+      console.log("handlePiDeposit Object:" + JSON.stringify(config));
+      try {
+        let auth = myAuth(true);
+        await createPayment(
+          config,
+          window.location.hostname,
+          auth,
+          "deposit",
+          luv.person.id
+        );
+      } catch (err) {
+        console.log(
+          "Create Pi Payment Deposit for person error:" + JSON.stringify(err)
         );
       }
     }

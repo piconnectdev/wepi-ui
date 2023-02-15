@@ -11,6 +11,7 @@ import { i18n } from "../../i18next";
 import { WebSocketService } from "../../services";
 import {
   capitalizeFirstLetter,
+  convertUUIDtoULID,
   eth001,
   fetchThemeList,
   gasPrice,
@@ -1157,7 +1158,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     };
     //let luv = UserService.Instance.myUserInfo.local_user_view;
     var config = {
-      memo: "wepi:site",
+      memo:
+        "AS" + convertUUIDtoULID(i.props.siteRes.site_view.site.instance_id),
       metadata: {
         name: i.state.siteForm.name,
         desc: i.state.siteForm.description,

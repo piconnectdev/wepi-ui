@@ -33,6 +33,7 @@ import {
   amCommunityCreator,
   canAdmin,
   canMod,
+  convertUUIDtoULID,
   eth001,
   eth01,
   futureDaysToUnixTime,
@@ -1832,7 +1833,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   async handlePiTipClick(i: PostListing) {
     var config = {
       amount: 0.1,
-      memo: "tip:page",
+      memo: "TP" + convertUUIDtoULID(i.props.post_view.post.id),
       metadata: {
         id: i.props.post_view.creator.id,
         //cid: i.props.post_view.community.id,
@@ -1843,14 +1844,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         u: i.props.post_view.post.updated,
       },
     };
-    let auth = myAuth(false);
+    let auth = myAuth(true);
     console.log("Create tip for Page" + auth);
     try {
       await createPayment(
         config,
         window.location.hostname,
+        auth,
+        "tip:page",
         i.props.post_view.post.id,
-        auth
+        i.props.post_view.creator.id,
+        "tip for page of " + i.props.post_view.creator.name
       );
     } catch (err) {
       console.log("Create Pi tip for page error:" + JSON.stringify(err));
@@ -1860,7 +1864,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   async handlePiBlockchainClick(i: PostListing) {
     var config = {
       amount: 0.00001,
-      memo: "page",
+      memo: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
       metadata: {
         id: i.props.post_view.post.id,
         own: i.props.post_view.creator.id,
@@ -1876,14 +1880,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         sign: i.props.post_view.post.auth_sign,
       },
     };
-    let auth = myAuth(false);
-    console.log("Create payment for Page" + auth);
+    let auth = myAuth(true);
+    console.log("Create payment for page" + auth);
     try {
       await createPayment(
         config,
         window.location.hostname,
+        auth,
+        "page",
         i.props.post_view.post.id,
-        auth
+        i.props.post_view.creator.id
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));

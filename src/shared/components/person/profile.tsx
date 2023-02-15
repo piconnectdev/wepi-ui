@@ -26,6 +26,7 @@ import { UserService, WebSocketService } from "../../services";
 import {
   canMod,
   capitalizeFirstLetter,
+  convertUUIDtoULID,
   createCommentLikeRes,
   createPostLikeFindRes,
   editCommentRes,
@@ -977,7 +978,7 @@ export class Profile extends Component<any, ProfileState> {
     if (person) {
       config = {
         amount: 0.00001,
-        memo: "profile",
+        memo: "AU" + convertUUIDtoULID(person.id),
         metadata: {
           id: person.id,
           name: person.name,
@@ -991,7 +992,13 @@ export class Profile extends Component<any, ProfileState> {
 
       try {
         let auth = myAuth(false);
-        await createPayment(config, window.location.hostname, person.id, auth);
+        await createPayment(
+          config,
+          window.location.hostname,
+          auth,
+          "person",
+          person.id
+        );
       } catch (err) {
         console.log(
           "Pi createPayment for profile error:" + JSON.stringify(err)

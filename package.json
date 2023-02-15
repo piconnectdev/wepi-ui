@@ -37,6 +37,7 @@
     "express": "~4.18.2",
     "html-to-text": "^9.0.3",
     "i18next": "^22.4.9",
+    "id128": "^1.6.6",
     "inferno": "^8.0.5",
     "inferno-create-element": "^8.0.5",
     "inferno-helmet": "^5.2.1",

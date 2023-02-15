@@ -260,7 +260,7 @@ export class Login extends Component<any, State> {
 
     const authenticatePiUser = async () => {
       // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-      const scopes = ["username", "payments"];
+      const scopes = ["username", "payments", "wallet_address"];
       try {
         var user = await window.Pi.authenticate(
           scopes,
@@ -282,8 +282,6 @@ export class Login extends Component<any, State> {
       found.pi_uid = piUser.user.uid;
       found.pi_token = piUser.accessToken;
       found.auth = undefined;
-      found.person_id = undefined;
-      found.comment = undefined;
       payment.metadata = undefined;
       found.dto = payment;
       console.log(JSON.stringify(found));

@@ -39,6 +39,7 @@ import {
   canMod,
   colorList,
   commentTreeMaxDepth,
+  convertUUIDtoULID,
   eth001,
   eth01,
   futureDaysToUnixTime,
@@ -1774,8 +1775,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiTipClick(i: CommentNode) {
     var config = {
       amount: 0.1,
-      //memo: ('wepi:tip:'+i.props.node.comment_view.creator.name).substr(0,28),
-      memo: "tip:note",
+      memo: "TN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
       metadata: {
         id: i.props.node.comment_view.creator.id,
         post_id: i.props.node.comment_view.post.id,
@@ -1786,22 +1786,16 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         u: i.props.node.comment_view.comment.updated,
       },
     };
-    var info = {
-      own: i.props.node.comment_view.comment.creator_id,
-      comment:
-        "tip note;" +
-        i.props.node.comment_view.creator.name +
-        ";" +
-        i.props.node.comment_view.comment.id,
-    };
     try {
-      let auth = myAuth(false);
+      let auth = myAuth(true);
       await createPayment(
         config,
         window.location.hostname,
+        auth,
+        "tip:note",
         i.props.node.comment_view.comment.id,
-        "tip:note;",
-        auth
+        i.props.node.comment_view.creator.id,
+        "tip for note of " + i.props.node.comment_view.creator.name
       );
     } catch (err) {
       console.log("Create Pi Tip for note error:" + JSON.stringify(err));
@@ -1811,7 +1805,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiBlockchainClick(i: CommentNode) {
     var config = {
       amount: 0.00001,
-      memo: "note",
+      memo: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
       metadata: {
         id: i.props.node.comment_view.comment.id,
         own: i.props.node.comment_view.comment.creator_id,
@@ -1825,12 +1819,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       },
     };
     try {
-      let auth = myAuth(false);
+      let auth = myAuth(true);
       await createPayment(
         config,
         window.location.hostname,
+        auth,
+        "note",
         i.props.node.comment_view.comment.id,
-        auth
+        i.props.node.comment_view.creator.id,
+        ""
       );
     } catch (err) {
       console.log("Create Pi Payment for note error:" + JSON.stringify(err));

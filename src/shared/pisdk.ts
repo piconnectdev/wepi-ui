@@ -5,14 +5,16 @@ import { wsClient } from "./utils";
 export async function createPayment(
   config: any,
   domain: string,
-  object_id?: string,
-  comment?: string,
-  auth?: string
+  auth?: string,
+  obj_cat?: string,
+  obj_id?: string,
+  ref_id?: string,
+  comment?: string
 ) {
   var piUser;
   const authenticatePiUser = async () => {
     // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
-    const scopes = ["username", "payments"];
+    const scopes = ["username", "payments", "wallet_address"];
     try {
       var user = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
       return user;
@@ -21,7 +23,7 @@ export async function createPayment(
     }
   };
 
-  const onIncompletePaymentFound = async (payment) => {    
+  const onIncompletePaymentFound = async payment => {
     //do something with incompleted payment
     var found = new PiPaymentFound();
     found.domain = domain;
@@ -30,10 +32,8 @@ export async function createPayment(
     found.pi_uid = piUser.user.uid;
     found.paymentid = payment.identifier;
     found.auth = auth;
-    found.person_id = undefined;
-    found.comment = comment;
     payment.metadata = undefined;
-    found.dto = payment; 
+    found.dto = payment;
     console.log("PiPaymentFound, auth:" + auth);
     console.log("PaymentDTO:" + JSON.stringify(payment));
     console.log("PiPaymentFound: data" + JSON.stringify(found));
@@ -44,14 +44,16 @@ export async function createPayment(
   const onReadyForApproval = async (payment_id, paymentConfig) => {
     var approve = new PiApprove();
     approve.domain = domain;
-    approve.pi_username = piUser.user.username;
     approve.pi_token = piUser.accessToken;
+    approve.pi_username = piUser.user.username;
     approve.pi_uid = piUser.user.uid;
     approve.paymentid = payment_id;
-    approve.object_id = object_id;
+    approve.obj_cat = obj_cat;
+    approve.obj_id = obj_id;
+    approve.ref_id = ref_id;
     approve.comment = comment;
     approve.auth = auth;
-    WebSocketService.Instance.send(wsClient.piApprove(approve));
+    WebSocketService.Instance.send(wsClient.piPaymentApprove(approve));
   };
 
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
@@ -61,11 +63,11 @@ export async function createPayment(
     payment.pi_token = piUser.accessToken;
     payment.pi_uid = piUser.user.uid;
     payment.paymentid = payment_id;
-    payment.object_id = object_id;
+    payment.obj_id = obj_id;
     payment.comment = comment;
     payment.auth = auth;
     payment.txid = txid;
-    WebSocketService.Instance.send(wsClient.piPayment(payment));
+    WebSocketService.Instance.send(wsClient.piPaymentComplete(payment));
   };
 
   const onCancel = paymentId => {

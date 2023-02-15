@@ -20,6 +20,7 @@ import {
   amAdmin,
   amMod,
   amTopMod,
+  convertUUIDtoULID,
   //auth,
   eth001,
   gasPrice,
@@ -745,7 +746,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   async handlePiBlockchainClick(i: Sidebar) {
     var config = {
       amount: 0.00001,
-      memo: "group",
+      memo: "AG" + convertUUIDtoULID(i.props.community_view.community.id),
       metadata: {
         id: i.props.community_view.community.id,
         name: i.props.community_view.community.name,
@@ -759,12 +760,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       },
     };
     try {
-      let auth = myAuth(false);
+      let auth = myAuth(true);
       await createPayment(
         config,
         window.location.hostname,
-        i.props.community_view.community.id,
-        auth
+        auth,
+        "group",
+        i.props.community_view.community.id
       );
     } catch (err) {
       console.log("Create Payment for group error");
