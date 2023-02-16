@@ -8,6 +8,7 @@ import {
   BanPerson,
   BlockPerson,
   CommunityModeratorView,
+  CreatePayment,
   CreatePostLike,
   CreatePostReport,
   DeletePost,
@@ -1893,6 +1894,26 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));
+    }
+  }
+
+  handleCreatePaymentSubmit(i: PostListing) {
+    console.log("handleCreatePaymentSubmit");
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: CreatePayment = {
+        domain: window.location.hostname,
+        obj_cat: "page",
+        obj_id: i.props.post_view.post.id,
+        ref_id: i.props.post_view.creator.id,
+        comment: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
+        amount: 0.00001,
+        asset: "PI",
+        auth: auth,
+      };
+      console.log("Send piCreatePayment");
+      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 

@@ -1,4 +1,4 @@
-import { PiApprove, PiPaymentFound, PiTip } from "lemmy-js-client";
+import { PiApprove, PiPaymentComplete, PiPaymentFound } from "lemmy-js-client";
 import { WebSocketService } from "./services";
 import { wsClient } from "./utils";
 
@@ -57,7 +57,7 @@ export async function createPayment(
   };
 
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
-    var payment = new PiTip();
+    var payment = new PiPaymentComplete();
     payment.domain = domain;
     payment.pi_username = piUser.user.username;
     payment.pi_token = piUser.accessToken;

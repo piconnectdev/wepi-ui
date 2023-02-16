@@ -1,6 +1,7 @@
 import { Component, InfernoMouseEvent, linkEvent } from "inferno";
 import { Prompt } from "inferno-router";
 import {
+  CreatePayment,
   CreateSite,
   EditSite,
   GetSiteResponse,
@@ -1193,6 +1194,26 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       } catch (error) {
         console.log(error);
       }
+    }
+  }
+
+  handleCreatePaymentSubmit(i: SiteForm) {
+    console.log("handleCreatePaymentSubmit");
+    let auth = myAuth(true);
+    if (auth) {
+      let form: CreatePayment = {
+        domain: window.location.hostname,
+        obj_cat: "site",
+        obj_id: i.props.siteRes.site_view.site.instance_id,
+        ref_id: undefined,
+        comment:
+          "AS" + convertUUIDtoULID(i.props.siteRes.site_view.site.instance_id),
+        amount: 0.00001,
+        asset: "PI",
+        auth: auth,
+      };
+      console.log("Send piCreatePayment for site");
+      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 

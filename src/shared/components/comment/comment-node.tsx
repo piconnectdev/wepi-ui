@@ -13,6 +13,7 @@ import {
   CommunityModeratorView,
   CreateCommentLike,
   CreateCommentReport,
+  CreatePayment,
   DeleteComment,
   EditComment,
   GetComments,
@@ -1831,6 +1832,26 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       );
     } catch (err) {
       console.log("Create Pi Payment for note error:" + JSON.stringify(err));
+    }
+  }
+
+  handleCreatePaymentSubmit(i: CommentNode) {
+    console.log("handleCreatePaymentSubmit");
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth) {
+      let form: CreatePayment = {
+        domain: window.location.hostname,
+        obj_cat: "note",
+        obj_id: i.props.node.comment_view.comment.id,
+        ref_id: i.props.node.comment_view.comment.post_id,
+        comment: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
+        amount: 0.00001,
+        asset: "PI",
+        auth: auth,
+      };
+      console.log("Send piCreatePayment");
+      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 }

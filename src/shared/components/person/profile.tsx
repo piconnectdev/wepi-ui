@@ -7,6 +7,7 @@ import {
   BlockPerson,
   BlockPersonResponse,
   CommentResponse,
+  CreatePayment,
   GetPersonDetails,
   GetPersonDetailsResponse,
   GetSiteResponse,
@@ -1004,6 +1005,26 @@ export class Profile extends Component<any, ProfileState> {
           "Pi createPayment for profile error:" + JSON.stringify(err)
         );
       }
+    }
+  }
+  handleCreatePaymentSubmit(i: Profile) {
+    console.log("handleCreatePaymentSubmit");
+    let person = i.state.personRes?.person_view.person;
+    let getUser = UserService.Instance.myUserInfo;
+    let auth = myAuth(true);
+    if (getUser && auth && person !== undefined) {
+      let form: CreatePayment = {
+        domain: window.location.hostname,
+        obj_cat: "person",
+        obj_id: person.id,
+        ref_id: undefined,
+        comment: "AU" + convertUUIDtoULID(person.id),
+        amount: 0.00001,
+        asset: "PI",
+        auth: auth,
+      };
+      console.log("Send piCreatePayment for person");
+      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 }
