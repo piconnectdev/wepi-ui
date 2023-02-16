@@ -8,7 +8,6 @@ import {
   BanPerson,
   BlockPerson,
   CommunityModeratorView,
-  CreatePayment,
   CreatePostLike,
   CreatePostReport,
   DeletePost,
@@ -34,7 +33,6 @@ import {
   amCommunityCreator,
   canAdmin,
   canMod,
-  convertUUIDtoULID,
   eth001,
   eth01,
   futureDaysToUnixTime,
@@ -1834,7 +1832,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   async handlePiTipClick(i: PostListing) {
     var config = {
       amount: 0.1,
-      memo: "TP" + convertUUIDtoULID(i.props.post_view.post.id),
+      //memo: "TP" + convertUUIDtoULID(i.props.post_view.post.id),
+      memo:
+        "Tip " +
+        i.props.post_view.creator.name +
+        " for " +
+        i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.creator.id,
         //cid: i.props.post_view.community.id,
@@ -1846,7 +1849,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       },
     };
     let auth = myAuth(true);
-    console.log("Create tip for Page" + auth);
     try {
       await createPayment(
         config,
@@ -1858,14 +1860,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         "tip for page of " + i.props.post_view.creator.name
       );
     } catch (err) {
-      console.log("Create Pi tip for page error:" + JSON.stringify(err));
+      console.log("Tip page error:" + JSON.stringify(err));
     }
   }
 
   async handlePiBlockchainClick(i: PostListing) {
     var config = {
       amount: 0.00001,
-      memo: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
+      //memo: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
+      memo: "Store page " + i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.post.id,
         own: i.props.post_view.creator.id,
@@ -1882,7 +1885,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       },
     };
     let auth = myAuth(true);
-    console.log("Create payment for page" + auth);
     try {
       await createPayment(
         config,
@@ -1894,26 +1896,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));
-    }
-  }
-
-  handleCreatePaymentSubmit(i: PostListing) {
-    console.log("handleCreatePaymentSubmit");
-    let getUser = UserService.Instance.myUserInfo;
-    let auth = myAuth(true);
-    if (getUser && auth) {
-      let form: CreatePayment = {
-        domain: window.location.hostname,
-        obj_cat: "page",
-        obj_id: i.props.post_view.post.id,
-        ref_id: i.props.post_view.creator.id,
-        comment: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
-        amount: 0.00001,
-        asset: "PI",
-        auth: auth,
-      };
-      console.log("Send piCreatePayment");
-      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 

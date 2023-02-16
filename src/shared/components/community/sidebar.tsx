@@ -5,7 +5,6 @@ import {
   BlockCommunity,
   CommunityModeratorView,
   CommunityView,
-  CreatePayment,
   DeleteCommunity,
   FollowCommunity,
   Language,
@@ -21,7 +20,6 @@ import {
   amAdmin,
   amMod,
   amTopMod,
-  convertUUIDtoULID,
   //auth,
   eth001,
   gasPrice,
@@ -747,7 +745,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   async handlePiBlockchainClick(i: Sidebar) {
     var config = {
       amount: 0.00001,
-      memo: "AG" + convertUUIDtoULID(i.props.community_view.community.id),
+      //memo: "AG" + convertUUIDtoULID(i.props.community_view.community.id),
+      memo: "Store group info: " + i.props.community_view.community.name,
       metadata: {
         id: i.props.community_view.community.id,
         name: i.props.community_view.community.name,
@@ -767,30 +766,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         window.location.hostname,
         auth,
         "group",
-        i.props.community_view.community.id
+        i.props.community_view.community.id,
+        undefined,
+        "Store group info: " + i.props.community_view.community.name
       );
     } catch (err) {
       console.log("Create Payment for group error");
-    }
-  }
-
-  handleCreatePaymentSubmit(i: Sidebar) {
-    console.log("handleCreatePaymentSubmit");
-    let getUser = UserService.Instance.myUserInfo;
-    let auth = myAuth(true);
-    if (getUser && auth) {
-      let form: CreatePayment = {
-        domain: window.location.hostname,
-        obj_cat: "group",
-        obj_id: i.props.community_view.community.id,
-        ref_id: undefined,
-        comment: "AG" + convertUUIDtoULID(i.props.community_view.community.id),
-        amount: 0.00001,
-        asset: "PI",
-        auth: auth,
-      };
-      console.log("Send piCreatePayment for group");
-      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 

@@ -13,7 +13,6 @@ import {
   CommunityModeratorView,
   CreateCommentLike,
   CreateCommentReport,
-  CreatePayment,
   DeleteComment,
   EditComment,
   GetComments,
@@ -40,7 +39,6 @@ import {
   canMod,
   colorList,
   commentTreeMaxDepth,
-  convertUUIDtoULID,
   eth001,
   eth01,
   futureDaysToUnixTime,
@@ -1776,7 +1774,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiTipClick(i: CommentNode) {
     var config = {
       amount: 0.1,
-      memo: "TN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
+      //memo: "TN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
+      memo:
+        "Tip " +
+        i.props.node.comment_view.creator.name +
+        " for " +
+        i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.creator.id,
         post_id: i.props.node.comment_view.post.id,
@@ -1806,7 +1809,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   async handlePiBlockchainClick(i: CommentNode) {
     var config = {
       amount: 0.00001,
-      memo: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
+      //memo: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
+      memo: "Store comment/note " + i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.comment.id,
         own: i.props.node.comment_view.comment.creator_id,
@@ -1828,30 +1832,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         "note",
         i.props.node.comment_view.comment.id,
         i.props.node.comment_view.creator.id,
-        ""
+        "Store comment/note " + i.props.node.comment_view.comment.id
       );
     } catch (err) {
-      console.log("Create Pi Payment for note error:" + JSON.stringify(err));
-    }
-  }
-
-  handleCreatePaymentSubmit(i: CommentNode) {
-    console.log("handleCreatePaymentSubmit");
-    let getUser = UserService.Instance.myUserInfo;
-    let auth = myAuth(true);
-    if (getUser && auth) {
-      let form: CreatePayment = {
-        domain: window.location.hostname,
-        obj_cat: "note",
-        obj_id: i.props.node.comment_view.comment.id,
-        ref_id: i.props.node.comment_view.comment.post_id,
-        comment: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
-        amount: 0.00001,
-        asset: "PI",
-        auth: auth,
-      };
-      console.log("Send piCreatePayment");
-      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
+      console.log("Store note error:" + JSON.stringify(err));
     }
   }
 }

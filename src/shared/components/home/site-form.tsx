@@ -1,7 +1,6 @@
 import { Component, InfernoMouseEvent, linkEvent } from "inferno";
 import { Prompt } from "inferno-router";
 import {
-  CreatePayment,
   CreateSite,
   EditSite,
   GetSiteResponse,
@@ -9,6 +8,7 @@ import {
   RegistrationMode,
 } from "lemmy-js-client";
 import { i18n } from "../../i18next";
+import { createPayment } from "../../pisdk";
 import { WebSocketService } from "../../services";
 import {
   capitalizeFirstLetter,
@@ -1197,23 +1197,31 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     }
   }
 
-  handleCreatePaymentSubmit(i: SiteForm) {
-    console.log("handleCreatePaymentSubmit");
-    let auth = myAuth(true);
-    if (auth) {
-      let form: CreatePayment = {
-        domain: window.location.hostname,
-        obj_cat: "site",
-        obj_id: i.props.siteRes.site_view.site.instance_id,
-        ref_id: undefined,
-        comment:
-          "AS" + convertUUIDtoULID(i.props.siteRes.site_view.site.instance_id),
-        amount: 0.00001,
-        asset: "PI",
-        auth: auth,
-      };
-      console.log("Send piCreatePayment for site");
-      WebSocketService.Instance.send(wsClient.piCreatePayment(form));
+  async handlePiBlockchainClick(i: SiteForm) {
+    var config;
+    config = {
+      amount: 0.00001,
+      memo: "Store site info: " + i.props.siteRes.site_view.site.name,
+      metadata: {
+        id: i.props.siteRes.site_view.site.instance_id,
+        site_id: i.props.siteRes.site_view.site.id,
+        name: i.props.siteRes.site_view.site.name,
+      },
+    };
+
+    try {
+      let auth = myAuth(false);
+      await createPayment(
+        config,
+        window.location.hostname,
+        auth,
+        "site",
+        i.props.siteRes.site_view.site.instance_id,
+        i.props.siteRes.site_view.site.id,
+        i.props.siteRes.site_view.site.name
+      );
+    } catch (err) {
+      console.log("Store site info error:" + JSON.stringify(err));
     }
   }
 

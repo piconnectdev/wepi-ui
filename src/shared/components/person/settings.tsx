@@ -39,7 +39,6 @@ import {
   choicesConfig,
   communitySelectName,
   communityToChoice,
-  convertUUIDtoULID,
   debounce,
   elementUrl,
   enableNsfw,
@@ -1425,7 +1424,7 @@ export class Settings extends Component<any, SettingsState> {
     if (getUser && auth) {
       let form: CreatePayment = {
         domain: window.location.hostname,
-        obj_cat: "deposit",
+        obj_cat: "withdraw",
         //obj_id: string;
         //ref_id: string;
         comment: "",
@@ -1958,7 +1957,12 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: 0.001,
-        memo: "AU" + convertUUIDtoULID(luv.person.id),
+        //memo: "AU" + convertUUIDtoULID(luv.person.id),
+        memo:
+          "Store person " +
+          luv.person.name +
+          ", display: " +
+          luv.person.display_name,
         metadata: {
           id: luv.person.id,
           name: luv.person.name,
@@ -1971,7 +1975,6 @@ export class Settings extends Component<any, SettingsState> {
           s: luv.person.auth_sign,
         },
       };
-      console.log("handlePiBlockchain Object:" + JSON.stringify(config));
       try {
         let auth = myAuth(true);
         await createPayment(
@@ -1979,12 +1982,15 @@ export class Settings extends Component<any, SettingsState> {
           window.location.hostname,
           auth,
           "person",
-          luv.person.id
+          luv.person.id,
+          luv.person.id,
+          "Store person " +
+            luv.person.name +
+            ", display: " +
+            luv.person.display_name
         );
       } catch (err) {
-        console.log(
-          "Create Pi Payment for person error:" + JSON.stringify(err)
-        );
+        console.log("Store person error:" + JSON.stringify(err));
       }
     }
   }
@@ -1995,7 +2001,8 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: Number(i.state.depositValue),
-        memo: "AD" + convertUUIDtoULID(luv.person.id),
+        //memo: "AD" + convertUUIDtoULID(luv.person.id),
+        memo: "User " + luv.person.name + " deposit ",
         metadata: {
           id: luv.person.id,
           name: luv.person.name,
@@ -2008,7 +2015,6 @@ export class Settings extends Component<any, SettingsState> {
           s: luv.person.auth_sign,
         },
       };
-      console.log("handlePiDeposit Object:" + JSON.stringify(config));
       try {
         let auth = myAuth(true);
         await createPayment(
@@ -2016,7 +2022,9 @@ export class Settings extends Component<any, SettingsState> {
           window.location.hostname,
           auth,
           "deposit",
-          luv.person.id
+          luv.person.id,
+          luv.person.id,
+          "User " + luv.person.name + " deposit "
         );
       } catch (err) {
         console.log(
@@ -2031,7 +2039,9 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: Number(i.state.depositValue),
-        memo: "AD" + convertUUIDtoULID(luv.person.id),
+        //memo: "AD" + convertUUIDtoULID(luv.person.id),
+        memo:
+          "User " + luv.person.name + " send reward to " + i.state.depositName,
         metadata: {
           id: luv.person.id,
           name: luv.person.name,
@@ -2044,9 +2054,6 @@ export class Settings extends Component<any, SettingsState> {
           s: luv.person.auth_sign,
         },
       };
-      console.log(
-        "handlePiDeposit For reward Object:" + JSON.stringify(config)
-      );
       try {
         let auth = myAuth(true);
         await createPayment(
