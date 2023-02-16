@@ -136,6 +136,7 @@ interface SettingsState {
   depositLoading: boolean;
   withdrawValue: number;
   depositValue: number;
+  depositName?: string;
   sendPaymentValue?: string;
   siteRes: GetSiteResponse;
 }
@@ -157,6 +158,7 @@ export class Settings extends Component<any, SettingsState> {
     depositLoading: false,
     depositValue: 0.0,
     sendPaymentValue: undefined,
+    depositName: undefined,
     balanceState: {},
     deleteAccountForm: {},
     personBlocks: [],
@@ -326,8 +328,27 @@ export class Settings extends Component<any, SettingsState> {
   depositHtmlForm() {
     return (
       <>
-        <h5>{i18n.t("Deposit")}</h5>
-        <form onSubmit={linkEvent(this, this.handleChangePasswordSubmit)}>
+        <h5>{i18n.t("Reward user")}</h5>
+        <form>
+          <div className="form-group row">
+            <label
+              className="col-sm-5 col-form-label"
+              htmlFor="user-deposit-name"
+            >
+              {i18n.t("User")}
+            </label>
+            <div className="col-sm-7">
+              <input
+                type="text"
+                id="user-deposit-name"
+                className="form-control"
+                value={this.state.depositName}
+                //autoComplete="new-password"
+                maxLength={60}
+                onInput={linkEvent(this, this.handleDepositNameChange)}
+              />
+            </div>
+          </div>
           <div className="form-group row">
             <label className="col-sm-5 col-form-label" htmlFor="user-deposit">
               {i18n.t("Amount")}
@@ -349,12 +370,13 @@ export class Settings extends Component<any, SettingsState> {
               <button
                 type="button"
                 className="btn btn-block btn-secondary mr-4"
-                onClick={linkEvent(this, this.handlePiDeposit)}
+                //onClick={linkEvent(this, this.handlePiDeposit)}
+                disabled={true}
               >
                 {this.state.depositLoading ? (
                   <Spinner />
                 ) : (
-                  capitalizeFirstLetter(i18n.t("Deposit"))
+                  capitalizeFirstLetter(i18n.t("Reward"))
                 )}
               </button>
             </div>
@@ -364,12 +386,12 @@ export class Settings extends Component<any, SettingsState> {
               <button
                 type="button"
                 className="btn btn-block btn-secondary mr-4"
-                onClick={linkEvent(this, this.handlePiDeposit)}
+                onClick={linkEvent(this, this.handlePiReward)}
               >
                 {this.state.depositLoading ? (
                   <Spinner />
                 ) : (
-                  capitalizeFirstLetter(i18n.t("Deposit"))
+                  capitalizeFirstLetter(i18n.t("Reward"))
                 )}
               </button>
             </div>
@@ -1651,6 +1673,11 @@ export class Settings extends Component<any, SettingsState> {
     i.setState(i.state);
   }
 
+  handleDepositNameChange(i: Settings, event: any) {
+    i.state.depositName = event.target.value;
+    i.setState(i.state);
+  }
+
   handleSendPaymentChange(i: Settings, event: any) {
     i.state.sendPaymentValue = event.target.value;
     i.setState(i.state);
@@ -1961,6 +1988,7 @@ export class Settings extends Component<any, SettingsState> {
       }
     }
   }
+
   async handlePiDeposit(i: Settings, event: any) {
     if (UserService.Instance.myUserInfo) {
       let mui = UserService.Instance.myUserInfo;
@@ -1989,6 +2017,46 @@ export class Settings extends Component<any, SettingsState> {
           auth,
           "deposit",
           luv.person.id
+        );
+      } catch (err) {
+        console.log(
+          "Create Pi Payment Deposit for person error:" + JSON.stringify(err)
+        );
+      }
+    }
+  }
+  async handlePiReward(i: Settings, event: any) {
+    if (UserService.Instance.myUserInfo) {
+      let mui = UserService.Instance.myUserInfo;
+      let luv = mui.local_user_view;
+      var config = {
+        amount: Number(i.state.depositValue),
+        memo: "AD" + convertUUIDtoULID(luv.person.id),
+        metadata: {
+          id: luv.person.id,
+          name: luv.person.name,
+          display: luv.person.display_name,
+          actor_id: luv.person.actor_id,
+          pi_address: luv.person.pi_address,
+          web3_address: luv.person.web3_address,
+          t: luv.person.published,
+          u: luv.person.updated,
+          s: luv.person.auth_sign,
+        },
+      };
+      console.log(
+        "handlePiDeposit For reward Object:" + JSON.stringify(config)
+      );
+      try {
+        let auth = myAuth(true);
+        await createPayment(
+          config,
+          window.location.hostname,
+          auth,
+          "reward",
+          luv.person.id,
+          undefined,
+          i.state.depositName
         );
       } catch (err) {
         console.log(
