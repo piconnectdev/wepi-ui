@@ -1,10 +1,11 @@
 import IsomorphicCookie from "isomorphic-cookie";
-import Cookies from "js-cookie";
+//import Cookies from "js-cookie";
 //import { Cookies } from "js-cookie";
 import jwt_decode from "jwt-decode";
 import { LoginResponse, MyUserInfo } from "lemmy-js-client";
 import { LocalStorage } from "localstorage";
 import { BehaviorSubject } from "rxjs";
+import Cookies from "universal-cookie";
 import { isHttps } from "../env";
 import { i18n } from "../i18next";
 import { isBrowser, toast } from "../utils";
@@ -19,6 +20,8 @@ interface JwtInfo {
   claims: Claims;
   jwt: string;
 }
+
+const cookies = new Cookies();
 
 export class UserService {
   private static _instance: UserService;
@@ -48,7 +51,7 @@ export class UserService {
       this.jwtString = res.jwt;
       //LocalStorage.put("jwt", res.jwt);
       //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
-      Cookies.set("wepiJwt", res.jwt, {
+      cookies.set("wepiJwt", res.jwt, {
         expires,
         domain: location.host,
         secure: isHttps,
@@ -63,7 +66,7 @@ export class UserService {
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     //saveJwt("");
     LocalStorage.delete("jwt");
-    Cookies.remove("wepiJwt");
+    //Cookies.remove("wepiJwt");
     document.cookie =
       "jwt=; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
     location.reload();
@@ -92,13 +95,13 @@ export class UserService {
       console.log("setJwtInfo from string" + jwt);
     }
     if (!jwt || jwt === undefined) {
-      jwt = Cookies.get("wepiJwt");
+      jwt = cookies.get("wepiJwt");
       console.log("setJwtInfo from Cookies" + jwt);
     }
-    if (!jwt || jwt === undefined) {
-      jwt = this.storeJwt.get("jwt");
-      console.log("setJwtInfo from storeJwt" + jwt);
-    }
+    // if (!jwt || jwt === undefined) {
+    //   jwt = this.storeJwt.get("jwt");
+    //   console.log("setJwtInfo from storeJwt" + jwt);
+    // }
 
     if (jwt) {
       this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
