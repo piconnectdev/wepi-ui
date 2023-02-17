@@ -52,7 +52,7 @@ export class UserService {
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
       this.jwtString = res.jwt;
       this.setCookie("wepiJwt1", res.jwt, 30);
-      LocalStorage.set("jwt", res.jwt);
+      LocalStorage.set("wepiJwt", res.jwt);
       SessionStorage.set("jwt", res.jwt);
       Cookie.set("jwt", res.jwt);
       //LocalStorage.put("jwt", res.jwt);
@@ -71,10 +71,10 @@ export class UserService {
     this.myUserInfo = undefined;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     //saveJwt("");
-    LocalStorage.remove("jwt");
+    LocalStorage.remove("wepiJwt");
     Cookie.remove("jwt");
     SessionStorage.remove("jwt");
-    Cookies.remove("wepiJwt");
+    //Cookies.remove("wepiJwt");
     document.cookie =
       "jwt=; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
     location.reload();
@@ -99,18 +99,18 @@ export class UserService {
     let jwt: string | undefined = IsomorphicCookie.load("jwt");
 
     if (!jwt || jwt === undefined) {
-      jwt = this.jwtString;
-      console.log("setJwtInfo from string" + jwt);
+      //jwt = this.jwtString;
+      //console.log("setJwtInfo from string" + jwt);
     }
     if (!jwt || jwt === undefined) {
       if (isBrowser()) {
         //jwt = cookies.get("wepiJwt");
-        jwt = LocalStorage.get("jwt");
-        let jwt2 = SessionStorage.get("jwt");
+        jwt = LocalStorage.get("wepiJwt");
+        //let jwt2 = SessionStorage.get("jwt");
         // let jwt3 = Cookie.get("jwt");
         // console.log("setJwtInfo from 1" + jwt1);
         // console.log("setJwtInfo from 1" + jwt2);
-        console.log("setJwtInfo from LocalStorage" + jwt);
+        console.log("setJwtInfo from LocalStorage: " + jwt);
       }
     }
     // if (!jwt || jwt === undefined) {

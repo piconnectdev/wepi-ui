@@ -1,3 +1,4 @@
+import { LocalStorage } from "combo-storage";
 import express from "express";
 import fs from "fs";
 import { IncomingHttpHeaders } from "http";
@@ -5,7 +6,6 @@ import { Helmet } from "inferno-helmet";
 import { matchPath, StaticRouter } from "inferno-router";
 import { renderToString } from "inferno-server";
 import IsomorphicCookie from "isomorphic-cookie";
-import Cookies from "js-cookie";
 import { GetSite, GetSiteResponse, LemmyHttp } from "lemmy-js-client";
 import path from "path";
 import process from "process";
@@ -119,7 +119,7 @@ server.get("/*", async (req, res) => {
     const context = {} as any;
     let auth: string | undefined = IsomorphicCookie.load("jwt", req);
     if (auth == null || auth == undefined) {
-      auth = Cookies.get("wepiJwt");
+      auth = LocalStorage.get("wepiJwt");
     }
     let getSiteForm: GetSite = { auth };
 
