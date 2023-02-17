@@ -35,10 +35,10 @@ export class UserService {
     new BehaviorSubject<number>(0);
 
   public jwtString?: string;
-  public storeJwt: LocalStorage;
+  //public storeJwt: LocalStorage;
   private constructor() {
     this.setJwtInfo();
-    this.storeJwt = LocalStorage("storeJwt");
+    //this.storeJwt = LocalStorage("storeJwt");
   }
 
   public login(res: LoginResponse) {
