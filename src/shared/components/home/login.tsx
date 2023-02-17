@@ -243,8 +243,8 @@ export class Login extends Component<any, State> {
         let data = wsJsonToRes<LoginResponse>(msg);
         //this.setState(this.state);
         UserService.Instance.login(data);
-        this.props.history.push("/");
-        location.reload();
+        //this.props.history.push("/");
+        //location.reload();
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
