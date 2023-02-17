@@ -3,12 +3,14 @@ import IsomorphicCookie from "isomorphic-cookie";
 //import { Cookies } from "js-cookie";
 import jwt_decode from "jwt-decode";
 import { LoginResponse, MyUserInfo } from "lemmy-js-client";
-import { LocalStorage } from "localstorage";
+//import { LocalStorage } from "localstorage";
 import { BehaviorSubject } from "rxjs";
-import Cookies from "universal-cookie";
+// import Cookies from "universal-cookie";
 import { isHttps } from "../env";
 import { i18n } from "../i18next";
 import { isBrowser, toast } from "../utils";
+
+import { Cookie, LocalStorage, SeessionStorage } from "combo-storage";
 
 interface Claims {
   sub: string;
@@ -21,7 +23,7 @@ interface JwtInfo {
   jwt: string;
 }
 
-const cookies = new Cookies();
+//const cookies = new Cookies();
 
 export class UserService {
   private static _instance: UserService;
@@ -50,13 +52,16 @@ export class UserService {
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
       this.jwtString = res.jwt;
       this.setCookie("wepiJwt1", res.jwt, 30);
+      LocalStorage.set("jwt", res.jwt);
+      SeessionStorage.set("jwt", res.jwt);
+      Cookie.set("jwt", res.jwt);
       //LocalStorage.put("jwt", res.jwt);
       //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
-      cookies.set("wepiJwt", res.jwt, {
-        expires,
-        domain: location.host,
-        secure: isHttps,
-      });
+      // cookies.set("wepiJwt", res.jwt, {
+      //   expires,
+      //   domain: location.host,
+      //   secure: isHttps,
+      // });
       this.setJwtInfo();
     }
   }
@@ -66,7 +71,9 @@ export class UserService {
     this.myUserInfo = undefined;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     //saveJwt("");
-    LocalStorage.delete("jwt");
+    LocalStorage.remove("jwt");
+    SeessionStorage.remove("jwt");
+    Cookie.remove("jwt");
     //Cookies.remove("wepiJwt");
     document.cookie =
       "jwt=; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
@@ -96,8 +103,13 @@ export class UserService {
       console.log("setJwtInfo from string" + jwt);
     }
     if (!jwt || jwt === undefined) {
-      jwt = cookies.get("wepiJwt");
-      console.log("setJwtInfo from Cookies" + jwt);
+      //jwt = cookies.get("wepiJwt");
+      let jwt1 = LocalStorage.get("jwt");
+      let jwt2 = SeessionStorage.get("jwt");
+      let jwt3 = Cookie.get("jwt");
+      console.log("setJwtInfo from 1" + jwt1);
+      console.log("setJwtInfo from 1" + jwt2);
+      console.log("setJwtInfo from 1" + jwt3);
     }
     // if (!jwt || jwt === undefined) {
     //   jwt = this.storeJwt.get("jwt");
