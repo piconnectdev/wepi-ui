@@ -199,7 +199,6 @@ server.get("/*", async (req, res) => {
            <script>window.lemmyConfig = ${serialize(config)}</script>
            <script src="static/assets/pi-sdk.js"></script>
            <!--script src="https://sdk.minepi.com/pi-sdk.js"></script-->
-           <script>https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js</script>
            <script>Pi.init({ version: "2.0"})</script>
 
            <!-- A remote debugging utility for mobile -->
