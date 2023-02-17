@@ -5,6 +5,7 @@ import { Helmet } from "inferno-helmet";
 import { matchPath, StaticRouter } from "inferno-router";
 import { renderToString } from "inferno-server";
 import IsomorphicCookie from "isomorphic-cookie";
+import Cookies from "js-cookie";
 import { GetSite, GetSiteResponse, LemmyHttp } from "lemmy-js-client";
 import path from "path";
 import process from "process";
@@ -117,13 +118,14 @@ server.get("/*", async (req, res) => {
     const activeRoute = routes.find(route => matchPath(req.path, route));
     const context = {} as any;
     let auth: string | undefined = IsomorphicCookie.load("jwt", req);
-
+    if (auth == null || auth == undefined) {
+      auth = Cookies.get("wepiJwt");
+    }
     let getSiteForm: GetSite = { auth };
 
     let promises: Promise<any>[] = [];
 
     let headers = setForwardedHeaders(req.headers);
-
     let initialFetchReq: InitialFetchRequest = {
       client: new LemmyHttp(httpBaseInternal, headers),
       auth,
@@ -197,6 +199,7 @@ server.get("/*", async (req, res) => {
            <script>window.lemmyConfig = ${serialize(config)}</script>
            <script src="static/assets/pi-sdk.js"></script>
            <!--script src="https://sdk.minepi.com/pi-sdk.js"></script-->
+           <script>https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js</script>
            <script>Pi.init({ version: "2.0"})</script>
 
            <!-- A remote debugging utility for mobile -->
