@@ -2,6 +2,7 @@ import { Component } from "inferno";
 import { Link } from "inferno-router";
 import { PersonSafe } from "lemmy-js-client";
 import { hostname, isCakeDay, relTags, showAvatars } from "../../utils";
+import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
 import { CakeDay } from "./cake-day";
 
@@ -22,8 +23,8 @@ export class PersonListing extends Component<PersonListingProps, any> {
   render() {
     let person = this.props.person;
     let local = person.local;
-    let apubName: string, link: string;
-
+    let apubName: string, link: string, linkHome: string;
+    linkHome = `/c/${person.name}`;
     if (local) {
       apubName = `@${person.name}`;
       link = `/u/${person.name}`;
@@ -63,7 +64,14 @@ export class PersonListing extends Component<PersonListingProps, any> {
             {this.avatarAndName(displayName)}
           </a>
         )}
-
+        <a
+          title={`!${person.name}`}
+          className={this.props.muted ? "text-muted" : "text-info"}
+          href={linkHome}
+          rel={relTags}
+        >
+          {<Icon icon="smile" classes={`icon-inline mr-1`} />}
+        </a>
         {isCakeDay(person.published) && <CakeDay creatorName={apubName} />}
       </>
     );

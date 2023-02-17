@@ -917,6 +917,8 @@ export class Profile extends Component<any, ProfileState> {
       await i.handlePiBlockchainClick(i);
       return;
     }
+    toast("Mint your's info as NFT is comming soon");
+    if (!i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;

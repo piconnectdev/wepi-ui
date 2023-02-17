@@ -21,20 +21,20 @@ export class Footer extends Component<FooterProps, any> {
             <a href="#" className="link-1"></a>
           </p>
 
-          <p className="footer-company-name">Copyright © 2023</p>
+          <p className="footer-company-name">Copyleft © 2023</p>
         </div>
 
         <div className="footer-center">
           <div>
             <i className="fa fa-map-marker"></i>
             <p>
-              <span>Tòa nhà 3</span> Quận Bình Chánh, Hà Nội
+              <span>Tòa nhà</span> Hà Nội
             </p>
           </div>
 
           <div>
             <i className="fa fa-phone"></i>
-            <p>+7.981.162.555</p>
+            <p>+0.000.000.000</p>
           </div>
 
           <div>
@@ -48,7 +48,7 @@ export class Footer extends Component<FooterProps, any> {
         <div className="footer-right">
           <p className="footer-company-about text-muted">
             <span>Mạng xã hội WePi</span>
-            Trực thuộc và quản lý bởi WePi Lab.
+            Trực thuộc và quản lý bởi WePi.
           </p>
 
           <div className="footer-icons">

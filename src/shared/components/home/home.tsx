@@ -340,14 +340,13 @@ export class Home extends Component<any, HomeState> {
     if (!UserService.Instance.myUserInfo && isBrowser()) {
       return (
         <div className="mb-4 mx-5">
-          <p className="text-center">Bạn chưa đăng nhập</p>
           <a
             href="/login"
             className="btn btn-info btn-block"
             role="button"
             aria-pressed="true"
           >
-            Đăng nhập
+            {i18n.t("login")}
           </a>
 
           <a
@@ -356,7 +355,7 @@ export class Home extends Component<any, HomeState> {
             role="button"
             aria-pressed="true"
           >
-            Đăng ký
+            {i18n.t("sign_up")}
           </a>
         </div>
       );

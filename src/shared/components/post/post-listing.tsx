@@ -52,6 +52,7 @@ import {
   relTags,
   setupTippy,
   showScores,
+  toast,
   utf8ToHex,
   web3AnchorAddress,
   web3TipAddress,
@@ -609,7 +610,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             className="btn btn-link btn-animate text-muted p-0"
             onClick={linkEvent(this, this.handleBlockchainClick)}
             aria-label={i18n.t("mint NFT")}
-            data-tippy-content={i18n.t("mint NFT on blockchain")}
+            data-tippy-content={i18n.t("mint as NFT on blockchain")}
           >
             <Icon icon="zap" classes={`icon-inline mr-1`} />
           </button>
@@ -618,9 +619,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <button
             className="btn btn-link btn-animate text-muted p-0"
             onClick={linkEvent(this, this.handlePiTipClick)}
-            aria-label={i18n.t("tip 0.1 test-π")}
+            aria-label={i18n.t("tip 0.1 π")}
             data-tippy-content={
-              i18n.t("tip 0.1 test-π to @") + post_view.creator.name
+              i18n.t("tip 0.1 π to @") + post_view.creator.name
             }
           >
             {post_view.creator.pi_address && (
@@ -1731,8 +1732,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handleBlockchainClick(i: PostListing) {
-    if (i.isPiBrowser) return;
-    return;
+    if (i.isPiBrowser) {
+      //this.handlePiBlockchainClick(i);
+      return;
+    }
+    toast("Mint post as NFT is comming soon");
+    if (!i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1784,6 +1789,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handleTipPostClick(i: PostListing) {
+    if (i.isPiBrowser) {
+      //this.handlePiTipClick(i);
+      return;
+    }
+    toast("Please use Pi Browser to tip this post");
     if (!i.props.post_view.creator.web3_address) return;
     if (i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
@@ -1836,7 +1846,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       memo:
         "Tip " +
         i.props.post_view.creator.name +
-        " for " +
+        " 0.1 π for " +
         i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.creator.id,

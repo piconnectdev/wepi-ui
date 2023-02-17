@@ -195,7 +195,8 @@ server.get("/*", async (req, res) => {
            <head>
            <script>window.isoData = ${JSON.stringify(isoData)}</script>
            <script>window.lemmyConfig = ${serialize(config)}</script>
-           <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+           <script src="static/assets/pi-sdk.js"></script>
+           <!--script src="https://sdk.minepi.com/pi-sdk.js"></script-->
            <script>Pi.init({ version: "2.0"})</script>
 
            <!-- A remote debugging utility for mobile -->

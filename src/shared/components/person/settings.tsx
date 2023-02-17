@@ -35,6 +35,7 @@ import { i18n, languages } from "../../i18next";
 import { createPayment } from "../../pisdk";
 import { UserService, WebSocketService } from "../../services";
 import {
+  amAdmin,
   capitalizeFirstLetter,
   choicesConfig,
   communitySelectName,
@@ -296,9 +297,11 @@ export class Settings extends Component<any, SettingsState> {
           <div className="card border-secondary mb-3">
             <div className="card-body">{this.depositHtmlForm()}</div>
           </div>
-          <div className="card border-secondary mb-3">
-            <div className="card-body">{this.sendPaymentHtmlForm()}</div>
-          </div>
+          {amAdmin() && (
+            <div className="card border-secondary mb-3">
+              <div className="card-body">{this.sendPaymentHtmlForm()}</div>
+            </div>
+          )}
           <div className="card border-secondary mb-3">
             <div className="card-body">{this.changePasswordHtmlForm()}</div>
           </div>
@@ -334,7 +337,7 @@ export class Settings extends Component<any, SettingsState> {
               className="col-sm-5 col-form-label"
               htmlFor="user-deposit-name"
             >
-              {i18n.t("User")}
+              {i18n.t("Username")}
             </label>
             <div className="col-sm-7">
               <input
@@ -1179,17 +1182,6 @@ export class Settings extends Component<any, SettingsState> {
             <button
               type="button"
               className="btn btn-block btn-secondary mr-4"
-              onClick={linkEvent(this, this.handleCreatePaymentSubmit)}
-            >
-              Create Payment
-            </button>
-          </div>
-          <hr />
-
-          <div className="form-group">
-            <button
-              type="button"
-              className="btn btn-block btn-secondary mr-4"
               onClick={linkEvent(this, this.handleGetPaymentSubmit)}
             >
               GetPayments
@@ -1204,7 +1196,7 @@ export class Settings extends Component<any, SettingsState> {
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handleBlockchain)}
               >
-                Blockchain
+                Mint NFT
               </button>
             </div>
           )}
@@ -1831,7 +1823,9 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   async handleBlockchain(i: Settings, event: any) {
-    // WebSocketService.Instance.send(wsClient.savePost(form));
+    toast("Mint your's info as NFT is comming soon");
+    if (i.isPiBrowser) return;
+    if (!i.isPiBrowser) return;
     if (UserService.Instance.myUserInfo === undefined) return;
     if (UserService.Instance.myUserInfo === null) return;
 
@@ -2041,7 +2035,11 @@ export class Settings extends Component<any, SettingsState> {
         amount: Number(i.state.depositValue),
         //memo: "AD" + convertUUIDtoULID(luv.person.id),
         memo:
-          "User " + luv.person.name + " send reward to " + i.state.depositName,
+          "Reward " +
+          i.state.depositName +
+          " " +
+          Number(i.state.depositValue) +
+          " π",
         metadata: {
           id: luv.person.id,
           name: luv.person.name,
@@ -2066,9 +2064,7 @@ export class Settings extends Component<any, SettingsState> {
           i.state.depositName
         );
       } catch (err) {
-        console.log(
-          "Create Pi Payment Deposit for person error:" + JSON.stringify(err)
-        );
+        console.log("Create reward for person error:" + JSON.stringify(err));
       }
     }
   }

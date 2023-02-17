@@ -554,7 +554,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                 </li>
               </ul>
             )}
-            {!this.isPiBrowser && (
+            {/* {!this.isPiBrowser && (
               <ul className="navbar-nav my-2">
                 <li className="ml-2 nav-item">
                   <button
@@ -567,7 +567,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                   </button>
                 </li>
               </ul>
-            )}
+            )} */}
           </div>
         </div>
       </nav>

@@ -16,7 +16,9 @@ import {
   eth001,
   fetchThemeList,
   gasPrice,
+  isBrowser,
   myAuth,
+  toast,
   utf8ToHex,
   web3AnchorAddress,
   wsClient,
@@ -1151,7 +1153,18 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     //i.props.onCancel();
   }
 
+  get isPiBrowser(): boolean {
+    return isBrowser() && navigator.userAgent.includes("PiBrowser");
+  }
+
   async handleBlockchain(i: SiteForm) {
+    if (i.isPiBrowser) {
+      await i.handlePiBlockchainClick(i);
+      return;
+    }
+    toast("Mint site's info as NFT is comming soon");
+    if (!i.isPiBrowser) return;
+
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;

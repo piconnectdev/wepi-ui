@@ -260,6 +260,7 @@ export class Signup extends Component<any, State> {
               minLength={3}
               pattern="[a-z0-9_]+"
               title={i18n.t("community_reqs")}
+              placeholder={i18n.t("Choose an username for desktop login")}
             />
           </div>
         </div>
@@ -343,31 +344,32 @@ export class Signup extends Component<any, State> {
           </div>
         </div> */}
 
-        {this.isPiBrowser ||
-          (true && (
-            <>
-              <div className="form-group row">
-                <div className="offset-sm-2 col-sm-10">
-                  <div className="mt-2 alert alert-warning" role="alert">
-                    <Icon icon="star" classes="icon-inline mr-2" />
-                    {/* {i18n.t("fill_out_application")} */}
-                    To join this server, you must:
-                    <br />
-                    1. <a href={joinPiUrl}>Join Pi Network</a>
-                    <br />
-                    2. Use Pi Browser to register an account.
-                  </div>
-                  <div className="mt-2 alert alert-warning" role="alert">
-                    <Icon icon="cake" classes="icon-inline mr-2" />
-                    REWARD
-                    <br />
-                    1. Everyone can push Posts, Comments ... to Pi Network
-                    blockchain and get reward.
-                    <br />
-                    2. Members get reward when they contribute contents and
-                    someone push it to blockchain.
-                  </div>
-                  {/* {siteView.local_site.application_question.match({
+        {true && (
+          <>
+            <div className="form-group row">
+              <div className="offset-sm-2 col-sm-10">
+                <div className="mt-2 alert alert-warning" role="alert">
+                  <Icon icon="star" classes="icon-inline mr-2" />
+                  {/* {i18n.t("fill_out_application")} */}
+                  To join this server, you must:
+                  <br />
+                  1. <a href={joinPiUrl}>Join Pi Network</a>
+                  <br />
+                  2. Use Pi Browser to register an account.
+                  <br />
+                  3. Username should not the same as Pi Network account.
+                </div>
+                <div className="mt-2 alert alert-warning" role="alert">
+                  <Icon icon="cake" classes="icon-inline mr-2" />
+                  REWARD
+                  <br />
+                  1. Everyone can push Posts, Comments ... to Pi Network
+                  blockchain and get reward.
+                  <br />
+                  2. Members get reward when they contribute contents and
+                  someone push it to blockchain.
+                </div>
+                {/* {siteView.local_site.application_question.match({
                   some: question => (
                     <div
                       className="md-div"
@@ -376,17 +378,17 @@ export class Signup extends Component<any, State> {
                   ),
                   none: <></>,
                 })} */}
-                </div>
               </div>
+            </div>
 
-              <div className="form-group row">
-                <label
-                  className="col-sm-2 col-form-label"
-                  htmlFor="application_answer"
-                >
-                  {/* {i18n.t("answer")} */}
-                </label>
-                {/* <div className="col-sm-10">
+            <div className="form-group row">
+              <label
+                className="col-sm-2 col-form-label"
+                htmlFor="application_answer"
+              >
+                {/* {i18n.t("answer")} */}
+              </label>
+              {/* <div className="col-sm-10">
                 <MarkdownTextArea
                   initialContent={None}
                   initialLanguageId={None}
@@ -398,9 +400,9 @@ export class Signup extends Component<any, State> {
                   allLanguages={[]}
                 />
               </div> */}
-              </div>
-            </>
-          ))}
+            </div>
+          </>
+        )}
 
         {siteView.local_site.registration_mode ==
           RegistrationMode.RequireApplication && (
@@ -504,7 +506,11 @@ export class Signup extends Component<any, State> {
         <div className="form-group row">
           <div className="col-sm-10">
             {!this.isPiBrowser && (
-              <button type="submit" className="btn btn-secondary">
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={true}
+              >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (

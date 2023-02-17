@@ -63,6 +63,7 @@ import {
   numToSI,
   setupTippy,
   showScores,
+  toast,
   utf8ToHex,
   web3AnchorAddress,
   web3TipAddress,
@@ -322,7 +323,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   className="btn btn-sm text-muted"
                   onClick={linkEvent(this, this.handleBlockchainComment)}
                   aria-label={i18n.t("mint NFT")}
-                  data-tippy-content={i18n.t("mint NFT on blockchain")}
+                  data-tippy-content={i18n.t("mint as NFT on blockchain")}
                 >
                   <Icon icon="zap" classes="icon-inline" />
                 </button>
@@ -1675,7 +1676,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   async handleBlockchainComment(i: CommentNode) {
-    if (i.isPiBrowser) return;
+    if (i.isPiBrowser) {
+      //await i.handlePiBlockchainClick(i);
+      return;
+    }
+    toast("Mint community's info as NFT is comming soon");
+    if (!i.isPiBrowser) return;
+
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1724,10 +1731,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   async handleTipComment(i: CommentNode) {
+    if (i.isPiBrowser) {
+      this.handlePiTipClick(i);
+      return;
+    }
+    toast("Please use Pi Browser to tip this comment");
     if (!i.props.node.comment_view.creator.web3_address) return;
-    if (i.isPiBrowser) return;
-    /// TODO:
-    return;
+    if (!i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
@@ -1778,7 +1788,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       memo:
         "Tip " +
         i.props.node.comment_view.creator.name +
-        " for " +
+        " 0.1 π for " +
         i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.creator.id,

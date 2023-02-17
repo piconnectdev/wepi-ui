@@ -28,6 +28,7 @@ import {
   mdToHtml,
   myAuth,
   numToSI,
+  toast,
   utf8ToHex,
   web3AnchorAddress,
   wsClient,
@@ -320,7 +321,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           href="#"
           onClick={linkEvent(this, this.handleBlockchainClick)}
         >
-          {i18n.t("Blockchain")}
+          {i18n.t("Mint NFT")}
         </a>
       </div>
     );
@@ -695,6 +696,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       await i.handlePiBlockchainClick(i);
       return;
     }
+    toast("Mint community's info as NFT is comming soon");
+    if (!i.isPiBrowser) return;
     const isMetaMaskInstalled = () => {
       //Have to check the ethereum binding on the window object to see if it's installed
       const { ethereum } = window;
