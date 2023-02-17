@@ -32,10 +32,10 @@ export class UserService {
     new BehaviorSubject<number>(0);
 
   public jwtString?: string;
-  //public storeJwt: LocalStorage;
+  public storeJwt: LocalStorage;
   private constructor() {
     this.setJwtInfo();
-    //this.storeJwt = LocalStorage('storeJwt')
+    this.storeJwt = LocalStorage("storeJwt");
   }
 
   public login(res: LoginResponse) {
@@ -45,9 +45,9 @@ export class UserService {
       toast(i18n.t("logged_in"));
       console.log("saveJwtInfo:" + res.jwt);
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
-      //saveJwt(res.jwt);
       this.jwtString = res.jwt;
       //LocalStorage.put("jwt", res.jwt);
+      //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
       Cookies.set("wepiJwt", res.jwt, {
         expires,
         domain: location.host,
@@ -87,21 +87,21 @@ export class UserService {
   private setJwtInfo() {
     let jwt: string | undefined = IsomorphicCookie.load("jwt");
 
+    if (!jwt || jwt === undefined) {
+      jwt = this.jwtString;
+      console.log("setJwtInfo from string" + jwt);
+    }
+    if (!jwt || jwt === undefined) {
+      jwt = Cookies.get("wepiJwt");
+      console.log("setJwtInfo from Cookies" + jwt);
+    }
+    if (!jwt || jwt === undefined) {
+      jwt = this.storeJwt.get("jwt");
+      console.log("setJwtInfo from storeJwt" + jwt);
+    }
+
     if (jwt) {
       this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
-    } else {
-      //let jwt2 = this.jwtString;
-      //let jwt2 = this.getCookie("wepiJwt");
-      //let jwt2 = Cookies.get('wepiJwt');
-      let jwt2 = Cookies.get("wepiJwt");
-      //let tmp = this.storeJwt.get("jwt");
-      //let tmp = readJwt();
-      //let jwt2 = LocalStorage.get("jwt");
-      //console.log("setJwtInfo from LocalStorage" + jwt2);
-      console.log("setJwtInfo from Cookies" + jwt2);
-      // if (jwt2 !== undefined) {
-      //   this.jwtInfo = { jwt: jwt2, claims: jwt_decode(jwt2) };
-      // }
     }
     console.log("setJwtInfo:" + JSON.stringify(this.jwtInfo));
   }

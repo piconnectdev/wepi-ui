@@ -241,7 +241,7 @@ export class Login extends Component<any, State> {
         // TODO: UUID check
         this.setState({ loginLoading: false });
         let data = wsJsonToRes<LoginResponse>(msg);
-        //this.setState(this.state);
+        this.setState(this.state);
         UserService.Instance.login(data);
         //this.props.history.push("/");
         //location.reload();
