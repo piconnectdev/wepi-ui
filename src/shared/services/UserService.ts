@@ -49,6 +49,7 @@ export class UserService {
       console.log("saveJwtInfo:" + res.jwt);
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
       this.jwtString = res.jwt;
+      this.setCookie("wepiJwt1", res.jwt, 30);
       //LocalStorage.put("jwt", res.jwt);
       //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
       cookies.set("wepiJwt", res.jwt, {
@@ -111,5 +112,12 @@ export class UserService {
 
   public static get Instance() {
     return this._instance || (this._instance = new this());
+  }
+
+  private setCookie(cName, cValue, expDays) {
+    let date = new Date();
+    date.setTime(date.getTime() + expDays * 24 * 60 * 60 * 1000);
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = cName + "=" + cValue + "; " + expires + "; path=/";
   }
 }
