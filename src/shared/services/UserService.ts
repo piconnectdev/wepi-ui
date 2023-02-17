@@ -96,9 +96,8 @@ export class UserService {
       //let jwt2 = Cookies.get('wepiJwt');
       //let tmp = this.storeJwt.get("jwt");
       //let tmp = readJwt();
-      let jwt2 = LocalStorage.get("jwt");
-      console.log("setJwtInfo from LocalStorage" + jwt2);
-
+      //let jwt2 = LocalStorage.get("jwt");
+      //console.log("setJwtInfo from LocalStorage" + jwt2);
       //console.log("setJwtInfo from getCookie" + jwt2);
       // if (jwt2 !== undefined) {
       //   this.jwtInfo = { jwt: jwt2, claims: jwt_decode(jwt2) };
