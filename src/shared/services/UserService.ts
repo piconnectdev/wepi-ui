@@ -47,7 +47,7 @@ export class UserService {
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
       //saveJwt(res.jwt);
       this.jwtString = res.jwt;
-      LocalStorage.put("jwt", res.jwt);
+      //LocalStorage.put("jwt", res.jwt);
       Cookies.set("wepiJwt", res.jwt, {
         expires,
         domain: location.host,
@@ -93,7 +93,7 @@ export class UserService {
       //let jwt2 = this.jwtString;
       //let jwt2 = this.getCookie("wepiJwt");
       //let jwt2 = Cookies.get('wepiJwt');
-      //let jwt2 = Cookies.get('wepiJwt');
+      let jwt2 = Cookies.get("wepiJwt");
       //let tmp = this.storeJwt.get("jwt");
       //let tmp = readJwt();
       //let jwt2 = LocalStorage.get("jwt");
