@@ -10,7 +10,7 @@ import { isHttps } from "../env";
 import { i18n } from "../i18next";
 import { isBrowser, toast } from "../utils";
 
-import { Cookie, LocalStorage, SeessionStorage } from "combo-storage";
+import { Cookie, LocalStorage, SessionStorage } from "combo-storage";
 
 interface Claims {
   sub: string;
@@ -53,7 +53,7 @@ export class UserService {
       this.jwtString = res.jwt;
       this.setCookie("wepiJwt1", res.jwt, 30);
       LocalStorage.set("jwt", res.jwt);
-      SeessionStorage.set("jwt", res.jwt);
+      SessionStorage.set("jwt", res.jwt);
       Cookie.set("jwt", res.jwt);
       //LocalStorage.put("jwt", res.jwt);
       //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
@@ -72,9 +72,9 @@ export class UserService {
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
     //saveJwt("");
     LocalStorage.remove("jwt");
-    SeessionStorage.remove("jwt");
     Cookie.remove("jwt");
-    //Cookies.remove("wepiJwt");
+    SessionStorage.remove("jwt");
+    Cookies.remove("wepiJwt");
     document.cookie =
       "jwt=; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
     location.reload();
@@ -103,13 +103,15 @@ export class UserService {
       console.log("setJwtInfo from string" + jwt);
     }
     if (!jwt || jwt === undefined) {
-      //jwt = cookies.get("wepiJwt");
-      let jwt1 = LocalStorage.get("jwt");
-      let jwt2 = SeessionStorage.get("jwt");
-      let jwt3 = Cookie.get("jwt");
-      console.log("setJwtInfo from 1" + jwt1);
-      console.log("setJwtInfo from 1" + jwt2);
-      console.log("setJwtInfo from 1" + jwt3);
+      if (isBrowser()) {
+        //jwt = cookies.get("wepiJwt");
+        jwt = LocalStorage.get("jwt");
+        let jwt2 = SessionStorage.get("jwt");
+        // let jwt3 = Cookie.get("jwt");
+        // console.log("setJwtInfo from 1" + jwt1);
+        // console.log("setJwtInfo from 1" + jwt2);
+        console.log("setJwtInfo from LocalStorage" + jwt);
+      }
     }
     // if (!jwt || jwt === undefined) {
     //   jwt = this.storeJwt.get("jwt");
