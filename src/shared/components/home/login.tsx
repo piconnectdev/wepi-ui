@@ -227,6 +227,7 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState({ loginLoading: false });
+      console.log("Error:" + JSON.stringify(msg));
       //this.setState(this.state);
       //this.setState({ form: {} });
       return;
@@ -242,13 +243,15 @@ export class Login extends Component<any, State> {
         let data = wsJsonToRes<LoginResponse>(msg);
         //this.setState(this.state);
         UserService.Instance.login(data);
-        this.props.history.push("/");
-        location.reload();
+        //this.props.history.push("/");
+        //location.reload();
       } else if (op == UserOperation.PasswordReset) {
         toast(i18n.t("reset_password_mail_sent"));
       } else if (op == UserOperation.GetSite) {
         let data = wsJsonToRes<GetSiteResponse>(msg);
         this.setState({ siteRes: data });
+      } else {
+        console.log("Unknow:" + JSON.stringify(msg));
       }
     }
   }

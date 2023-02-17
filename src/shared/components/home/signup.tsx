@@ -152,6 +152,7 @@ export class Signup extends Component<any, State> {
       },
     },
     registerLoading: false,
+    captchaPlaying: false,
     piBrowser: false,
     siteRes: this.isoData.site_res,
   };
@@ -199,13 +200,12 @@ export class Signup extends Component<any, State> {
     //return true;
     //return isBrowser() && navigator.userAgent.includes("PiBrowser");
     if (typeof window !== "undefined") {
-      let piBrowser = window.navigator.userAgent.includes("PiBrowser");
-      this.setState({ piBrowser: piBrowser });
+      let value = window.navigator.userAgent.includes("PiBrowser");
+      // if (typeof this.state !== "undefined") {
+      //   this.setState({ piBrowser: value });
+      // }
       console.log(
-        "PiBrower:" +
-          this.state.piBrowser +
-          ", Agent " +
-          window.navigator.userAgent
+        "PiBrower:" + value + ", Agent " + window.navigator.userAgent
       );
       return window.navigator.userAgent.includes("PiBrowser");
     }
@@ -238,6 +238,7 @@ export class Signup extends Component<any, State> {
 
   registerForm() {
     let siteView = this.state.siteRes.site_view;
+    let isPiBrowserLocal = this.isPiBrowser;
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
         <h5>{this.titleName(siteView)}</h5>
@@ -356,7 +357,7 @@ export class Signup extends Component<any, State> {
           </div>
         </div> */}
 
-        {true && (
+        {!this.isPiBrowser && true && (
           <>
             <div className="form-group row">
               <div className="offset-sm-2 col-sm-10">
@@ -521,13 +522,14 @@ export class Signup extends Component<any, State> {
               <button
                 type="submit"
                 className="btn btn-secondary"
-                disabled={!this.state.piBrowser}
+                disabled={!isPiBrowserLocal}
               >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
-                  this.titleName(siteView)
-                  //"Wallet " + this.titleName(siteView) disabled={true}
+                  //this.titleName(siteView)
+                  "Wallet " + this.titleName(siteView)
+                  // disabled={true}
                 )}
               </button>
             )}
@@ -596,6 +598,7 @@ export class Signup extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Signup, event: any) {
+    console.log("handleRegisterSubmit");
     event.preventDefault();
     i.setState({ registerLoading: true });
     i.setState(i.state);
