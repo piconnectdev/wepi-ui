@@ -41,7 +41,6 @@ import {
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
 import { MarkdownTextArea } from "../common/markdown-textarea";
-
 const passwordStrengthOptions: Options<string> = [
   {
     id: 0,
@@ -88,6 +87,7 @@ interface State {
   registerLoading: boolean;
   captcha?: GetCaptchaResponse;
   captchaPlaying: boolean;
+  piBrowser: boolean;
   token?: GetCaptchaResponse;
   siteRes: GetSiteResponse;
 }
@@ -152,7 +152,7 @@ export class Signup extends Component<any, State> {
       },
     },
     registerLoading: false,
-    captchaPlaying: false,
+    piBrowser: false,
     siteRes: this.isoData.site_res,
   };
 
@@ -197,6 +197,18 @@ export class Signup extends Component<any, State> {
 
   get isPiBrowser(): boolean {
     //return true;
+    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
+    if (typeof window !== "undefined") {
+      let piBrowser = window.navigator.userAgent.includes("PiBrowser");
+      this.setState({ piBrowser: piBrowser });
+      console.log(
+        "PiBrower:" +
+          this.state.piBrowser +
+          ", Agent " +
+          window.navigator.userAgent
+      );
+      return window.navigator.userAgent.includes("PiBrowser");
+    }
     return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
@@ -509,7 +521,7 @@ export class Signup extends Component<any, State> {
               <button
                 type="submit"
                 className="btn btn-secondary"
-                disabled={true}
+                disabled={!this.state.piBrowser}
               >
                 {this.state.registerLoading ? (
                   <Spinner />
