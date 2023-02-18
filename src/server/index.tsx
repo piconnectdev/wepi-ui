@@ -1,4 +1,3 @@
-import { LocalStorage } from "combo-storage";
 import express from "express";
 import fs from "fs";
 import { IncomingHttpHeaders } from "http";
@@ -118,9 +117,6 @@ server.get("/*", async (req, res) => {
     const activeRoute = routes.find(route => matchPath(req.path, route));
     const context = {} as any;
     let auth: string | undefined = IsomorphicCookie.load("jwt", req);
-    if (auth == null || auth == undefined) {
-      auth = LocalStorage.get("wepiJwt");
-    }
     let getSiteForm: GetSite = { auth };
 
     let promises: Promise<any>[] = [];
@@ -132,6 +128,10 @@ server.get("/*", async (req, res) => {
       path: req.path,
     };
 
+    console.log("\r\nProxy:" + req.path);
+    console.log("Auth:" + auth);
+    console.log("Cookies:" + req.cookies);
+    console.log("Headers:" + JSON.stringify(req.headers));
     // Get site data first
     // This bypasses errors, so that the client can hit the error on its own,
     // in order to remove the jwt on the browser. Necessary for wrong jwts

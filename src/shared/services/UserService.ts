@@ -36,7 +36,7 @@ export class UserService {
   public unreadApplicationCountSub: BehaviorSubject<number> =
     new BehaviorSubject<number>(0);
 
-  public jwtString?: string;
+  //public jwtString?: string;
   //public storeJwt: LocalStorage;
   private constructor() {
     this.setJwtInfo();
@@ -50,11 +50,11 @@ export class UserService {
       toast(i18n.t("logged_in"));
       console.log("saveJwtInfo:" + res.jwt);
       IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
-      this.jwtString = res.jwt;
-      this.setCookie("wepiJwt1", res.jwt, 30);
-      LocalStorage.set("wepiJwt", res.jwt);
+      LocalStorage.set("jwt", res.jwt);
       SessionStorage.set("jwt", res.jwt);
-      Cookie.set("jwt", res.jwt);
+      Cookie.set("wepijwt", res.jwt);
+      //this.setCookie("wepijwt1", res.jwt, 30);
+      //this.jwtString = res.jwt;
       //LocalStorage.put("jwt", res.jwt);
       //document.cookie = "jwt=" + res.jwt + "; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
       // cookies.set("wepiJwt", res.jwt, {
@@ -70,11 +70,9 @@ export class UserService {
     this.jwtInfo = undefined;
     this.myUserInfo = undefined;
     IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
-    //saveJwt("");
-    LocalStorage.remove("wepiJwt");
-    Cookie.remove("jwt");
+    LocalStorage.remove("jwt");
     SessionStorage.remove("jwt");
-    //Cookies.remove("wepiJwt");
+    Cookie.remove("wepijwt");
     document.cookie =
       "jwt=; Max-Age=0; path=/; wepiJwt=; domain=" + location.hostname;
     location.reload();
@@ -97,26 +95,27 @@ export class UserService {
 
   private setJwtInfo() {
     let jwt: string | undefined = IsomorphicCookie.load("jwt");
-
-    if (!jwt || jwt === undefined) {
-      //jwt = this.jwtString;
-      //console.log("setJwtInfo from string" + jwt);
-    }
     if (!jwt || jwt === undefined) {
       if (isBrowser()) {
-        //jwt = cookies.get("wepiJwt");
-        jwt = LocalStorage.get("wepiJwt");
-        //let jwt2 = SessionStorage.get("jwt");
-        // let jwt3 = Cookie.get("jwt");
-        // console.log("setJwtInfo from 1" + jwt1);
-        // console.log("setJwtInfo from 1" + jwt2);
-        console.log("setJwtInfo from LocalStorage: " + jwt);
+        let expires = new Date();
+        expires.setDate(expires.getDate() + 365);
+        jwt = LocalStorage.get("jwt");
+        console.log("Load jwt from LocalStorage: " + jwt);
+        if (!jwt || jwt === undefined) {
+          console.log("Load jwt from SessionStorage: " + jwt);
+          jwt = SessionStorage.get("jwt");
+        }
+        if (!jwt || jwt === undefined) {
+          console.log("Load jwt from Cookie: " + jwt);
+          jwt = Cookie.get("jwt");
+        }
+        console.log("setJwtInfo from combo-storage: " + jwt);
+        if (jwt) {
+          IsomorphicCookie.save("jwt", jwt, { expires, secure: isHttps });
+          this.setCookie("jwt", jwt, 365);
+        }
       }
     }
-    // if (!jwt || jwt === undefined) {
-    //   jwt = this.storeJwt.get("jwt");
-    //   console.log("setJwtInfo from storeJwt" + jwt);
-    // }
 
     if (jwt) {
       this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
