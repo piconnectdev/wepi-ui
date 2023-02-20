@@ -372,7 +372,9 @@ export class Home extends Component<any, HomeState> {
         >
           Điều khoản - Pháp lý{" "}
         </button>
-        {this.state.showSidebarMobile && <SiteSidebar site={siteView.site} />}
+        {this.state.showSidebarMobile && (
+          <SiteSidebar site={siteView.site} showLocal={true} />
+        )}
       </div>
     );
   }
