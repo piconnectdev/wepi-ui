@@ -89,7 +89,6 @@ export class UserService {
     if (jwt) {
       this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
     }
-    console.log("setJwtInfo:" + JSON.stringify(this.jwtInfo));
   }
 
   public static get Instance() {

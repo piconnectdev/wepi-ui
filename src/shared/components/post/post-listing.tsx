@@ -1571,7 +1571,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
     if (!UserService.Instance.myUserInfo) {
       this.context.router.history.push(`/login`);
     }
@@ -1614,7 +1614,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostDisLike(event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
     if (!UserService.Instance.myUserInfo) {
       this.context.router.history.push(`/login`);
     }
@@ -1678,7 +1678,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleReportSubmit(i: PostListing, event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
     let auth = myAuth();
     let reason = i.state.reportReason;
     if (auth && reason) {
@@ -1960,7 +1960,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleModRemoveSubmit(i: PostListing, event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
 
     let auth = myAuth();
     if (auth) {
@@ -2044,7 +2044,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePurgeSubmit(i: PostListing, event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
 
     let auth = myAuth();
     if (auth) {
@@ -2087,7 +2087,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleModBanBothSubmit(i: PostListing, event?: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
     let auth = myAuth();
     if (auth) {
       let ban = !i.props.post_view.creator_banned_from_community;
@@ -2190,7 +2190,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleImageExpandClick(i: PostListing, event: any) {
-    if (event) event.preventDefault();
+    //if (event) event.preventDefault();
     i.setState({ imageExpanded: !i.state.imageExpanded });
     setupTippy();
   }

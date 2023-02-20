@@ -269,7 +269,6 @@ export class Login extends Component<any, State> {
           scopes,
           onIncompletePaymentFound
         );
-        console.log("Login: authenticatePiUser:" + JSON.stringify(user));
         return user;
       } catch (err) {
         console.log(err);
