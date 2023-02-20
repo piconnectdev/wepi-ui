@@ -226,6 +226,7 @@ export class Settings extends Component<any, SettingsState> {
   async componentDidMount() {
     setupTippy();
     this.setState({ themeList: await fetchThemeList() });
+    this.handlePiBalanceSubmit();
   }
 
   componentWillUnmount() {

@@ -915,9 +915,14 @@ export class Signup extends Component<any, State> {
       return;
     }; // Read more about this in the SDK reference
 
+    piUser = await authenticatePiUser();
+    if (piUser == undefined) {
+      toast("Pi Network Server error");
+      return;
+    }
+
     event.preventDefault();
 
-    piUser = await authenticatePiUser();
     i.state.form.password_verify = i.state.form.password;
     i.setState(i.state);
     var ea = new ExternalAccount();
@@ -983,7 +988,7 @@ export class Signup extends Component<any, State> {
       payment.metadata = undefined;
       found.dto = payment;
       console.log(JSON.stringify(found));
-      WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+      //WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
 
@@ -1068,6 +1073,10 @@ export class Signup extends Component<any, State> {
 
     try {
       piUser = await authenticatePiUser();
+      if (piUser == undefined) {
+        i.setState({ registerLoading: false });
+        return;
+      }
       await createPiRegister(info, config);
     } catch (err) {
       i.setState({ registerLoading: false });

@@ -1,6 +1,6 @@
 import { PiApprove, PiPaymentComplete, PiPaymentFound } from "lemmy-js-client";
 import { WebSocketService } from "./services";
-import { wsClient } from "./utils";
+import { toast, wsClient } from "./utils";
 
 export async function createPayment(
   config: any,
@@ -91,6 +91,10 @@ export async function createPayment(
 
   try {
     piUser = await authenticatePiUser();
+    if (piUser == undefined) {
+      toast("Pi Network Server error");
+      return;
+    }
     await createPiPayment(config);
   } catch (err) {
     console.log("createPiPayment error: " + JSON.stringify(err));

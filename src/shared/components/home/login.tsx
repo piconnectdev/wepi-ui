@@ -297,9 +297,13 @@ export class Login extends Component<any, State> {
     //   return client.piLogin(form);
     // };
 
-    event.preventDefault();
     i.setState({ loginLoading: true });
     piUser = await authenticatePiUser();
+    if (piUser == undefined) {
+      i.setState({ loginLoading: false });
+      toast("Pi Network Server error");
+    }
+    event.preventDefault();
     var ea = new ExternalAccount();
     ea.account = piUser.user.username;
     ea.token = piUser.accessToken;
