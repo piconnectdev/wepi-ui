@@ -4,7 +4,13 @@ import { Provider } from "inferno-i18next-dess";
 import { Route, Switch } from "inferno-router";
 import { i18n } from "../../i18next";
 import { routes } from "../../routes";
-import { favIconPngUrl, favIconUrl, setIsoData } from "../../utils";
+import {
+  favIconPngUrl,
+  favIconUrl,
+  fetchSite,
+  isBrowser,
+  setIsoData,
+} from "../../utils";
 import { Footer } from "./footer";
 import { Navbar } from "./navbar";
 import { NoMatch } from "./no-match";
@@ -14,7 +20,29 @@ import { Theme } from "./theme";
 export class App extends Component<any, any> {
   private isoData = setIsoData(this.context);
   constructor(props: any, context: any) {
-    super(props, context);
+    if (isBrowser()) {
+      fetchSite().then(site => {
+        console.log("initializeSite from client app");
+        window.isoData.site_res = site;
+        this.isoData.site_res = site;
+        console.log(
+          "App init as: my_user:" +
+            JSON.stringify(this.isoData.site_res.my_user)
+        );
+        //UserService.Instance.myUserInfo = site.my_user;
+        //i18n.changeLanguage(getLanguages()[0]);
+        //location.reload();
+      });
+      super(props, context);
+    } else {
+      super(props, context);
+    }
+    //this.isoData = setIsoData(this.context);
+    console.log("App init: path:" + JSON.stringify(this.isoData.path));
+    //console.log("App init:" + JSON.stringify(this.isoData.site_res.site_view));
+    console.log(
+      "App init: my_user:" + JSON.stringify(this.isoData.site_res.my_user)
+    );
   }
   render() {
     let siteRes = this.isoData.site_res;

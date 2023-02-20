@@ -123,13 +123,13 @@ server.get("/*", async (req, res) => {
     let promises: Promise<any>[] = [];
 
     let headers = setForwardedHeaders(req.headers);
-
     let initialFetchReq: InitialFetchRequest = {
       client: new LemmyHttp(httpBaseInternal, headers),
-      auth,
+      //auth,
+      auth: undefined,
       path: req.path,
     };
-
+    getSiteForm.auth = undefined;
     // Get site data first
     // This bypasses errors, so that the client can hit the error on its own,
     // in order to remove the jwt on the browser. Necessary for wrong jwts
@@ -146,6 +146,7 @@ server.get("/*", async (req, res) => {
     initializeSite(site);
 
     if (activeRoute?.fetchInitialData) {
+      console.log("\r\nProxy:" + initialFetchReq.path);
       promises.push(...activeRoute.fetchInitialData(initialFetchReq));
     }
 
@@ -158,6 +159,7 @@ server.get("/*", async (req, res) => {
       if (errCode == "instance_is_private") {
         return res.redirect(`/signup`);
       } else {
+        if (req.path != "/") return res.redirect(`/`);
         return res.send(`404: ${removeAuthParam(errCode)}`);
       }
     }

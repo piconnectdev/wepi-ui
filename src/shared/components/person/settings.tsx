@@ -1457,7 +1457,7 @@ export class Settings extends Component<any, SettingsState> {
     let auth = myAuth(true);
     if (getUser && auth) {
       let form: GetPayments = {
-        //person_id?: None;
+        person_id: getUser.local_user_view.person.id,
         //person_name?: string;
         //step?: number;
         //a2u: true,
@@ -1468,7 +1468,7 @@ export class Settings extends Component<any, SettingsState> {
         //asset: "PI",
         auth: auth,
       };
-      console.log("Send GetPayments");
+      //console.log("Send GetPayments");
       WebSocketService.Instance.send(wsClient.piGetPayments(form));
     }
   }

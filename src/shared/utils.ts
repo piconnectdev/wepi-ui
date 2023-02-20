@@ -10,6 +10,7 @@ import {
   CommentView,
   CommunityModeratorView,
   CommunityView,
+  GetSite,
   GetSiteMetadata,
   GetSiteResponse,
   Language,
@@ -1286,6 +1287,14 @@ export async function fetchUsers(q: string) {
   return client.search(form);
 }
 
+export async function fetchSite() {
+  let form: GetSite = {
+    auth: myAuth(false),
+  };
+  let client = new LemmyHttp(httpBase);
+  return client.getSite(form);
+}
+
 export const choicesConfig = {
   shouldSort: false,
   searchResultLimit: fetchLimit,
@@ -1332,8 +1341,19 @@ export function personSelectName(pvs: PersonViewSafe): string {
 }
 
 export function initializeSite(site: GetSiteResponse) {
-  UserService.Instance.myUserInfo = site.my_user;
-  i18n.changeLanguage(getLanguages()[0]);
+  if (isBrowser()) {
+    console.log("initializeSite from client");
+    fetchSite().then(site => {
+      console.log("initializeSite from client ok");
+      window.isoData.site_res = site;
+      UserService.Instance.myUserInfo = site.my_user;
+      console.log("myUserInfo:" + JSON.stringify(site.my_user));
+      i18n.changeLanguage(getLanguages()[0]);
+    });
+  } else {
+    UserService.Instance.myUserInfo = site.my_user;
+    i18n.changeLanguage(getLanguages()[0]);
+  }
 }
 
 export function utf8ToHex(str: string) {
