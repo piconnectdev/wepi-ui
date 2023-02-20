@@ -319,9 +319,9 @@ export class Home extends Component<any, HomeState> {
                   dangerouslySetInnerHTML={mdToHtml(tagline)}
                 ></div>
               )}
-              {this.notUser()}
               {/* <div className="d-block d-md-none">{this.mobileView()}</div> */}
               {this.posts()}
+              {this.notUser()}
             </main>
             <aside className="d-none d-md-block col-md-4">
               {this.mySidebar()}

@@ -180,7 +180,7 @@ export class Login extends Component<any, State> {
             className="btn btn-secondary"
             onClick={linkEvent(this, this.handlePiLoginSubmit)}
           >
-            {this.state.loginLoading ? <Spinner /> : i18n.t("Login")}
+            {this.state.loginLoading ? <Spinner /> : i18n.t("login")}
           </button>
         </div>
       );
