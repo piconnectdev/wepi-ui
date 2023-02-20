@@ -146,7 +146,6 @@ server.get("/*", async (req, res) => {
     initializeSite(site);
 
     if (activeRoute?.fetchInitialData) {
-      console.log("\r\nProxy:" + initialFetchReq.path);
       promises.push(...activeRoute.fetchInitialData(initialFetchReq));
     }
 

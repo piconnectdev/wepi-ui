@@ -21,7 +21,8 @@ export class App extends Component<any, any> {
   private isoData = setIsoData(this.context);
   constructor(props: any, context: any) {
     if (isBrowser()) {
-      fetchSite().then(site => {
+      const getSite = async () => {
+        let site = await fetchSite();
         console.log("initializeSite from client app");
         window.isoData.site_res = site;
         this.isoData.site_res = site;
@@ -29,20 +30,33 @@ export class App extends Component<any, any> {
           "App init as: my_user:" +
             JSON.stringify(this.isoData.site_res.my_user)
         );
-        //UserService.Instance.myUserInfo = site.my_user;
-        //i18n.changeLanguage(getLanguages()[0]);
-        //location.reload();
-      });
+      };
+      // const getSite = async () => {
+      //     if (window.isoData.site_res.my_user == undefined) {
+      //       console.log(
+      //         "App init as: window my_user is " +
+      //           JSON.stringify(window.isoData.site_res.my_user)
+      //       );
+
+      //     fetchSite().then(site => {
+      //       console.log("initializeSite from client app");
+      //       window.isoData.site_res = site;
+      //       this.isoData.site_res = site;
+      //       console.log(
+      //         "App init as: my_user:" +
+      //           JSON.stringify(this.isoData.site_res.my_user)
+      //       );
+      //       //UserService.Instance.myUserInfo = site.my_user;
+      //       //i18n.changeLanguage(getLanguages()[0]);
+      //       //location.reload();
+      //     });
+      //   }
+      // }
+      getSite();
       super(props, context);
     } else {
       super(props, context);
     }
-    //this.isoData = setIsoData(this.context);
-    console.log("App init: path:" + JSON.stringify(this.isoData.path));
-    //console.log("App init:" + JSON.stringify(this.isoData.site_res.site_view));
-    console.log(
-      "App init: my_user:" + JSON.stringify(this.isoData.site_res.my_user)
-    );
   }
   render() {
     let siteRes = this.isoData.site_res;

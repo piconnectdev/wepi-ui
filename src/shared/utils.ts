@@ -1342,12 +1342,10 @@ export function personSelectName(pvs: PersonViewSafe): string {
 
 export function initializeSite(site: GetSiteResponse) {
   if (isBrowser()) {
-    console.log("initializeSite from client");
     fetchSite().then(site => {
-      console.log("initializeSite from client ok");
+      //console.log("initializeSite from client ok, myUserInfo:" + JSON.stringify(site.my_user));
       window.isoData.site_res = site;
       UserService.Instance.myUserInfo = site.my_user;
-      console.log("myUserInfo:" + JSON.stringify(site.my_user));
       i18n.changeLanguage(getLanguages()[0]);
     });
   } else {
