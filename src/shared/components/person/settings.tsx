@@ -1807,6 +1807,7 @@ export class Settings extends Component<any, SettingsState> {
       let data = wsJsonToRes<GetPiBalancesResponse>(msg);
       this.setState({
         balanceState: {
+          spent: data.spent,
           deposited: data.deposited,
           rewarded: data.rewarded,
           withdrawed: data.withdrawed,
