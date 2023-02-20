@@ -593,12 +593,12 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   }
 
   handleSearchSubmit(i: Navbar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.updateUrl();
   }
 
   handleSearchBtn(i: Navbar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ toggleSearch: true });
 
     i.searchTextField.current?.focus();

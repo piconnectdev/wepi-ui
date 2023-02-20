@@ -1233,7 +1233,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentUpvote(event: any) {
-    event.preventDefault();
+    //event.preventDefault();
     let myVote = this.state.my_vote;
     let newVote = myVote == 1 ? 0 : 1;
 
@@ -1270,7 +1270,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentDownvote(event: any) {
-    event.preventDefault();
+    //event.preventDefault();
     let myVote = this.state.my_vote;
     let newVote = myVote == -1 ? 0 : -1;
 
@@ -1506,7 +1506,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handlePurgeSubmit(i: CommentNode, event: any) {
-    event.preventDefault();
+    //event.preventDefault();
     let auth = myAuth();
     if (auth) {
       if (i.state.purgeType == PurgeType.Person) {

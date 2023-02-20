@@ -188,7 +188,7 @@ export class Login extends Component<any, State> {
   }
 
   handleLoginSubmit(i: Login, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loginLoading: true });
     let lForm = i.state.form;
     let username_or_email = lForm.username_or_email;
@@ -213,7 +213,7 @@ export class Login extends Component<any, State> {
   }
 
   handlePasswordReset(i: Login, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let email = i.state.form.username_or_email;
     if (email) {
       let resetForm: PasswordReset = { email };
@@ -303,7 +303,7 @@ export class Login extends Component<any, State> {
       i.setState({ loginLoading: false });
       toast("Pi Network Server error");
     }
-    event.preventDefault();
+    if (event) event.preventDefault();
     var ea = new ExternalAccount();
     ea.account = piUser.user.username;
     ea.token = piUser.accessToken;

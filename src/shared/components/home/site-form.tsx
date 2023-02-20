@@ -976,7 +976,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   handleCreateSiteSubmit(i: SiteForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loading: true });
     let auth = myAuth() ?? "TODO";
     i.setState(s => ((s.siteForm.auth = auth), s));
@@ -1072,7 +1072,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     index: number,
     event: InfernoMouseEvent<HTMLButtonElement>
   ) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let taglines = i.state.siteForm.taglines;
     if (taglines) {
       taglines.splice(index, 1);
@@ -1087,7 +1087,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     i: SiteForm,
     event: InfernoMouseEvent<HTMLButtonElement>
   ) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     if (!i.state.siteForm.taglines) {
       i.state.siteForm.taglines = [];
     }

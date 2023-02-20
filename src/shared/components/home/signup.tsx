@@ -271,7 +271,7 @@ export class Signup extends Component<any, State> {
               onInput={linkEvent(this, this.handleRegisterUsernameChange)}
               required
               minLength={3}
-              pattern="[a-z0-9_]+"
+              //pattern="[a-z0-9_]+"
               title={i18n.t("community_reqs")}
               placeholder={i18n.t("Choose an username for desktop login")}
             />
@@ -599,7 +599,7 @@ export class Signup extends Component<any, State> {
 
   handleRegisterSubmit(i: Signup, event: any) {
     console.log("handleRegisterSubmit");
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ registerLoading: true });
     i.setState(i.state);
     let isPi = i.isPiBrowser;
@@ -921,7 +921,7 @@ export class Signup extends Component<any, State> {
       return;
     }
 
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     i.state.form.password_verify = i.state.form.password;
     i.setState(i.state);
@@ -948,7 +948,7 @@ export class Signup extends Component<any, State> {
   async handlePiRegisterWithFee(i: Signup, event: any) {
     if (!i.isPiBrowser) return;
     if (i.isPiBrowser) return;
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ registerLoading: true });
     i.setState(i.state);
     var config = {

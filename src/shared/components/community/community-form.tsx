@@ -299,7 +299,7 @@ export class CommunityForm extends Component<
   }
 
   handleCreateCommunitySubmit(i: CommunityForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loading: true });
     let cForm = i.state.form;
     let auth = myAuth();

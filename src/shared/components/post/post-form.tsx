@@ -569,7 +569,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   handlePreviewToggle(i: PostForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ previewMode: !i.state.previewMode });
   }
 

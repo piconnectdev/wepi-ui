@@ -901,7 +901,7 @@ export class Search extends Component<any, SearchState> {
   }
 
   handleSearchSubmit(i: Search, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.updateUrl({
       q: i.state.searchText,
       type_: i.state.type_,

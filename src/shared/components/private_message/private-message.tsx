@@ -319,7 +319,7 @@ export class PrivateMessage extends Component<
   }
 
   handleReportSubmit(i: PrivateMessage, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let auth = myAuth();
     let reason = i.state.reportReason;
     if (auth && reason) {

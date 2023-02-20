@@ -182,7 +182,7 @@ export class PrivateMessageForm extends Component<
   }
 
   handlePrivateMessageSubmit(i: PrivateMessageForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let pm = i.props.privateMessageView;
     let auth = myAuth();
     let content = i.state.content;
@@ -216,7 +216,7 @@ export class PrivateMessageForm extends Component<
   }
 
   handlePreviewToggle(i: PrivateMessageForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ previewMode: !i.state.previewMode });
   }
 

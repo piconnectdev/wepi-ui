@@ -123,7 +123,7 @@ export class LanguageSelect extends Component<LanguageSelectProps, any> {
   }
 
   handleDeselectAll(i: LanguageSelect, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.props.onChange([]);
   }
 }

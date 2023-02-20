@@ -170,9 +170,9 @@ export class Setup extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Setup, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ userLoading: true });
-    event.preventDefault();
+    if (event) event.preventDefault();
     let cForm = i.state.form;
     if (cForm.username && cForm.password && cForm.password_verify) {
       let form: Register = {

@@ -576,7 +576,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleDeleteClick(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let auth = myAuth();
     if (auth) {
       let deleteForm: DeleteCommunity = {
@@ -612,7 +612,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleUnsubscribe(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let community_id = i.props.community_view.community.id;
     let auth = myAuth();
     if (auth) {
@@ -632,7 +632,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleSubscribe(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let community_id = i.props.community_view.community.id;
     let auth = myAuth();
     if (auth) {
@@ -675,7 +675,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleModRemoveSubmit(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let auth = myAuth();
     if (auth) {
       let removeForm: RemoveCommunity = {
@@ -787,7 +787,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handlePurgeSubmit(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     let auth = myAuth();
     if (auth) {
@@ -802,7 +802,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleBlock(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let auth = myAuth();
     if (auth) {
       let blockCommunityForm: BlockCommunity = {
@@ -817,7 +817,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleUnblock(i: Sidebar, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let auth = myAuth();
     if (auth) {
       let blockCommunityForm: BlockCommunity = {

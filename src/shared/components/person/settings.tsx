@@ -1681,7 +1681,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handleSaveSettingsSubmit(i: Settings, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ saveUserSettingsLoading: true });
     let auth = myAuth();
     if (auth) {
@@ -1698,7 +1698,7 @@ export class Settings extends Component<any, SettingsState> {
     if (i.isPiBrowser) {
       this.handlePiLoginSubmit(i, event);
     } else {
-      event.preventDefault();
+      if (event) event.preventDefault();
       i.setState({ changePasswordLoading: true });
       let auth = myAuth();
       let pForm = i.state.changePasswordForm;
@@ -1719,7 +1719,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handleDeleteAccountShowConfirmToggle(i: Settings, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ deleteAccountShowConfirm: !i.state.deleteAccountShowConfirm });
   }
 
@@ -1729,7 +1729,7 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   handleDeleteAccount(i: Settings, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ deleteAccountLoading: true });
     let auth = myAuth();
     let password = i.state.deleteAccountForm.password;
@@ -1916,7 +1916,7 @@ export class Settings extends Component<any, SettingsState> {
       return;
     }; // Read more about this in the SDK reference
 
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ changePasswordLoading: true });
     piUser = await authenticatePiUser();
     var ea = new ExternalAccount();

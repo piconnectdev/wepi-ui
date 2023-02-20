@@ -787,7 +787,7 @@ export class Profile extends Component<any, ProfileState> {
   }
 
   handleModBanSubmitCancel(i: Profile, event?: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ showBanDialog: false });
   }
 

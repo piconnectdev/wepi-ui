@@ -73,7 +73,7 @@ export class ImageUploadForm extends Component<
   }
 
   handleImageUpload(i: ImageUploadForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let file = event.target.files[0];
     const formData = new FormData();
     formData.append("images[]", file);
@@ -106,7 +106,7 @@ export class ImageUploadForm extends Component<
   }
 
   handleRemoveImage(i: ImageUploadForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loading: true });
     i.props.onRemove();
   }

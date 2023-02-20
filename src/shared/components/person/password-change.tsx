@@ -140,7 +140,7 @@ export class PasswordChange extends Component<any, State> {
   }
 
   handlePasswordChangeSubmit(i: PasswordChange, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loading: true });
 
     let password = i.state.form.password;
