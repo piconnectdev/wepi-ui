@@ -114,6 +114,7 @@ interface SettingsState {
   };
   balanceState: {
     deposited?: number;
+    spent?: number;
     rewarded?: number;
     withdrawed?: number;
     amount?: number;
@@ -450,20 +451,20 @@ export class Settings extends Component<any, SettingsState> {
   balanceHtmlForm() {
     return (
       <>
-        <h5>{i18n.t("Balances")}</h5>
+        <h5>{i18n.t("Balance statistics")}</h5>
         <form>
           <div className="form-group row">
-            <label className="col-sm-5 col-form-label" htmlFor="user-deposited">
-              {i18n.t("Deposited")}
+            <label className="col-sm-5 col-form-label" htmlFor="user-spent">
+              {i18n.t("Spent")}
             </label>
             <div className="col-sm-7">
               <input
                 readOnly={true}
                 type="text"
-                id="user-deposited"
+                id="user-spent"
                 className="form-control"
                 //value={1.0}
-                value={this.state.balanceState.deposited}
+                value={this.state.balanceState.spent}
                 //autoComplete="new-password"
                 maxLength={60}
                 //onInput={linkEvent(this, this.handleNewPasswordChange)}
