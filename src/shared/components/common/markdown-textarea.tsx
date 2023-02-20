@@ -401,7 +401,7 @@ export class MarkdownTextArea extends Component<
   }
 
   handlePreviewToggle(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ previewMode: !i.state.previewMode });
   }
 
@@ -410,7 +410,7 @@ export class MarkdownTextArea extends Component<
   }
 
   handleSubmit(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.setState({ loading: true });
     let msg = {
       val: i.state.content,
@@ -425,7 +425,7 @@ export class MarkdownTextArea extends Component<
   }
 
   handleInsertLink(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     let textarea: any = document.getElementById(i.id);
     let start: number = textarea.selectionStart;
@@ -511,17 +511,17 @@ export class MarkdownTextArea extends Component<
   }
 
   handleInsertBold(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleSurround("**");
   }
 
   handleInsertItalic(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleSurround("*");
   }
 
   handleInsertCode(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     if (i.getSelectedText().split(/\r*\n/).length > 1) {
       i.simpleSurroundBeforeAfter("```\n", "\n```");
     } else {
@@ -530,32 +530,32 @@ export class MarkdownTextArea extends Component<
   }
 
   handleInsertStrikethrough(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleSurround("~~");
   }
 
   handleInsertList(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleBeginningofLine("-");
   }
 
   handleInsertQuote(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleBeginningofLine(">");
   }
 
   handleInsertHeader(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleBeginningofLine("#");
   }
 
   handleInsertSubscript(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleSurround("~");
   }
 
   handleInsertSuperscript(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     i.simpleSurround("^");
   }
 
@@ -578,7 +578,7 @@ export class MarkdownTextArea extends Component<
   }
 
   handleInsertSpoiler(i: MarkdownTextArea, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     let beforeChars = `\n::: spoiler ${i18n.t("spoiler")}\n`;
     let afterChars = "\n:::\n";
     i.simpleSurroundBeforeAfter(beforeChars, afterChars);

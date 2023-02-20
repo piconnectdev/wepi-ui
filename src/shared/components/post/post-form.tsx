@@ -433,7 +433,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   handlePostSubmit(i: PostForm, event: any) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     i.setState({ loading: true });
 
