@@ -654,7 +654,6 @@ export class Home extends Component<any, HomeState> {
         type_: this.state.listingType,
         auth,
       };
-      console.log("GetPosts (h) with params:", JSON.stringify(getPostsForm));
       WebSocketService.Instance.send(wsClient.getPosts(getPostsForm));
     } else {
       let getCommentsForm: GetComments = {
