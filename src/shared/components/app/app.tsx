@@ -4,13 +4,7 @@ import { Provider } from "inferno-i18next-dess";
 import { Route, Switch } from "inferno-router";
 import { i18n } from "../../i18next";
 import { routes } from "../../routes";
-import {
-  favIconPngUrl,
-  favIconUrl,
-  fetchSite,
-  isBrowser,
-  setIsoData,
-} from "../../utils";
+import { favIconPngUrl, favIconUrl, isBrowser, setIsoData } from "../../utils";
 import { Footer } from "./footer";
 import { Navbar } from "./navbar";
 import { NoMatch } from "./no-match";
@@ -23,37 +17,15 @@ export class App extends Component<any, any> {
     if (isBrowser()) {
       const getSite = async () => {
         if (window.isoData.site_res.my_user == undefined) {
-          let site = await fetchSite();
-          console.log("initializeSite from client app");
-          window.isoData.site_res = site;
-          this.isoData.site_res = site;
-          console.log(
-            "App init as: my_user:" +
-              JSON.stringify(this.isoData.site_res.my_user)
-          );
+          // let site = await fetchSite();
+          // window.isoData.site_res = site;
+          // this.isoData.site_res = site;
+          // console.log(
+          //   "App init app:" +
+          //     JSON.stringify(this.isoData.site_res.my_user)
+          // );
         }
       };
-      // const getSite = async () => {
-      //     if (window.isoData.site_res.my_user == undefined) {
-      //       console.log(
-      //         "App init as: window my_user is " +
-      //           JSON.stringify(window.isoData.site_res.my_user)
-      //       );
-
-      //     fetchSite().then(site => {
-      //       console.log("initializeSite from client app");
-      //       window.isoData.site_res = site;
-      //       this.isoData.site_res = site;
-      //       console.log(
-      //         "App init as: my_user:" +
-      //           JSON.stringify(this.isoData.site_res.my_user)
-      //       );
-      //       //UserService.Instance.myUserInfo = site.my_user;
-      //       //i18n.changeLanguage(getLanguages()[0]);
-      //       //location.reload();
-      //     });
-      //   }
-      // }
       getSite();
       super(props, context);
     } else {

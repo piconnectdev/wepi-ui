@@ -129,8 +129,8 @@ server.get("/*", async (req, res) => {
       path: req.path,
     };
 
-    getSiteForm.auth = undefined;
-    initialFetchReq.auth = undefined;
+    //getSiteForm.auth = undefined;
+    //initialFetchReq.auth = undefined;
     // Get site data first
     // This bypasses errors, so that the client can hit the error on its own,
     // in order to remove the jwt on the browser. Necessary for wrong jwts
