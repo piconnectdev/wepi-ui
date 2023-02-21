@@ -22,14 +22,16 @@ export class App extends Component<any, any> {
   constructor(props: any, context: any) {
     if (isBrowser()) {
       const getSite = async () => {
-        let site = await fetchSite();
-        console.log("initializeSite from client app");
-        window.isoData.site_res = site;
-        this.isoData.site_res = site;
-        console.log(
-          "App init as: my_user:" +
-            JSON.stringify(this.isoData.site_res.my_user)
-        );
+        if (window.isoData.site_res.my_user == undefined) {
+          let site = await fetchSite();
+          console.log("initializeSite from client app");
+          window.isoData.site_res = site;
+          this.isoData.site_res = site;
+          console.log(
+            "App init as: my_user:" +
+              JSON.stringify(this.isoData.site_res.my_user)
+          );
+        }
       };
       // const getSite = async () => {
       //     if (window.isoData.site_res.my_user == undefined) {

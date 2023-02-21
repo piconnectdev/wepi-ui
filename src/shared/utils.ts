@@ -1342,12 +1342,23 @@ export function personSelectName(pvs: PersonViewSafe): string {
 
 export function initializeSite(site: GetSiteResponse) {
   if (isBrowser()) {
-    fetchSite().then(site => {
-      //console.log("initializeSite from client ok, myUserInfo:" + JSON.stringify(site.my_user));
-      window.isoData.site_res = site;
-      UserService.Instance.myUserInfo = site.my_user;
-      i18n.changeLanguage(getLanguages()[0]);
-    });
+    const getSite = async () => {
+      if (window.isoData.site_res.my_user == undefined) {
+        let site = await fetchSite();
+        console.log(
+          "initializeSite from client ok, myUserInfo:" +
+            JSON.stringify(site.my_user)
+        );
+        window.isoData.site_res = site;
+        UserService.Instance.myUserInfo = site.my_user;
+        i18n.changeLanguage(getLanguages()[0]);
+        console.log(
+          "initializeSite: my_user:" +
+            JSON.stringify(window.isoData.site_res.my_user)
+        );
+      }
+    };
+    getSite();
   } else {
     UserService.Instance.myUserInfo = site.my_user;
     i18n.changeLanguage(getLanguages()[0]);

@@ -1,0 +1,23 @@
+ Wepi.social is a social network that aims to provide a secure and enjoyable experience for its users. In order to ensure that our platform is safe and secure, we require all users to go through a Know Your Customer (KYC) process using their Pi Network account. This Private Policy explains how we collect, use, disclose and protect your personal information when you use our platform.
+What information do we collect?
+- Personal information: We collect your name, Pi Username, Pi Wallet Address and Email Address when you sign up for a Wepi.social account, definitely not include a 24 characters paspharase.
+- KYC information: As part of the KYC process, just include your Pi Username and Pi Wallet Address, definitely not include a 24 characters paspharase.
+- Usage information: We collect information about how you use our platform, such as the pages you visit, the content you interact with, and the time you spend on the platform.
+How do we use your information?
+- To provide and improve our services: We use your personal information to provide you with access to our platform, as well as to improve and customize your experience on Wepi.social.
+- For KYC purposes: We use your Pi KYC information to verify your identity and ensure the security of our platform.
+- For security purposes: We use your information to detect and prevent fraud and abuse, and to ensure the security of our platform.
+Do we share your information with third parties?
+- Law enforcement: We may disclose your information to law enforcement agencies if we believe it is necessary to comply with the law, or to protect the safety and security of our platform.
+How do we protect your information?
+- Encryption: We use encryption to protect your information when it is transmitted over the internet.
+- Access controls: We have implemented access controls to prevent unauthorized access to your information.
+- Security audits: We regularly conduct security audits to identify and address potential vulnerabilities.
+Your rights:
+- Access to your information: You have the right to request access to your personal information that you provided for us.
+- Correction of your information: You have the right to request correction of any incorrect information  that you provided for us, except Pi Username and Pi Wallet Address information.
+- Deletion of your information: You have the right to request that we delete your personal information from our platform, except Pi Username and Pi Wallet Address information.
+- Objection to processing: You have the right to object to our processing of your personal information for certain purposes.
+Changes to this Policy: We may update this Privacy Policy from time to time to reflect changes to our practices or for other operational, legal, or regulatory reasons. If we make any material changes to this policy, we will notify you through our platform or by email.
+Contact Us: If you have any questions or concerns about this Privacy Policy, please contact us at support@wepi.social.
+

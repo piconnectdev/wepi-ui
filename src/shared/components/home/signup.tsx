@@ -522,7 +522,7 @@ export class Signup extends Component<any, State> {
               <button
                 type="submit"
                 className="btn btn-secondary"
-                disabled={!isPiBrowserLocal}
+                // disabled={!isPiBrowserLocal}
               >
                 {this.state.registerLoading ? (
                   <Spinner />

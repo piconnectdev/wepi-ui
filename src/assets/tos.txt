@@ -1,0 +1,34 @@
+
+Introduction
+Welcome to WePi, a social media platform that connects people from all over the world. These Terms of Service (the "Terms") govern your access to and use of the platform, including our websites, mobile applications, and other services (collectively, the "Services"). By accessing or using the Services, you agree to be bound by these Terms, our Privacy Policy, and any other policies or guidelines we may provide from time to time. If you do not agree to these Terms, you may not access or use the Services.
+
+Account Requirements
+To access and use the Services, you must be at least [age] years old and have the capacity to enter into a binding agreement. By accessing or using the Services, you represent and warrant that you have the right, authority, and capacity to enter into these Terms and to abide by all of the terms and conditions set forth herein.
+
+User Conduct
+When accessing and using the Services, you agree to comply with all applicable laws, rules, and regulations, and to not engage in any prohibited conduct, including:
+
+Infringing the intellectual property rights of others, such as copyright and trademark infringement
+
+Posting false or misleading information, or impersonating another person or entity
+
+Engaging in harassment, hate speech, bullying, or any other conduct that is harmful or offensive to others, including but not limited to racist, sexist, homophobic, transphobic, or xenophobic language
+
+Collecting or using the personal information of others without their consent, including but not limited to scraping, harvesting, or otherwise collecting information from the Services
+
+Engaging in spamming, phishing, or any other conduct that is fraudulent or deceptive, including but not limited to sending unsolicited messages, promotions, or advertisements
+
+Engaging in any conduct that is harmful to the stability, security, or performance of the Services, or to any third-party systems or networks, including but not limited to hacking, cracking, distributing viruses or malware, or engaging in denial of service attacks
+
+Engaging in any conduct that could cause us to violate any applicable law or regulation, including but not limited to illegal or unauthorized gambling, sales of controlled substances, or sale of counterfeit goods
+
+Posting or distributing any content that is illegal, including but not limited to child pornography, illegal drugs, or incitement to violence
+
+Content Ownership and License
+The content you upload, post, or otherwise make available through the Services, including text, photos, videos, and other materials (the "User Content"), is your sole responsibility and remains your property. By making any User Content available through the Services, you grant to us a non-exclusive, transferable, sub-licensable, royalty-free, worldwide license to use, copy, modify, create derivative works based on, distribute, publicly display, and otherwise exploit the User Content in connection with the Services and our business, including for promotional and marketing purposes.
+
+We reserve the right to remove or delete any User Content that violates these Terms, or that we determine is otherwise harmful or offensive. We also reserve the right to limit or restrict access to the Services, or to terminate your account, in our sole discretion, if you engage in any prohibited conduct or violate these Terms.
+
+Modification and Termination
+We reserve the right to modify or discontinue the Services, or to change these Terms, at any time, without notice. If we make material changes to these Terms, we will provide you with notice, such as through a notification on the Services.
+

@@ -6,6 +6,7 @@ import {
   BlockPersonResponse,
   ChangePassword,
   CommunityBlockView,
+  CommunityResponse,
   CommunityView,
   CreateCommunity,
   CreatePayment,
@@ -115,7 +116,7 @@ interface SettingsState {
   balanceState: {
     deposited?: number;
     spent?: number;
-    rewarded?: number;
+    received?: number;
     withdrawed?: number;
     amount?: number;
   };
@@ -332,7 +333,7 @@ export class Settings extends Component<any, SettingsState> {
   depositHtmlForm() {
     return (
       <>
-        <h5>{i18n.t("Reward user")}</h5>
+        <h5>{i18n.t("Send to")}</h5>
         <form>
           <div className="form-group row">
             <label
@@ -380,7 +381,7 @@ export class Settings extends Component<any, SettingsState> {
                 {this.state.depositLoading ? (
                   <Spinner />
                 ) : (
-                  capitalizeFirstLetter(i18n.t("Reward"))
+                  capitalizeFirstLetter(i18n.t("Send"))
                 )}
               </button>
             </div>
@@ -395,7 +396,7 @@ export class Settings extends Component<any, SettingsState> {
                 {this.state.depositLoading ? (
                   <Spinner />
                 ) : (
-                  capitalizeFirstLetter(i18n.t("Reward"))
+                  capitalizeFirstLetter(i18n.t("Send"))
                 )}
               </button>
             </div>
@@ -472,17 +473,17 @@ export class Settings extends Component<any, SettingsState> {
             </div>
           </div>
           <div className="form-group row">
-            <label className="col-sm-5 col-form-label" htmlFor="user-rewarded">
-              {i18n.t("Rewarded")}
+            <label className="col-sm-5 col-form-label" htmlFor="user-received">
+              {i18n.t("Received")}
             </label>
             <div className="col-sm-7">
               <input
                 readOnly={true}
                 type="text"
-                id="user-rewarded"
+                id="user-received"
                 className="form-control"
                 //value={1.0}
-                value={this.state.balanceState.rewarded}
+                value={this.state.balanceState.received}
                 //autoComplete="new-password"
                 maxLength={60}
                 //onInput={linkEvent(this, this.handleNewPasswordChange)}
@@ -1368,18 +1369,23 @@ export class Settings extends Component<any, SettingsState> {
   // Create user's community
   handleCreateCommunitySubmit() {
     let getUser = UserService.Instance.myUserInfo;
-    let auth = myAuth();
-    if (getUser && auth) {
-      let formUserHome: CreateCommunity = {
-        name: getUser.local_user_view.person.name,
-        title:
-          getUser.local_user_view.person.display_name ||
-          getUser.local_user_view.person.name,
-        auth: auth,
-      };
-      WebSocketService.Instance.send(wsClient.createCommunity(formUserHome));
+    if (getUser?.local_user_view.person.home == undefined) {
+      let auth = myAuth();
+      if (getUser && auth) {
+        let formUserHome: CreateCommunity = {
+          name: getUser.local_user_view.person.name,
+          title:
+            getUser.local_user_view.person.display_name ||
+            getUser.local_user_view.person.name,
+          auth: auth,
+        };
+        WebSocketService.Instance.send(wsClient.createCommunity(formUserHome));
+      }
+    } else {
+      //this.props.history.push(`/c/${getUser?.local_user_view.person.name}`);
+      //location.reload();
+      window.location.href = `/c/${getUser?.local_user_view.person.name}`;
     }
-    window.location.href = `/c/${getUser?.local_user_view.person.name}`;
   }
 
   handlePiBalanceSubmit() {
@@ -1426,7 +1432,7 @@ export class Settings extends Component<any, SettingsState> {
         //person_id?: None;
         //person_name?: string;
         //step?: number;
-        //a2u: true,
+        //a2u: 0,
         //pending?: boolean;
         //page?: number;
         //limit: 100,
@@ -1462,7 +1468,7 @@ export class Settings extends Component<any, SettingsState> {
         person_id: getUser.local_user_view.person.id,
         //person_name?: string;
         //step?: number;
-        //a2u: true,
+        //a2u: 0,
         //pending?: boolean;
         //page?: number;
         limit: 100,
@@ -1809,12 +1815,15 @@ export class Settings extends Component<any, SettingsState> {
         balanceState: {
           spent: data.spent,
           deposited: data.deposited,
-          rewarded: data.rewarded,
+          received: data.received,
           withdrawed: data.withdrawed,
           amount: data.amount,
         },
       });
       toast(i18n.t("Get balances success"));
+    } else if (op == UserOperation.CreateCommunity) {
+      let data = wsJsonToRes<CommunityResponse>(msg);
+      window.location.href = `/c/${data.community_view.community.name}`;
     } else {
       console.log("settings parseMessage:" + JSON.stringify(msg));
       this.setState({
