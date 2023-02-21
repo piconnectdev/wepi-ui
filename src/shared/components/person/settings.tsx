@@ -24,6 +24,7 @@ import {
   PiLogin,
   PiPaymentFound,
   PiWithdraw,
+  PiWithdrawResponse,
   SaveUserSettings,
   SendPayment,
   SortType,
@@ -1824,6 +1825,9 @@ export class Settings extends Component<any, SettingsState> {
     } else if (op == UserOperation.CreateCommunity) {
       let data = wsJsonToRes<CommunityResponse>(msg);
       window.location.href = `/c/${data.community_view.community.name}`;
+    } else if (op == UserOperation.PiWithdraw) {
+      let data = wsJsonToRes<PiWithdrawResponse>(msg);
+      toast(i18n.t("Withdraw push to queue success!") + data.id);
     } else {
       console.log("settings parseMessage:" + JSON.stringify(msg));
       this.setState({
