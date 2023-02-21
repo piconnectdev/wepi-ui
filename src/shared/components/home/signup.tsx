@@ -357,7 +357,7 @@ export class Signup extends Component<any, State> {
           </div>
         </div> */}
 
-        {!this.isPiBrowser && true && (
+        {
           <>
             <div className="form-group row">
               <div className="offset-sm-2 col-sm-10">
@@ -415,7 +415,7 @@ export class Signup extends Component<any, State> {
               </div> */}
             </div>
           </>
-        )}
+        }
 
         {siteView.local_site.registration_mode ==
           RegistrationMode.RequireApplication && (
