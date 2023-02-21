@@ -197,18 +197,6 @@ export class Signup extends Component<any, State> {
   }
 
   get isPiBrowser(): boolean {
-    //return true;
-    //return isBrowser() && navigator.userAgent.includes("PiBrowser");
-    if (typeof window !== "undefined") {
-      let value = window.navigator.userAgent.includes("PiBrowser");
-      // if (typeof this.state !== "undefined") {
-      //   this.setState({ piBrowser: value });
-      // }
-      console.log(
-        "PiBrower:" + value + ", Agent " + window.navigator.userAgent
-      );
-      return window.navigator.userAgent.includes("PiBrowser");
-    }
     return isBrowser() && navigator.userAgent.includes("PiBrowser");
   }
 
@@ -238,7 +226,6 @@ export class Signup extends Component<any, State> {
 
   registerForm() {
     let siteView = this.state.siteRes.site_view;
-    let isPiBrowserLocal = this.isPiBrowser;
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
         <h5>{this.titleName(siteView)}</h5>
@@ -522,13 +509,13 @@ export class Signup extends Component<any, State> {
               <button
                 type="submit"
                 className="btn btn-secondary"
-                // disabled={!isPiBrowserLocal}
+                disabled={true}
               >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
                   //this.titleName(siteView)
-                  "Wallet " + this.titleName(siteView)
+                  "Web3 " + this.titleName(siteView)
                   // disabled={true}
                 )}
               </button>
