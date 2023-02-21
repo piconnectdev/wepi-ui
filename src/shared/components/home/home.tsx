@@ -165,7 +165,9 @@ export class Home extends Component<any, HomeState> {
 
       if (isBrowser()) {
         WebSocketService.Instance.send(
-          wsClient.communityJoin({ community_id: null })
+          wsClient.communityJoin({
+            community_id: "00000000-0000-0000-0000-000000000000",
+          })
         );
       }
 
@@ -652,7 +654,7 @@ export class Home extends Component<any, HomeState> {
         type_: this.state.listingType,
         auth,
       };
-
+      console.log("GetPosts (h) with params:", JSON.stringify(getPostsForm));
       WebSocketService.Instance.send(wsClient.getPosts(getPostsForm));
     } else {
       let getCommentsForm: GetComments = {
@@ -676,7 +678,9 @@ export class Home extends Component<any, HomeState> {
       return;
     } else if (msg.reconnect) {
       WebSocketService.Instance.send(
-        wsClient.communityJoin({ community_id: null })
+        wsClient.communityJoin({
+          community_id: "00000000-0000-0000-0000-000000000000",
+        })
       );
       this.fetchData();
     } else if (op == UserOperation.ListCommunities) {
@@ -690,7 +694,9 @@ export class Home extends Component<any, HomeState> {
       let data = wsJsonToRes<GetPostsResponse>(msg);
       this.setState({ posts: data.posts, loading: false });
       WebSocketService.Instance.send(
-        wsClient.communityJoin({ community_id: null })
+        wsClient.communityJoin({
+          community_id: "00000000-0000-0000-0000-000000000000",
+        })
       );
       restoreScrollPosition(this.context);
       setupTippy();
