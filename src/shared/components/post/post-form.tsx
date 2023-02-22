@@ -1,4 +1,5 @@
 import autosize from "autosize";
+import { Uuid4 } from "id128";
 import { Component, linkEvent } from "inferno";
 import { Prompt } from "inferno-router";
 import {
@@ -672,7 +673,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
     let nameOrId = this.props.params?.nameOrId;
     if (nameOrId) {
-      if (typeof nameOrId === "string") {
+      if (Uuid4.isCanonical(nameOrId)) {
+        let id = nameOrId;
+        this.setState(s => ((s.form.community_id = id), s));
+      } else if (typeof nameOrId === "string") {
         let name_ = nameOrId;
         let foundCommunityId = this.props.communities?.find(
           r => r.community.name == name_
