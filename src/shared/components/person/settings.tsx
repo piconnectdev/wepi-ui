@@ -1220,7 +1220,7 @@ export class Settings extends Component<any, SettingsState> {
               </button>
             </div>
           )}
-          {this.isPiBrowser && <hr />}
+          {this.isPiBrowser && !verified && <hr />}
           <div className="form-group">
             <button
               className="btn btn-block btn-danger"
