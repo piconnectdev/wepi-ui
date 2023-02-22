@@ -1208,7 +1208,8 @@ export class Settings extends Component<any, SettingsState> {
               </button>
             </div>
           )}
-          <hr />
+          {!this.isPiBrowser && <hr />}
+
           {this.isPiBrowser && !verified && (
             <div className="form-group">
               <button
