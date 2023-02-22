@@ -357,7 +357,7 @@ export class MarkdownTextArea extends Component<
     })
       .then(res => res.json())
       .then(res => {
-        console.log("pictrs upload:");
+        console.log("pictrs upload uri2:" + uri);
         console.log(res);
         if (res.msg == "ok") {
           let hash = res.files[0].file;

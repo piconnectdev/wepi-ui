@@ -602,7 +602,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        console.log("pictrs upload:");
+        console.log("pictrs upload uri3:" + uri);
         console.log(res);
         if (res.msg == "ok") {
           let hash = res.files[0].file;
