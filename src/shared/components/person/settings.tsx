@@ -804,7 +804,11 @@ export class Settings extends Component<any, SettingsState> {
 
   saveUserSettingsHtmlForm() {
     let selectedLangs = this.state.saveUserSettingsForm.discussion_languages;
-
+    let getUser = UserService.Instance.myUserInfo;
+    let verified = false;
+    if (getUser?.local_user_view.person.verified == true) {
+      verified = true;
+    }
     return (
       <>
         <h5>{i18n.t("settings")}</h5>
@@ -1177,7 +1181,7 @@ export class Settings extends Component<any, SettingsState> {
               className="btn btn-block btn-secondary mr-4"
               onClick={linkEvent(this, this.handleCreateCommunitySubmit)}
             >
-              Create Home
+              Home
             </button>
           </div>
           <hr />
@@ -1205,7 +1209,7 @@ export class Settings extends Component<any, SettingsState> {
             </div>
           )}
           <hr />
-          {this.isPiBrowser && (
+          {this.isPiBrowser && !verified && (
             <div className="form-group">
               <button
                 type="button"

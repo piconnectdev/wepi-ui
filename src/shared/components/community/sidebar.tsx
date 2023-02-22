@@ -321,7 +321,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           href="#"
           onClick={linkEvent(this, this.handleBlockchainClick)}
         >
-          {i18n.t("Mint NFT")}
+          {this.isPiBrowser && i18n.t("Blockchain")}
+          {!this.isPiBrowser && i18n.t("Mint NFT")}
         </a>
       </div>
     );
