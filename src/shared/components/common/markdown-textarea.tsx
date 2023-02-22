@@ -350,14 +350,14 @@ export class MarkdownTextArea extends Component<
 
     i.setState({ imageLoading: true });
     let auth = myAuth(true);
-    let uri = auth ? pictrsUri + "?jwt=" + auth : pictrsUri;
+    let uri = auth ? `${pictrsUri}?jwt=${auth}` : pictrsUri;
     fetch(uri, {
       method: "POST",
       body: formData,
     })
       .then(res => res.json())
       .then(res => {
-        console.log("pictrs upload uri2:" + uri);
+        console.log("pictrs upload:");
         console.log(res);
         if (res.msg == "ok") {
           let hash = res.files[0].file;
