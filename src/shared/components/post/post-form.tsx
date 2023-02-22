@@ -594,8 +594,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     formData.append("images[]", file);
 
     i.setState({ imageLoading: true });
-
-    fetch(pictrsUri, {
+    let auth = myAuth(true);
+    let uri = auth ? pictrsUri + "?jwt=" + auth : pictrsUri;
+    fetch(uri, {
       method: "POST",
       body: formData,
     })

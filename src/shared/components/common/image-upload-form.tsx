@@ -2,7 +2,7 @@ import { Component, linkEvent } from "inferno";
 import { pictrsUri } from "../../env";
 import { i18n } from "../../i18next";
 import { UserService } from "../../services";
-import { randomStr, toast } from "../../utils";
+import { myAuth, randomStr, toast } from "../../utils";
 import { Icon } from "./icon";
 
 interface ImageUploadFormProps {
@@ -79,8 +79,9 @@ export class ImageUploadForm extends Component<
     formData.append("images[]", file);
 
     i.setState({ loading: true });
-
-    fetch(pictrsUri, {
+    let auth = myAuth(true);
+    let uri = auth ? pictrsUri + "?jwt=" + auth : pictrsUri;
+    fetch(uri, {
       method: "POST",
       body: formData,
     })
