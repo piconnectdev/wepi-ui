@@ -70,11 +70,9 @@ export class PersonListing extends Component<PersonListingProps, any> {
           href={linkHome}
           rel={relTags}
         >
-          {person.verified && (
-            <Icon icon="smile" classes={`icon-inline mr-1`} />
-          )}
+          {person.verified && <Icon icon="star" classes={`icon-inline mr-1`} />}
           {!person.verified && (
-            <Icon icon="shield" classes={`icon-inline mr-1`} />
+            <Icon icon="help-circle" classes={`icon-inline mr-1`} />
           )}
         </a>
         {isCakeDay(person.published) && <CakeDay creatorName={apubName} />}
