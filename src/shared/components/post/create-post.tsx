@@ -1,3 +1,4 @@
+import { Uuid4 } from "id128";
 import { Component } from "inferno";
 import {
   GetCommunity,
@@ -75,15 +76,16 @@ export class CreatePost extends Component<any, CreatePostState> {
     let nameOrId = this.params.nameOrId;
     let auth = myAuth(false);
     if (nameOrId) {
-      if (typeof nameOrId === "string") {
+      //if (typeof nameOrId === "string") {
+      if (Uuid4.isCanonical(nameOrId)) {
         let form: GetCommunity = {
-          name: nameOrId,
+          id: nameOrId,
           auth,
         };
         WebSocketService.Instance.send(wsClient.getCommunity(form));
       } else {
         let form: GetCommunity = {
-          id: nameOrId,
+          name: nameOrId,
           auth,
         };
         WebSocketService.Instance.send(wsClient.getCommunity(form));

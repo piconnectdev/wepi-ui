@@ -258,7 +258,7 @@ export class Signup extends Component<any, State> {
               onInput={linkEvent(this, this.handleRegisterUsernameChange)}
               required
               minLength={3}
-              //pattern="[a-z0-9_]+"
+              pattern="[a-z0-9_]+"
               title={i18n.t("community_reqs")}
               placeholder={i18n.t("Choose an username for desktop login")}
             />
@@ -521,7 +521,11 @@ export class Signup extends Component<any, State> {
               </button>
             )}
             {this.isPiBrowser && (
-              <button type="submit" className="btn btn-secondary">
+              <button
+                type="submit"
+                className="btn btn-secondary"
+                disabled={false}
+              >
                 {this.state.registerLoading ? (
                   <Spinner />
                 ) : (
@@ -621,6 +625,7 @@ export class Signup extends Component<any, State> {
   }
 
   handleRegisterUsernameChange(i: Signup, event: any) {
+    event.target.value = event.target.value.toLowerCase();
     i.state.form.username = event.target.value;
     i.setState(i.state);
   }
