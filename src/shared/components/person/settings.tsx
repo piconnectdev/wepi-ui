@@ -1407,11 +1407,48 @@ export class Settings extends Component<any, SettingsState> {
     }
   }
 
-  handlePiWithdrawSubmit(i: Settings, event: any) {
+  async handlePiWithdrawSubmit(i: Settings, event: any) {
     console.log("handlePiWithdrawSubmit:" + i.state.withdrawValue);
     let getUser = UserService.Instance.myUserInfo;
     let auth = myAuth(true);
     if (getUser && auth) {
+      var piUser;
+
+      const authenticatePiUser = async () => {
+        // Identify the user with their username / unique network-wide ID, and get permission to request payments from them.
+        const scopes = ["username", "payments", "wallet_address"];
+        try {
+          var user = await window.Pi.authenticate(
+            scopes,
+            onIncompletePaymentFound
+          );
+          return user;
+        } catch (err) {
+          console.log(err);
+        }
+      };
+
+      const onIncompletePaymentFound = async payment => {
+        //do something with incompleted payment
+        var found = new PiPaymentFound();
+        found.domain = window.location.hostname;
+        found.paymentid = payment.identifier;
+        found.pi_username = piUser.user.username;
+        found.pi_uid = piUser.user.uid;
+        found.pi_token = piUser.accessToken;
+        found.auth = undefined;
+        payment.metadata = undefined;
+        found.dto = payment;
+        console.log(JSON.stringify(found));
+        //WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+        return;
+      }; // Read more about this in the SDK reference
+      piUser = await authenticatePiUser();
+      if (piUser == undefined) {
+        toast("Pi Network Server error");
+        return;
+      }
+      console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
       let form: PiWithdraw = {
         domain: window.location.hostname,
         asset: "PI",
