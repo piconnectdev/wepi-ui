@@ -26,7 +26,7 @@ if (isBrowser()) {
   wsHost = lemmyConfig.wsHost || host;
   secure = window.location.protocol == "https:" ? "s" : "";
   // force use https://wepi.social
-  // secure = "s";
+  secure = "s";
 } else {
   // server-side
   externalHost = process.env.LEMMY_UI_LEMMY_EXTERNAL_HOST || testHost;

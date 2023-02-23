@@ -30,7 +30,7 @@ import {
   wsClient,
   wsSubscribe,
 } from "../../utils";
-import { Icon } from "../common/icon";
+import { Icon, IconPayments } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
 
 interface NavbarProps {
@@ -509,6 +509,16 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                             >
                               <Icon icon="settings" classes="mr-1" />
                               {i18n.t("settings")}
+                            </NavLink>
+                          </li>
+                          <li className="nav-item">
+                            <NavLink
+                              to="/payments"
+                              className="nav-link"
+                              title={"Payments"}
+                            >
+                              <IconPayments />
+                              Payments
                             </NavLink>
                           </li>
                           <li>
