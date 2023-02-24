@@ -1448,14 +1448,15 @@ export class Settings extends Component<any, SettingsState> {
         toast("Pi Network Server error");
         return;
       }
-      console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
+      //console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
       let form: PiWithdraw = {
+        pi_token: piUser.accessToken,
         domain: window.location.hostname,
         asset: "PI",
         amount: Number(i.state.withdrawValue),
         auth: auth,
       };
-      console.log("Send PiWithdraw:" + JSON.stringify(form));
+      console.log("Send request withdraw to server:" + JSON.stringify(form));
       WebSocketService.Instance.send(wsClient.piWithdraw(form));
     }
   }
@@ -2009,7 +2010,6 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: 0.001,
-        //memo: "AU" + convertUUIDtoULID(luv.person.id),
         memo:
           "Store person " +
           luv.person.name +
@@ -2017,14 +2017,8 @@ export class Settings extends Component<any, SettingsState> {
           luv.person.display_name,
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          type: "person",
+          person: luv.person,
         },
       };
       try {
@@ -2057,14 +2051,8 @@ export class Settings extends Component<any, SettingsState> {
         memo: "User " + luv.person.name + " deposit ",
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          type: "deposit",
+          data: { amount: Number(i.state.depositValue) },
         },
       };
       try {
@@ -2100,14 +2088,12 @@ export class Settings extends Component<any, SettingsState> {
           " π",
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          type: "reward",
+          data: {
+            from: luv.person.name,
+            to: i.state.depositName,
+            amount: Number(i.state.depositValue),
+          },
         },
       };
       try {

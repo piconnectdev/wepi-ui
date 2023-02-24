@@ -1791,15 +1791,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         " 0.1 π for " +
         i.props.node.comment_view.comment.id,
       metadata: {
-        id: i.props.node.comment_view.creator.id,
-        post_id: i.props.node.comment_view.post.id,
-        comment_id: i.props.node.comment_view.comment.id,
-        address: i.props.node.comment_view.creator.pi_address,
-        comment: "tip note;" + i.props.node.comment_view.creator.name,
-        t: i.props.node.comment_view.comment.published,
-        u: i.props.node.comment_view.comment.updated,
+        id: i.props.node.comment_view.comment.id,
+        type: "tipnote",
+        tipnote: {
+          id: i.props.node.comment_view.creator.id,
+          name: i.props.node.comment_view.creator.name,
+          post_id: i.props.node.comment_view.post.id,
+          comment_id: i.props.node.comment_view.comment.id,
+          address: i.props.node.comment_view.creator.pi_address,
+          t: i.props.node.comment_view.comment.published,
+          u: i.props.node.comment_view.comment.updated,
+        },
       },
     };
+
     try {
       let auth = myAuth(true);
       await createPayment(
@@ -1820,17 +1825,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     var config = {
       amount: 0.00001,
       //memo: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
-      memo: "Store comment/note " + i.props.node.comment_view.comment.id,
+      memo: "Web3 note: " + i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.comment.id,
-        own: i.props.node.comment_view.comment.creator_id,
-        post_id: i.props.node.comment_view.comment.post_id,
-        //parent_id: i.props.node.comment_view.comment.parent_id,
-        ap_id: i.props.node.comment_view.comment.ap_id,
-        content: i.props.node.comment_view.comment.content,
-        t: i.props.node.comment_view.comment.published,
-        u: i.props.node.comment_view.comment.updated,
-        sign: i.props.node.comment_view.comment.srv_sign,
+        type: "note",
+        note: i.props.node.comment_view.comment,
       },
     };
     try {

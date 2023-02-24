@@ -980,15 +980,11 @@ export class Profile extends Component<any, ProfileState> {
       config = {
         amount: 0.00001,
         //memo: "AU" + convertUUIDtoULID(person.id),
-        memo: "Store public profile of " + person.name,
+        memo: "Store public profile:" + person.name,
         metadata: {
           id: person.id,
-          name: person.name,
-          display: person.display_name,
-          actor_id: person.actor_id,
-          t: person.published,
-          u: person.updated,
-          s: person.srv_sign,
+          type: "person",
+          person: person,
         },
       };
 
