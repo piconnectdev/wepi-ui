@@ -28,7 +28,7 @@ export class Footer extends Component<FooterProps, any> {
           <div>
             <i className="fa fa-map-marker"></i>
             <p>
-              <span>Tòa nhà</span> Hà Nội
+              <span>Fediverse</span>
             </p>
           </div>
 
@@ -47,8 +47,8 @@ export class Footer extends Component<FooterProps, any> {
 
         <div className="footer-right">
           <p className="footer-company-about text-muted">
-            <span>Mạng xã hội WePi</span>
-            Trực thuộc và quản lý bởi WePi.
+          <span><a href="/static/assets/tos.txt">WePi Social Network</a></span>
+          <a href="/static/assets/privacy.txt">By Pioneers, for Pioneers</a>
           </p>
 
           <div className="footer-icons">
