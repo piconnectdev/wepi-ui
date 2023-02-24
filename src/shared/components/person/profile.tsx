@@ -979,16 +979,11 @@ export class Profile extends Component<any, ProfileState> {
     if (person) {
       config = {
         amount: 0.00001,
-        //memo: "AU" + convertUUIDtoULID(person.id),
-        memo: "Store public profile of " + person.name,
+        memo: `Web3 person: ${person.name} ${person.display_name}`,
         metadata: {
           id: person.id,
-          name: person.name,
-          display: person.display_name,
-          actor_id: person.actor_id,
-          t: person.published,
-          u: person.updated,
-          s: person.srv_sign,
+          cat: "person",
+          data: { person: person },
         },
       };
 
@@ -1001,7 +996,7 @@ export class Profile extends Component<any, ProfileState> {
           "person",
           person.id,
           person.id,
-          "Store public profile of " + person.name
+          `profile ${person.name} ${person.display_name}`
         );
       } catch (err) {
         console.log(

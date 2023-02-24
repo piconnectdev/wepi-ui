@@ -1408,7 +1408,10 @@ export class Settings extends Component<any, SettingsState> {
   }
 
   async handlePiWithdrawSubmit(i: Settings, event: any) {
-    console.log("handlePiWithdrawSubmit:" + i.state.withdrawValue);
+    if (!i.isPiBrowser) {
+      toast("Only allow withraw within Pi Browser");
+      return;
+    }
     let getUser = UserService.Instance.myUserInfo;
     let auth = myAuth(true);
     if (getUser && auth) {
@@ -1448,14 +1451,15 @@ export class Settings extends Component<any, SettingsState> {
         toast("Pi Network Server error");
         return;
       }
-      console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
+      //console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
       let form: PiWithdraw = {
+        pi_token: piUser.accessToken,
         domain: window.location.hostname,
         asset: "PI",
         amount: Number(i.state.withdrawValue),
         auth: auth,
       };
-      console.log("Send PiWithdraw:" + JSON.stringify(form));
+      console.log("Send request withdraw to server:" + JSON.stringify(form));
       WebSocketService.Instance.send(wsClient.piWithdraw(form));
     }
   }
@@ -2009,22 +2013,11 @@ export class Settings extends Component<any, SettingsState> {
       let luv = mui.local_user_view;
       var config = {
         amount: 0.001,
-        //memo: "AU" + convertUUIDtoULID(luv.person.id),
-        memo:
-          "Store person " +
-          luv.person.name +
-          ", display: " +
-          luv.person.display_name,
+        memo: `Web3 person: ${luv.person.name} ${luv.person.display_name}`,
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          cat: "person",
+          data: { person: luv.person },
         },
       };
       try {
@@ -2036,10 +2029,7 @@ export class Settings extends Component<any, SettingsState> {
           "person",
           luv.person.id,
           luv.person.id,
-          "Store person " +
-            luv.person.name +
-            ", display: " +
-            luv.person.display_name
+          `profile ${luv.person.name} ${luv.person.display_name}`
         );
       } catch (err) {
         console.log("Store person error:" + JSON.stringify(err));
@@ -2051,20 +2041,15 @@ export class Settings extends Component<any, SettingsState> {
     if (UserService.Instance.myUserInfo) {
       let mui = UserService.Instance.myUserInfo;
       let luv = mui.local_user_view;
+      var amnt = Number(i.state.depositValue);
       var config = {
-        amount: Number(i.state.depositValue),
+        amount: amnt,
         //memo: "AD" + convertUUIDtoULID(luv.person.id),
-        memo: "User " + luv.person.name + " deposit ",
+        memo: `User ${luv.person.name} deposit ${amnt}`,
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          cat: "deposit",
+          data: { deposit: amnt },
         },
       };
       try {
@@ -2076,7 +2061,7 @@ export class Settings extends Component<any, SettingsState> {
           "deposit",
           luv.person.id,
           luv.person.id,
-          "User " + luv.person.name + " deposit "
+          `User ${luv.person.name} deposit ${amnt}`
         );
       } catch (err) {
         console.log(
@@ -2089,25 +2074,20 @@ export class Settings extends Component<any, SettingsState> {
     if (UserService.Instance.myUserInfo) {
       let mui = UserService.Instance.myUserInfo;
       let luv = mui.local_user_view;
+      var amnt = Number(i.state.depositValue);
       var config = {
-        amount: Number(i.state.depositValue),
-        //memo: "AD" + convertUUIDtoULID(luv.person.id),
-        memo:
-          "Reward " +
-          i.state.depositName +
-          " " +
-          Number(i.state.depositValue) +
-          " π",
+        amount: amnt,
+        memo: `Reward ${i.state.depositName} ${amnt} π by ${luv.person.name}`,
         metadata: {
           id: luv.person.id,
-          name: luv.person.name,
-          display: luv.person.display_name,
-          actor_id: luv.person.actor_id,
-          pi_address: luv.person.pi_address,
-          web3_address: luv.person.web3_address,
-          t: luv.person.published,
-          u: luv.person.updated,
-          s: luv.person.auth_sign,
+          cat: "reward",
+          data: {
+            reward: {
+              from: luv.person.name,
+              to: i.state.depositName,
+              amount: Number(i.state.depositValue),
+            },
+          },
         },
       };
       try {
@@ -2119,7 +2099,7 @@ export class Settings extends Component<any, SettingsState> {
           "reward",
           luv.person.id,
           undefined,
-          i.state.depositName
+          `Reward ${i.state.depositName} ${amnt} π by ${luv.person.name}`
         );
       } catch (err) {
         console.log("Create reward for person error:" + JSON.stringify(err));
