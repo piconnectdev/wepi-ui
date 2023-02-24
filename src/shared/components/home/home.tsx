@@ -451,8 +451,8 @@ export class Home extends Component<any, HomeState> {
             <SiteSidebar
               site={siteView.site}
               admins={siteRes.admins}
-              // counts={siteView.counts}
-              // online={siteRes.online}
+              counts={siteView.counts}
+              online={siteRes.online}
               showLocal={showLocal(this.isoData)}
             />
             {this.hasFollows && (
