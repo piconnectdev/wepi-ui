@@ -369,7 +369,7 @@ export class Home extends Component<any, HomeState> {
     return (
       <div className="row">
         <div className="col-12">
-          {this.hasFollows && (
+          {/* {this.hasFollows && (
             <button
               className="btn btn-secondary d-inline-block mb-2 mr-3"
               onClick={linkEvent(this, this.handleShowSubscribedMobile)}
@@ -384,7 +384,7 @@ export class Home extends Component<any, HomeState> {
                 classes="icon-inline"
               />
             </button>
-          )}
+          )} */}
           <button
             className="btn btn-secondary d-inline-block mb-2 mr-3"
             onClick={linkEvent(this, this.handleShowTrendingMobile)}
@@ -451,8 +451,8 @@ export class Home extends Component<any, HomeState> {
             <SiteSidebar
               site={siteView.site}
               admins={siteRes.admins}
-              counts={siteView.counts}
-              online={siteRes.online}
+              // counts={siteView.counts}
+              // online={siteRes.online}
               showLocal={showLocal(this.isoData)}
             />
             {this.hasFollows && (
