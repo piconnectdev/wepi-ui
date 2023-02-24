@@ -72,7 +72,7 @@ export class Login extends Component<any, State> {
   }
 
   get isWePi(): boolean {
-    return isBrowser() && window.location.hostname == "wepi.social";
+    return isBrowser() && window.location.hostname == "demo.wepi.social";
   }
 
   get isPiBrowser(): boolean {

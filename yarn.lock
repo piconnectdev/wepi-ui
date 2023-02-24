@@ -5343,7 +5343,7 @@ leac@^0.6.0:
 
 "lemmy-js-client@https://github.com/piconnectdev/lemmy-js-client":
   version "0.17.0-rc.62"
-  resolved "https://github.com/piconnectdev/lemmy-js-client#4c0960db5aaf4b08d17358755e96104fb23f0425"
+  resolved "https://github.com/piconnectdev/lemmy-js-client#cc181fb93d1245e69f9a51cad772ac80729343e1"
   dependencies:
     node-fetch "2.6.6"
 
