@@ -1840,14 +1840,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   async handlePiTipClick(i: PostListing) {
+    var amnt = 0.1;
     var config = {
-      amount: 0.1,
-      //memo: "TP" + convertUUIDtoULID(i.props.post_view.post.id),
-      memo:
-        "Tip " +
-        i.props.post_view.creator.name +
-        " 0.1 π for " +
-        i.props.post_view.post.name,
+      amount: amnt,
+      memo: `Tip ${i.props.post_view.creator.name} ${amnt} π for page: ${i.props.post_view.post.name}`,
       metadata: {
         id: i.props.post_view.post.id,
         cat: "tippage",
@@ -1857,7 +1853,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             name: i.props.post_view.creator.name,
             cid: i.props.post_view.community.id,
             post_id: i.props.post_view.post.id,
-            address: i.props.post_view.creator.pi_address,
+            body: i.props.post_view.post.body,
             t: i.props.post_view.post.published,
             u: i.props.post_view.post.updated,
           },
@@ -1873,7 +1869,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         "tip:page",
         i.props.post_view.post.id,
         i.props.post_view.creator.id,
-        "tip for page of " + i.props.post_view.creator.name
+        `tip ${i.props.post_view.creator.name} for page`
       );
     } catch (err) {
       console.log("Tip page error:" + JSON.stringify(err));
@@ -1883,8 +1879,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   async handlePiBlockchainClick(i: PostListing) {
     var config = {
       amount: 0.00001,
-      //memo: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
-      memo: "Web3 page: " + i.props.post_view.post.name,
+      memo: `Web3 page: ${i.props.post_view.post.name}`,
       metadata: {
         id: i.props.post_view.post.id,
         cat: "page",
@@ -1899,7 +1894,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         auth,
         "page",
         i.props.post_view.post.id,
-        i.props.post_view.creator.id
+        i.props.post_view.creator.id,
+        `page ${i.props.post_view.post.id}`
       );
     } catch (err) {
       console.log("Create Pi Payment for page error:" + JSON.stringify(err));

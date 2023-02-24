@@ -1782,14 +1782,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   async handlePiTipClick(i: CommentNode) {
+    var amnt = 0.1;
     var config = {
-      amount: 0.1,
-      //memo: "TN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
-      memo:
-        "Tip " +
-        i.props.node.comment_view.creator.name +
-        " 0.1 π for " +
-        i.props.node.comment_view.comment.id,
+      amount: amnt,
+      memo: `Tip ${i.props.node.comment_view.creator.name} ${amnt} π for note: ${i.props.node.comment_view.comment.id}`,
       metadata: {
         id: i.props.node.comment_view.comment.id,
         cat: "tipnote",
@@ -1799,7 +1795,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             name: i.props.node.comment_view.creator.name,
             post_id: i.props.node.comment_view.post.id,
             comment_id: i.props.node.comment_view.comment.id,
-            address: i.props.node.comment_view.creator.pi_address,
+            content: i.props.node.comment_view.comment.content,
             t: i.props.node.comment_view.comment.published,
             u: i.props.node.comment_view.comment.updated,
           },
@@ -1816,7 +1812,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         "tip:note",
         i.props.node.comment_view.comment.id,
         i.props.node.comment_view.creator.id,
-        "tip for note of " + i.props.node.comment_view.creator.name
+        `tip ${i.props.node.comment_view.creator.name} for note`
       );
     } catch (err) {
       console.log("Create Pi Tip for note error:" + JSON.stringify(err));
@@ -1827,7 +1823,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     var config = {
       amount: 0.00001,
       //memo: "AN" + convertUUIDtoULID(i.props.node.comment_view.comment.id),
-      memo: "Web3 note: " + i.props.node.comment_view.comment.id,
+      memo: `Web3 note: ${i.props.node.comment_view.comment.id}`,
       metadata: {
         id: i.props.node.comment_view.comment.id,
         cate: "note",
@@ -1845,7 +1841,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         "note",
         i.props.node.comment_view.comment.id,
         i.props.node.comment_view.creator.id,
-        "Store comment/note " + i.props.node.comment_view.comment.id
+        "note " + i.props.node.comment_view.comment.id
       );
     } catch (err) {
       console.log("Store note error:" + JSON.stringify(err));

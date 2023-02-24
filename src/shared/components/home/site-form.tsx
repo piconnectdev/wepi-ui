@@ -1214,7 +1214,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     var config;
     config = {
       amount: 0.00001,
-      memo: "Store site info: " + i.props.siteRes.site_view.site.name,
+      memo: "Web3 site: " + i.props.siteRes.site_view.site.name,
       metadata: {
         id: i.props.siteRes.site_view.site.id,
         cat: "site",
