@@ -753,14 +753,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       memo: "Store group info: " + i.props.community_view.community.name,
       metadata: {
         id: i.props.community_view.community.id,
-        name: i.props.community_view.community.name,
-        title: i.props.community_view.community.title,
-        desc: i.props.community_view.community.description,
-        banner: i.props.community_view.community.banner,
-        actor_id: i.props.community_view.community.actor_id,
-        t: i.props.community_view.community.published,
-        u: i.props.community_view.community.updated,
-        sign: i.props.community_view.community.srv_sign,
+        type: "group",
+        group: i.props.community_view.community,
       },
     };
     try {

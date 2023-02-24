@@ -1849,13 +1849,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         " 0.1 π for " +
         i.props.post_view.post.name,
       metadata: {
-        id: i.props.post_view.creator.id,
-        //cid: i.props.post_view.community.id,
-        post_id: i.props.post_view.post.id,
-        address: i.props.post_view.creator.pi_address,
-        desc: "tip page;" + i.props.post_view.creator.name,
-        t: i.props.post_view.post.published,
-        u: i.props.post_view.post.updated,
+        id: i.props.post_view.post.id,
+        type: "tippage",
+        tippage: {
+          id: i.props.post_view.creator.id,
+          name: i.props.post_view.creator.name,
+          cid: i.props.post_view.community.id,
+          post_id: i.props.post_view.post.id,
+          address: i.props.post_view.creator.pi_address,
+          t: i.props.post_view.post.published,
+          u: i.props.post_view.post.updated,
+        },
       },
     };
     let auth = myAuth(true);
@@ -1878,20 +1882,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     var config = {
       amount: 0.00001,
       //memo: "AP" + convertUUIDtoULID(i.props.post_view.post.id),
-      memo: "Store page " + i.props.post_view.post.name,
+      memo: "Web3 page: " + i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.post.id,
-        own: i.props.post_view.creator.id,
-        cid: i.props.post_view.community.id,
-        url: i.props.post_view.post.url,
-        name: i.props.post_view.post.name,
-        body: i.props.post_view.post.body,
-        ap_id: i.props.post_view.post.ap_id,
-        t: i.props.post_view.post.published,
-        u: i.props.post_view.post.updated,
-        et: i.props.post_view.post.embed_title,
-        ed: i.props.post_view.post.embed_description,
-        sign: i.props.post_view.post.auth_sign,
+        type: "page",
+        page: i.props.post_view.post,
       },
     };
     let auth = myAuth(true);
