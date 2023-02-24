@@ -983,8 +983,8 @@ export class Profile extends Component<any, ProfileState> {
         memo: "Store public profile:" + person.name,
         metadata: {
           id: person.id,
-          type: "person",
-          person: person,
+          cat: "person",
+          data: { person: person },
         },
       };
 

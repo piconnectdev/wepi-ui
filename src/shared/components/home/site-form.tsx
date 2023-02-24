@@ -1217,8 +1217,10 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       memo: "Store site info: " + i.props.siteRes.site_view.site.name,
       metadata: {
         id: i.props.siteRes.site_view.site.id,
-        type: "site",
-        site: i.props.siteRes.site_view.site,
+        cat: "site",
+        data: {
+          site: i.props.siteRes.site_view.site,
+        },
       },
     };
     config.metadata.site.private_key = undefined;

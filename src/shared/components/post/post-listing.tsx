@@ -1850,15 +1850,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.post.id,
-        type: "tippage",
-        tippage: {
-          id: i.props.post_view.creator.id,
-          name: i.props.post_view.creator.name,
-          cid: i.props.post_view.community.id,
-          post_id: i.props.post_view.post.id,
-          address: i.props.post_view.creator.pi_address,
-          t: i.props.post_view.post.published,
-          u: i.props.post_view.post.updated,
+        cat: "tippage",
+        data: {
+          tippage: {
+            id: i.props.post_view.creator.id,
+            name: i.props.post_view.creator.name,
+            cid: i.props.post_view.community.id,
+            post_id: i.props.post_view.post.id,
+            address: i.props.post_view.creator.pi_address,
+            t: i.props.post_view.post.published,
+            u: i.props.post_view.post.updated,
+          },
         },
       },
     };
@@ -1885,8 +1887,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       memo: "Web3 page: " + i.props.post_view.post.name,
       metadata: {
         id: i.props.post_view.post.id,
-        type: "page",
-        page: i.props.post_view.post,
+        cat: "page",
+        data: { page: i.props.post_view.post },
       },
     };
     let auth = myAuth(true);

@@ -2017,8 +2017,8 @@ export class Settings extends Component<any, SettingsState> {
           luv.person.display_name,
         metadata: {
           id: luv.person.id,
-          type: "person",
-          person: luv.person,
+          cat: "person",
+          data: { person: luv.person },
         },
       };
       try {
@@ -2051,8 +2051,8 @@ export class Settings extends Component<any, SettingsState> {
         memo: "User " + luv.person.name + " deposit ",
         metadata: {
           id: luv.person.id,
-          type: "deposit",
-          data: { amount: Number(i.state.depositValue) },
+          cat: "deposit",
+          data: { deposit: Number(i.state.depositValue) },
         },
       };
       try {
@@ -2088,11 +2088,13 @@ export class Settings extends Component<any, SettingsState> {
           " π",
         metadata: {
           id: luv.person.id,
-          type: "reward",
+          cat: "reward",
           data: {
-            from: luv.person.name,
-            to: i.state.depositName,
-            amount: Number(i.state.depositValue),
+            reward: {
+              from: luv.person.name,
+              to: i.state.depositName,
+              amount: Number(i.state.depositValue),
+            },
           },
         },
       };

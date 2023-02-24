@@ -1792,15 +1792,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.comment.id,
-        type: "tipnote",
-        tipnote: {
-          id: i.props.node.comment_view.creator.id,
-          name: i.props.node.comment_view.creator.name,
-          post_id: i.props.node.comment_view.post.id,
-          comment_id: i.props.node.comment_view.comment.id,
-          address: i.props.node.comment_view.creator.pi_address,
-          t: i.props.node.comment_view.comment.published,
-          u: i.props.node.comment_view.comment.updated,
+        cat: "tipnote",
+        data: {
+          tipnote: {
+            id: i.props.node.comment_view.creator.id,
+            name: i.props.node.comment_view.creator.name,
+            post_id: i.props.node.comment_view.post.id,
+            comment_id: i.props.node.comment_view.comment.id,
+            address: i.props.node.comment_view.creator.pi_address,
+            t: i.props.node.comment_view.comment.published,
+            u: i.props.node.comment_view.comment.updated,
+          },
         },
       },
     };
@@ -1828,8 +1830,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       memo: "Web3 note: " + i.props.node.comment_view.comment.id,
       metadata: {
         id: i.props.node.comment_view.comment.id,
-        type: "note",
-        note: i.props.node.comment_view.comment,
+        cate: "note",
+        data: {
+          note: i.props.node.comment_view.comment,
+        },
       },
     };
     try {
