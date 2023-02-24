@@ -750,11 +750,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     var config = {
       amount: 0.00001,
       //memo: "AG" + convertUUIDtoULID(i.props.community_view.community.id),
-      memo: "Store group info: " + i.props.community_view.community.name,
+      memo: `Web3 group: ${i.props.community_view.community.name}"`,
       metadata: {
         id: i.props.community_view.community.id,
-        type: "group",
-        group: i.props.community_view.community,
+        cat: "group",
+        data: {
+          group: i.props.community_view.community,
+        },
       },
     };
     try {
@@ -766,7 +768,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         "group",
         i.props.community_view.community.id,
         undefined,
-        "Store group info: " + i.props.community_view.community.name
+        `group ${i.props.community_view.community.name}`
       );
     } catch (err) {
       console.log("Create Payment for group error");
