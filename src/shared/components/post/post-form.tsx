@@ -729,7 +729,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         this.setState({ crossPosts: data.posts });
       }
     } else if (op == UserOperation.PiPaymentFound) {
-      console.log("Post:" + JSON.stringify(msg));
     }
   }
 }

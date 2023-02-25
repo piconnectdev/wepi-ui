@@ -689,7 +689,6 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         notifyPrivateMessage(data.private_message_view, this.context.router);
       }
     } else if (op == UserOperation.PiPaymentFound) {
-      console.log("Nav:" + JSON.stringify(msg));
     }
   }
 

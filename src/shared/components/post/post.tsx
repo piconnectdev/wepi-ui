@@ -797,7 +797,6 @@ export class Post extends Component<any, PostState> {
         this.context.router.history.push(`/`);
       }
     } else if (op == UserOperation.PiPaymentFound) {
-      console.log("Post:" + JSON.stringify(msg));
     }
   }
 }

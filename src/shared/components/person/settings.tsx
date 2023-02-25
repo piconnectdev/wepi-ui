@@ -1442,7 +1442,6 @@ export class Settings extends Component<any, SettingsState> {
         found.auth = undefined;
         payment.metadata = undefined;
         found.dto = payment;
-        console.log(JSON.stringify(found));
         //WebSocketService.Instance.send(wsClient.piPaymentFound(found));
         return;
       }; // Read more about this in the SDK reference
@@ -1451,7 +1450,6 @@ export class Settings extends Component<any, SettingsState> {
         toast("Pi Network Server error");
         return;
       }
-      //console.log("PiWithdraw, piUser: " + JSON.stringify(piUser));
       let form: PiWithdraw = {
         pi_token: piUser.accessToken,
         domain: window.location.hostname,
@@ -1459,13 +1457,11 @@ export class Settings extends Component<any, SettingsState> {
         amount: Number(i.state.withdrawValue),
         auth: auth,
       };
-      console.log("Send request withdraw to server:" + JSON.stringify(form));
       WebSocketService.Instance.send(wsClient.piWithdraw(form));
     }
   }
 
   handleCreatePaymentSubmit(i: Settings, event: any) {
-    console.log("handleCreatePaymentSubmit:" + i.state.depositValue);
     let getUser = UserService.Instance.myUserInfo;
     let auth = myAuth(true);
     if (getUser && auth) {
@@ -1488,13 +1484,11 @@ export class Settings extends Component<any, SettingsState> {
         asset: "PI",
         auth: auth,
       };
-      console.log("Send piCreatePayment");
       WebSocketService.Instance.send(wsClient.piCreatePayment(form));
     }
   }
 
   handleSendPaymentSubmit(i: Settings, event: any) {
-    console.log("handleSendPaymentSubmit:" + i.state.sendPaymentValue);
     let getUser = UserService.Instance.myUserInfo;
     let auth = myAuth(true);
     if (getUser && auth) {
@@ -1502,7 +1496,6 @@ export class Settings extends Component<any, SettingsState> {
         id: i.state.sendPaymentValue,
         auth: auth,
       };
-      console.log("Send handleSendPaymentSubmit");
       WebSocketService.Instance.send(wsClient.piSendPayment(form));
     }
   }
@@ -1523,7 +1516,6 @@ export class Settings extends Component<any, SettingsState> {
         //asset: "PI",
         auth: auth,
       };
-      //console.log("Send GetPayments");
       WebSocketService.Instance.send(wsClient.piGetPayments(form));
     }
   }
@@ -1875,7 +1867,6 @@ export class Settings extends Component<any, SettingsState> {
       let data = wsJsonToRes<PiWithdrawResponse>(msg);
       toast(i18n.t("Withdraw push to queue success!") + data.id);
     } else {
-      console.log("settings parseMessage:" + JSON.stringify(msg));
       this.setState({
         saveUserSettingsLoading: false,
         changePasswordLoading: false,
@@ -1968,11 +1959,6 @@ export class Settings extends Component<any, SettingsState> {
       found.auth = auth;
       payment.metadata = undefined;
       found.dto = payment;
-      console.log("PiChangePassword PiPaymentFound, auth:" + auth);
-      console.log("PiChangePassword PaymentDTO:" + JSON.stringify(payment));
-      console.log(
-        "PiChangePassword PiPaymentFound, data:" + JSON.stringify(found)
-      );
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
@@ -2032,7 +2018,6 @@ export class Settings extends Component<any, SettingsState> {
           `profile ${luv.person.name} ${luv.person.display_name}`
         );
       } catch (err) {
-        console.log("Store person error:" + JSON.stringify(err));
       }
     }
   }
@@ -2102,7 +2087,6 @@ export class Settings extends Component<any, SettingsState> {
           `Reward ${i.state.depositName} ${amnt} π by ${luv.person.name}`
         );
       } catch (err) {
-        console.log("Create reward for person error:" + JSON.stringify(err));
       }
     }
   }
