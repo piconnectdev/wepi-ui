@@ -1383,7 +1383,7 @@ export class Settings extends Component<any, SettingsState> {
           name: getUser.local_user_view.person.name,
           title:
             getUser.local_user_view.person.display_name ||
-            getUser.local_user_view.person.name,
+            `Home's ${getUser.local_user_view.person.name}`,
           auth: auth,
         };
         WebSocketService.Instance.send(wsClient.createCommunity(formUserHome));
