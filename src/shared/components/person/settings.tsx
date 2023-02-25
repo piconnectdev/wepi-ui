@@ -1186,7 +1186,7 @@ export class Settings extends Component<any, SettingsState> {
           </div>
           <hr />
 
-          <div className="form-group">
+          {/* <div className="form-group">
             <button
               type="button"
               className="btn btn-block btn-secondary mr-4"
@@ -1195,7 +1195,7 @@ export class Settings extends Component<any, SettingsState> {
               GetPayments
             </button>
           </div>
-          <hr />
+          <hr /> */}
 
           {!this.isPiBrowser && (
             <div className="form-group">
@@ -1210,14 +1210,15 @@ export class Settings extends Component<any, SettingsState> {
           )}
           {!this.isPiBrowser && <hr />}
 
-          {this.isPiBrowser && !verified && (
+          {this.isPiBrowser && (
             <div className="form-group">
               <button
                 type="button"
                 className="btn btn-block btn-secondary mr-4"
                 onClick={linkEvent(this, this.handlePiBlockchain)}
               >
-                Verify Pi Account
+                {!verified && i18n.t("Verify Pi Account")}
+                {verified && i18n.t("Blockchain")}
               </button>
             </div>
           )}
@@ -2018,6 +2019,7 @@ export class Settings extends Component<any, SettingsState> {
           `profile ${luv.person.name} ${luv.person.display_name}`
         );
       } catch (err) {
+        console.log("Error");
       }
     }
   }
@@ -2087,6 +2089,7 @@ export class Settings extends Component<any, SettingsState> {
           `Reward ${i.state.depositName} ${amnt} π by ${luv.person.name}`
         );
       } catch (err) {
+        console.log("Error");
       }
     }
   }
