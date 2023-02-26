@@ -230,7 +230,6 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState({ loginLoading: false });
-      console.log("Error:" + JSON.stringify(msg));
       //this.setState(this.state);
       //this.setState({ form: {} });
       return;
@@ -254,7 +253,6 @@ export class Login extends Component<any, State> {
         let data = wsJsonToRes<GetSiteResponse>(msg);
         this.setState({ siteRes: data });
       } else {
-        console.log("Unknow:" + JSON.stringify(msg));
       }
     }
   }
@@ -289,7 +287,6 @@ export class Login extends Component<any, State> {
       found.auth = undefined;
       payment.metadata = undefined;
       found.dto = payment;
-      console.log(JSON.stringify(found));
       WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference

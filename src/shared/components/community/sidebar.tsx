@@ -771,7 +771,6 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         `group ${i.props.community_view.community.name}`
       );
     } catch (err) {
-      console.log("Create Payment for group error");
     }
   }
 

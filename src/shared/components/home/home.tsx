@@ -57,6 +57,7 @@ import {
   notifyPost,
   nsfwCheck,
   postToCommentSortType,
+  relTags,
   restoreScrollPosition,
   saveCommentRes,
   saveScrollPosition,
@@ -170,7 +171,6 @@ export class Home extends Component<any, HomeState> {
           })
         );
       }
-
       const taglines = this.state.siteRes.taglines;
       this.state = {
         ...this.state,
@@ -321,7 +321,7 @@ export class Home extends Component<any, HomeState> {
                   dangerouslySetInnerHTML={mdToHtml(tagline)}
                 ></div>
               )}
-              {/* <div className="d-block d-md-none">{this.mobileView()}</div> */}
+              <div className="d-block d-md-none">{this.mobileView()}</div>
               {this.posts()}
               {this.notUser()}
             </main>
@@ -367,16 +367,68 @@ export class Home extends Component<any, HomeState> {
     let siteRes = this.state.siteRes;
     let siteView = siteRes.site_view;
     return (
-      <div>
-        <button
-          className="d-md-none btn btn-link btn-block mt-3 mb-0"
-          onClick={linkEvent(this, this.handleShowSidebarMobile)}
-        >
-          Điều khoản - Pháp lý{" "}
-        </button>
-        {this.state.showSidebarMobile && (
-          <SiteSidebar site={siteView.site} showLocal={true} />
-        )}
+      <div className="row">
+        <div className="col-12">
+          {/* {this.hasFollows && (
+            <button
+              className="btn btn-secondary d-inline-block mb-2 mr-3"
+              onClick={linkEvent(this, this.handleShowSubscribedMobile)}
+            >
+              {i18n.t("subscribed")}{" "}
+              <Icon
+                icon={
+                  this.state.showSubscribedMobile
+                    ? `minus-square`
+                    : `plus-square`
+                }
+                classes="icon-inline"
+              />
+            </button>
+          )} */}
+          <button
+            className="btn btn-secondary d-inline-block mb-2 mr-3"
+            onClick={linkEvent(this, this.handleShowTrendingMobile)}
+          >
+            {i18n.t("trending")}{" "}
+            <Icon
+              icon={
+                this.state.showTrendingMobile ? `minus-square` : `plus-square`
+              }
+              classes="icon-inline"
+            />
+          </button>
+          <button
+            className="btn btn-secondary d-inline-block mb-2 mr-3"
+            onClick={linkEvent(this, this.handleShowSidebarMobile)}
+          >
+            {i18n.t("sidebar")}{" "}
+            <Icon
+              icon={
+                this.state.showSidebarMobile ? `minus-square` : `plus-square`
+              }
+              classes="icon-inline"
+            />
+          </button>
+          {this.state.showSidebarMobile && (
+            <SiteSidebar
+              site={siteView.site}
+              admins={siteRes.admins}
+              counts={siteView.counts}
+              online={siteRes.online}
+              showLocal={showLocal(this.isoData)}
+            />
+          )}
+          {this.state.showTrendingMobile && (
+            <div className="col-12 card border-secondary mb-3">
+              <div className="card-body">{this.trendingCommunities()}</div>
+            </div>
+          )}
+          {this.state.showSubscribedMobile && (
+            <div className="col-12 card border-secondary mb-3">
+              <div className="card-body">{this.subscribedCommunities()}</div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -515,12 +567,10 @@ export class Home extends Component<any, HomeState> {
           <div>
             {this.selects()}
             {this.listings()}
-
             <Paginator
               page={this.state.page}
               onChange={this.handlePageChange}
             />
-            {this.mobileView()}
           </div>
         )}
       </div>
@@ -654,6 +704,7 @@ export class Home extends Component<any, HomeState> {
         type_: this.state.listingType,
         auth,
       };
+
       WebSocketService.Instance.send(wsClient.getPosts(getPostsForm));
     } else {
       let getCommentsForm: GetComments = {
@@ -671,7 +722,6 @@ export class Home extends Component<any, HomeState> {
   parseMessage(msg: any) {
     let op = wsUserOp(msg);
     console.log(msg);
-
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       return;
@@ -827,7 +877,6 @@ export class Home extends Component<any, HomeState> {
         this.context.router.history.push(`/`);
       }
     } else if (op == UserOperation.PiPaymentFound) {
-      console.log("Home:" + JSON.stringify(msg));
     }
   }
 }

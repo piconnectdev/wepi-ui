@@ -1345,16 +1345,10 @@ export function initializeSite(site: GetSiteResponse) {
     const getSite = async () => {
       if (window.isoData.site_res.my_user == undefined) {
         let site = await fetchSite();
-        console.log(
-          "Initialized myUserInfo from client:" + JSON.stringify(site.my_user)
-        );
         window.isoData.site_res = site;
         UserService.Instance.myUserInfo = site.my_user;
         i18n.changeLanguage(getLanguages()[0]);
       } else {
-        console.log(
-          "Initialized myUserInfo from server:" + JSON.stringify(site.my_user)
-        );
         UserService.Instance.myUserInfo = site.my_user;
         i18n.changeLanguage(getLanguages()[0]);
       }

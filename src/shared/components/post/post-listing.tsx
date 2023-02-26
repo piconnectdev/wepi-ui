@@ -1872,7 +1872,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         `tip ${i.props.post_view.creator.name} for page`
       );
     } catch (err) {
-      console.log("Tip page error:" + JSON.stringify(err));
     }
   }
 
@@ -1898,7 +1897,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         `page ${i.props.post_view.post.id}`
       );
     } catch (err) {
-      console.log("Create Pi Payment for page error:" + JSON.stringify(err));
     }
   }
 

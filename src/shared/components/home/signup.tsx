@@ -589,7 +589,6 @@ export class Signup extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Signup, event: any) {
-    console.log("handleRegisterSubmit");
     if (event) event.preventDefault();
     i.setState({ registerLoading: true });
     i.setState(i.state);
@@ -701,7 +700,6 @@ export class Signup extends Component<any, State> {
 
   parseMessage(msg: any) {
     let op = wsUserOp(msg);
-    console.log(JSON.stringify(msg));
     if (msg.error) {
       toast(i18n.t(msg.error), "danger");
       this.setState(s => ((s.form.captcha_answer = undefined), s));
@@ -831,7 +829,6 @@ export class Signup extends Component<any, State> {
       })
       .then(signature => {
         i.state.web3LoginForm.signature = signature;
-        //console.log(JSON.stringify(i.state.web3LoginForm));
         WebSocketService.Instance.send(
           wsClient.web3Login(i.state.web3LoginForm)
         );
@@ -979,7 +976,6 @@ export class Signup extends Component<any, State> {
       found.auth = undefined;
       payment.metadata = undefined;
       found.dto = payment;
-      console.log(JSON.stringify(found));
       //WebSocketService.Instance.send(wsClient.piPaymentFound(found));
       return;
     }; // Read more about this in the SDK reference
@@ -1034,15 +1030,12 @@ export class Signup extends Component<any, State> {
     };
 
     const onCancel = paymentId => {
-      console.log("Pi Payment cancelled", paymentId);
       i.setState({ registerLoading: false });
       i.setState(i.state);
     };
 
     const onError = (error, paymentId) => {
-      console.log(
-        "Pi Register error " + paymentId + " - " + +JSON.stringify(error)
-      );
+      
       i.setState({ registerLoading: false });
       i.setState(i.state);
     };
@@ -1073,7 +1066,6 @@ export class Signup extends Component<any, State> {
     } catch (err) {
       i.setState({ registerLoading: false });
       i.setState(i.state);
-      console.log("Pi Register error+" + JSON.stringify(err));
     }
   }
 }

@@ -192,7 +192,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         }
       }
     } else if (op == UserOperation.PiPaymentFound) {
-      console.log("comment:" + JSON.stringify(msg));
+      
     }
   }
 }

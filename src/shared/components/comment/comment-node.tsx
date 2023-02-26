@@ -1815,7 +1815,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         `tip ${i.props.node.comment_view.creator.name} for note`
       );
     } catch (err) {
-      console.log("Create Pi Tip for note error:" + JSON.stringify(err));
     }
   }
 
@@ -1844,7 +1843,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         "note " + i.props.node.comment_view.comment.id
       );
     } catch (err) {
-      console.log("Store note error:" + JSON.stringify(err));
     }
   }
 }

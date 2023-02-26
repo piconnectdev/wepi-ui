@@ -1237,7 +1237,6 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         i.props.siteRes.site_view.site.name
       );
     } catch (err) {
-      console.log("Store site info error:" + JSON.stringify(err));
     }
   }
 
