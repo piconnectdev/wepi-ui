@@ -72,7 +72,7 @@ export class Login extends Component<any, State> {
   }
 
   get isWePi(): boolean {
-    return isBrowser() && window.location.hostname == "demo.wepi.social";
+    return isBrowser() && window.location.hostname == "wepi.social";
   }
 
   get isPiBrowser(): boolean {
@@ -198,6 +198,9 @@ export class Login extends Component<any, State> {
         username_or_email,
         password,
       };
+
+      const _abc = wsClient.login(form);
+      console.log({ _abc });
       WebSocketService.Instance.send(wsClient.login(form));
     }
   }
