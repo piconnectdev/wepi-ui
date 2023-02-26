@@ -2,7 +2,7 @@ import { Component, Fragment } from "inferno";
 import { GetPayments, UserOperation, wsUserOp } from "lemmy-js-client";
 import moment from "moment";
 import { UserService, WebSocketService } from "../../services";
-import { myAuth, wsClient, wsSubscribe } from "../../utils";
+import { getPageFromProps, myAuth, wsClient, wsSubscribe } from "../../utils";
 import { HtmlTags } from "../common/html-tags";
 import {
   IconArrowLeft,
@@ -62,26 +62,18 @@ interface PaymentsState {
 }
 
 export class Payments extends Component<any, PaymentsState> {
-  // state: PaymentsState = {
-  //   loading: true,
-  //   page: getPageFromProps(this.props),
-  //   listingType: getListingTypeFromPropsNoDefault(this.props),
-  //   siteRes: this.isoData.site_res,
-  //   searchText: "",
-  // };
   MAX_SIZE_TABLE = 10;
+  state: PaymentsState = {
+    loading: false,
+    piPayments: [],
+    page: getPageFromProps(this.props),
+    sizePage: 1,
+  };
+
   constructor(props: any, context: any) {
     super(props, context);
-
     this.parseMessage = this.parseMessage.bind(this);
     wsSubscribe(this.parseMessage);
-
-    this.state = {
-      loading: false,
-      piPayments: [],
-      page: 1,
-      sizePage: 1,
-    };
   }
 
   componentWillUnmount() {
@@ -196,78 +188,80 @@ export class Payments extends Component<any, PaymentsState> {
                   </tr>
                 </thead>
                 <tbody>
-                  {this.state?.piPayments
-                    .slice(
-                      (this.state.page - 1) * this.MAX_SIZE_TABLE,
-                      (this.state.page + 1) * this.MAX_SIZE_TABLE
-                    )
-                    .map(cv => (
-                      <tr key={cv.identifier}>
-                        <td className={"text-left"}>
-                          <div
-                            style={{
-                              width: "100px",
-                              overflow: "hidden",
-                              "text-overflow": "ellipsis",
-                            }}
-                            title={cv.identifier}
-                          >
-                            {cv.identifier}
-                          </div>
-                        </td>
-                        <td className="text-left">
-                          <div
-                            style={{
-                              width: "180px",
-                            }}
-                          >
-                            {moment(cv.created_at).format(
-                              "YYYY-MM-DD HH:mm:ss"
+                  {this.state.piPayments.length > 0 &&
+                    Array.isArray(this.state.piPayments) &&
+                    this.state.piPayments
+                      .slice(
+                        (this.state.page - 1) * this.MAX_SIZE_TABLE,
+                        (this.state.page + 1) * this.MAX_SIZE_TABLE
+                      )
+                      .map(cv => (
+                        <tr key={cv.identifier}>
+                          <td className={"text-left"}>
+                            <div
+                              style={{
+                                width: "100px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                              title={cv.identifier}
+                            >
+                              {cv.identifier}
+                            </div>
+                          </td>
+                          <td className="text-left">
+                            <div
+                              style={{
+                                width: "180px",
+                              }}
+                            >
+                              {moment(cv.created_at).format(
+                                "YYYY-MM-DD HH:mm:ss"
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            {cv.verified ? <IconCheck /> : <IconXMark />}
+                          </td>
+                          <td className="text-left d-none d-lg-table-cell">
+                            <div
+                              style={{
+                                width: "100px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                              title={cv.to_address}
+                            >
+                              {cv.to_address}
+                            </div>
+                          </td>
+                          <td className="text-center d-none d-lg-table-cell">
+                            {cv.direction ? (
+                              <IconArrowRight />
+                            ) : (
+                              <IconArrowLeft />
                             )}
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          {cv.verified ? <IconCheck /> : <IconXMark />}
-                        </td>
-                        <td className="text-left d-none d-lg-table-cell">
-                          <div
-                            style={{
-                              width: "100px",
-                              overflow: "hidden",
-                              "text-overflow": "ellipsis",
-                            }}
-                            title={cv.to_address}
-                          >
-                            {cv.to_address}
-                          </div>
-                        </td>
-                        <td className="text-center d-none d-lg-table-cell">
-                          {cv.direction ? (
-                            <IconArrowRight />
-                          ) : (
-                            <IconArrowLeft />
-                          )}
-                        </td>
-                        <td className="text-left">
-                          <div
-                            style={{
-                              width: "300px",
-                            }}
-                          >
-                            {cv.memo}
-                          </div>
-                        </td>
-                        <td className="text-left">
-                          <a
-                            href={`https://www.pi-blockexplorer.com/explorer/transaction/${cv.tx_id}`}
-                            target={"_blank"}
-                            rel="noreferrer"
-                          >
-                            {cv.tx_id}
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="text-left">
+                            <div
+                              style={{
+                                width: "300px",
+                              }}
+                            >
+                              {cv.memo}
+                            </div>
+                          </td>
+                          <td className="text-left">
+                            <a
+                              href={`https://www.pi-blockexplorer.com/explorer/transaction/${cv.tx_id}`}
+                              target={"_blank"}
+                              rel="noreferrer"
+                            >
+                              {cv.tx_id}
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>
@@ -282,7 +276,7 @@ export class Payments extends Component<any, PaymentsState> {
   }
 
   handlePageChange = (page: number) => {
-    this.setState({ page });
+    this.props.history.push(`/payments/page/${page}`);
   };
 
   parseMessage(msg: any) {
@@ -294,8 +288,6 @@ export class Payments extends Component<any, PaymentsState> {
         this.setState({
           piPayments,
           loading: false,
-          page: 1,
-          sizePage: Math.ceil(piPayments.length / this.MAX_SIZE_TABLE),
         });
         break;
       }

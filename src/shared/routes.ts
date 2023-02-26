@@ -33,10 +33,6 @@ interface IRoutePropsWithFetch extends IRouteProps {
 
 export const routes: IRoutePropsWithFetch[] = [
   {
-    path: `/payments`,
-    component: Payments,
-  },
-  {
     path: `/`,
     exact: true,
     component: Home,
@@ -77,9 +73,7 @@ export const routes: IRoutePropsWithFetch[] = [
   {
     path: `/communities`,
     component: Communities,
-    fetchInitialData: req => {
-      return Communities.fetchInitialData(req);
-    },
+    fetchInitialData: req => Communities.fetchInitialData(req),
   },
   {
     path: `/post/:post_id`,
@@ -166,4 +160,12 @@ export const routes: IRoutePropsWithFetch[] = [
   },
   { path: `/instances`, component: Instances },
   { path: `/legal`, component: Legal },
+  {
+    path: `/payments/page/:page`,
+    component: Payments,
+  },
+  {
+    path: `/payments`,
+    component: Payments,
+  },
 ];

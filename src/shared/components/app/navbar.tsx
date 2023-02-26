@@ -517,7 +517,13 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                               className="nav-link"
                               title={"Payments"}
                             >
-                              <IconPayments />
+                              <div
+                                style={{
+                                  "margin-right": "4px",
+                                }}
+                              >
+                                <IconPayments />
+                              </div>
                               Payments
                             </NavLink>
                           </li>
