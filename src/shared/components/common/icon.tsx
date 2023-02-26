@@ -80,7 +80,7 @@ export const IconPayments = ({
       viewBox="0 0 576 512"
       width={width}
       height={height}
-      fill={"white"}
+      fill={"black"}
       style={{
         "margin-right": "4px",
       }}
