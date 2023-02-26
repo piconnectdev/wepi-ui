@@ -199,8 +199,7 @@ export class Login extends Component<any, State> {
         password,
       };
 
-      const _abc = wsClient.login(form);
-      console.log({ _abc });
+      wsClient.login(form);
       WebSocketService.Instance.send(wsClient.login(form));
     }
   }
