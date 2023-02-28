@@ -1,5 +1,10 @@
 import { Component, Fragment } from "inferno";
-import { GetPayments, UserOperation, wsUserOp } from "lemmy-js-client";
+import {
+  GetPayments,
+  PiPaymentSafe,
+  UserOperation,
+  wsUserOp,
+} from "lemmy-js-client";
 import moment from "moment";
 import { UserService, WebSocketService } from "../../services";
 import { getPageFromProps, myAuth, wsClient, wsSubscribe } from "../../utils";
@@ -20,42 +25,7 @@ interface PaymentsState {
   // siteRes: GetSiteResponse;
   // searchText: string;
   // listingType: ListingType;
-  piPayments: Array<{
-    id: string;
-    person_id: string;
-    obj_cat: string;
-    obj_id: string;
-    a2u: number;
-    step: number;
-    asset: "PI";
-    fee: number;
-    testnet: boolean;
-    finished: boolean;
-    published: string;
-    updated: any;
-    ref_id: string;
-    comment: string;
-    stat: any;
-    identifier: string;
-    user_uid: string;
-    amount: number;
-    memo: string;
-    from_address: string;
-    to_address: string;
-    direction: string;
-    created_at: string;
-    approved: boolean;
-    verified: boolean;
-    completed: boolean;
-    cancelled: boolean;
-    user_cancelled: boolean;
-    tx_verified: boolean;
-    tx_link: any;
-    tx_id: any;
-    network: string;
-    metadata: any;
-    extras: any;
-  }>;
+  piPayments: Array<PiPaymentSafe>;
   loading: boolean;
   page: number;
   sizePage: number;
@@ -151,23 +121,7 @@ export class Payments extends Component<any, PaymentsState> {
                         width: "10%",
                       }}
                     >
-                      Verified
-                    </th>
-                    <th
-                      className="text-left"
-                      style={{
-                        width: "10%",
-                      }}
-                    >
-                      From
-                    </th>
-                    <th
-                      className="text-left"
-                      style={{
-                        width: "10%",
-                      }}
-                    >
-                      To
+                      Completed
                     </th>
                     <th
                       className="text-center"
@@ -184,6 +138,22 @@ export class Payments extends Component<any, PaymentsState> {
                       }}
                     >
                       Memo
+                    </th>
+                    <th
+                      className="text-left"
+                      style={{
+                        width: "10%",
+                      }}
+                    >
+                      From
+                    </th>
+                    <th
+                      className="text-left"
+                      style={{
+                        width: "10%",
+                      }}
+                    >
+                      To
                     </th>
                     <th
                       className={"text-right"}
@@ -231,6 +201,24 @@ export class Payments extends Component<any, PaymentsState> {
                           <td className="text-center">
                             {cv.completed ? <IconCheck /> : <IconXMark />}
                           </td>
+                          <td className="text-center d-none d-lg-table-cell">
+                            {cv.a2u == 0 ? (
+                              <IconArrowRight />
+                            ) : (
+                              <IconArrowLeft />
+                            )}
+                          </td>
+                          <td className="text-left">
+                            <div
+                              style={{
+                                width: "200px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                            >
+                              {cv.memo}
+                            </div>
+                          </td>
                           <td className="text-left d-none d-lg-table-cell">
                             <div
                               style={{
@@ -253,22 +241,6 @@ export class Payments extends Component<any, PaymentsState> {
                               title={cv.to_address}
                             >
                               {cv.to_address}
-                            </div>
-                          </td>
-                          <td className="text-center d-none d-lg-table-cell">
-                            {cv.a2u == 0 ? (
-                              <IconArrowRight />
-                            ) : (
-                              <IconArrowLeft />
-                            )}
-                          </td>
-                          <td className="text-left">
-                            <div
-                              style={{
-                                width: "300px",
-                              }}
-                            >
-                              {cv.memo}
                             </div>
                           </td>
                           <td className="text-left">
