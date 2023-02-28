@@ -142,7 +142,7 @@ export class Payments extends Component<any, PaymentsState> {
                     <th
                       className="text-left"
                       style={{
-                        width: "10%",
+                        width: "20%",
                       }}
                     >
                       From
@@ -150,7 +150,7 @@ export class Payments extends Component<any, PaymentsState> {
                     <th
                       className="text-left"
                       style={{
-                        width: "10%",
+                        width: "20%",
                       }}
                     >
                       To
@@ -158,7 +158,7 @@ export class Payments extends Component<any, PaymentsState> {
                     <th
                       className={"text-right"}
                       style={{
-                        width: "40%",
+                        width: "10%",
                       }}
                     >
                       TXID
@@ -231,7 +231,7 @@ export class Payments extends Component<any, PaymentsState> {
                             <div
                               style={{
                                 width: "200px",
-                                overflow: "hidden",
+                                overflow: "scroll",
                                 "text-overflow": "ellipsis",
                               }}
                               title={cv.from_address}
@@ -243,7 +243,7 @@ export class Payments extends Component<any, PaymentsState> {
                             <div
                               style={{
                                 width: "200px",
-                                overflow: "hidden",
+                                overflow: "scroll",
                                 "text-overflow": "ellipsis",
                               }}
                               title={cv.to_address}
@@ -252,15 +252,35 @@ export class Payments extends Component<any, PaymentsState> {
                             </div>
                           </td>
                           <td className="text-left">
-                            <a
-                              href={`https://www.pi-blockexplorer.com/explorer/transaction/${cv.tx_id}`}
-                              target={"_blank"}
-                              rel="noreferrer"
+                            <div
+                              style={{
+                                width: "100px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                              title={cv.id}
                             >
-                              {cv.tx_id}
-                            </a>
+                              <a
+                                href={`https://www.pi-blockexplorer.com/explorer/transaction/${cv.tx_id}`}
+                                target={"_blank"}
+                                rel="noreferrer"
+                              >
+                                {cv.tx_id}
+                              </a>
+                            </div>
                           </td>
-                          <td className="text-left">{cv.id}</td>
+                          <td className="text-left">
+                            <div
+                              style={{
+                                width: "200px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                              title={cv.id}
+                            >
+                              {cv.id}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                 </tbody>
