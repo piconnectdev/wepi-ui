@@ -142,7 +142,7 @@ export class Payments extends Component<any, PaymentsState> {
                     <th
                       className="text-left"
                       style={{
-                        width: "20%",
+                        width: "25%",
                       }}
                     >
                       From
@@ -150,7 +150,7 @@ export class Payments extends Component<any, PaymentsState> {
                     <th
                       className="text-left"
                       style={{
-                        width: "20%",
+                        width: "25%",
                       }}
                     >
                       To
@@ -231,7 +231,7 @@ export class Payments extends Component<any, PaymentsState> {
                             <div
                               style={{
                                 width: "200px",
-                                overflow: "scroll",
+                                overflow: "hidden",
                                 "text-overflow": "ellipsis",
                               }}
                               title={cv.from_address}
@@ -243,7 +243,7 @@ export class Payments extends Component<any, PaymentsState> {
                             <div
                               style={{
                                 width: "200px",
-                                overflow: "scroll",
+                                overflow: "hidden",
                                 "text-overflow": "ellipsis",
                               }}
                               title={cv.to_address}
