@@ -198,6 +198,8 @@ export class Login extends Component<any, State> {
         username_or_email,
         password,
       };
+
+      wsClient.login(form);
       WebSocketService.Instance.send(wsClient.login(form));
     }
   }

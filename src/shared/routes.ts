@@ -11,6 +11,7 @@ import { Login } from "./components/home/login";
 import { Setup } from "./components/home/setup";
 import { Signup } from "./components/home/signup";
 import { Modlog } from "./components/modlog";
+import { Payments } from "./components/payments";
 import { Inbox } from "./components/person/inbox";
 import { PasswordChange } from "./components/person/password-change";
 import { Profile } from "./components/person/profile";
@@ -159,4 +160,12 @@ export const routes: IRoutePropsWithFetch[] = [
   },
   { path: `/instances`, component: Instances },
   { path: `/legal`, component: Legal },
+  {
+    path: `/payments/page/:page`,
+    component: Payments,
+  },
+  {
+    path: `/payments`,
+    component: Payments,
+  },
 ];
