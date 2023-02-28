@@ -219,20 +219,24 @@ export class Payments extends Component<any, PaymentsState> {
                               {cv.memo}
                             </div>
                           </td>
-                          <td className="text-left d-lg-table-cell">
+                          <td className="text-left">
                             <div
                               style={{
                                 width: "200px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
                               }}
                               title={cv.from_address}
                             >
                               {cv.from_address}
                             </div>
                           </td>
-                          <td className="text-left d-lg-table-cell">
+                          <td className="text-left">
                             <div
                               style={{
                                 width: "200px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
                               }}
                               title={cv.to_address}
                             >
