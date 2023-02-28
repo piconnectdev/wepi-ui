@@ -1795,7 +1795,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             name: i.props.node.comment_view.creator.name,
             post_id: i.props.node.comment_view.post.id,
             comment_id: i.props.node.comment_view.comment.id,
-            content: i.props.node.comment_view.comment.content,
+            //content: i.props.node.comment_view.comment.content,
             t: i.props.node.comment_view.comment.published,
             u: i.props.node.comment_view.comment.updated,
           },
@@ -1815,6 +1815,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         `tip ${i.props.node.comment_view.creator.name} for note`
       );
     } catch (err) {
+      console.log("create payment error" + JSON.stringify(err));
     }
   }
 
@@ -1843,6 +1844,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         "note " + i.props.node.comment_view.comment.id
       );
     } catch (err) {
+      console.log("create payment error " + JSON.stringify(err));
     }
   }
 }

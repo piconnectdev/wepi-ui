@@ -755,7 +755,20 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         id: i.props.community_view.community.id,
         cat: "group",
         data: {
-          group: i.props.community_view.community,
+          group: {
+            id: i.props.community_view.community.id,
+            name: i.props.community_view.community.name,
+            title: i.props.community_view.community.title,
+            description: i.props.community_view.community.description,
+            published: i.props.community_view.community.published,
+            updated: i.props.community_view.community.updated,
+            actor_id: i.props.community_view.community.actor_id,
+            icon: i.props.community_view.community.icon,
+            banner: i.props.community_view.community.banner,
+            instance_id: i.props.community_view.community.instance_id,
+            srv_sign: i.props.community_view.community.srv_sign,
+            tx: i.props.community_view.community.tx,
+          },
         },
       },
     };
@@ -771,6 +784,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         `group ${i.props.community_view.community.name}`
       );
     } catch (err) {
+      console.log("create payment error" + JSON.stringify(err));
     }
   }
 

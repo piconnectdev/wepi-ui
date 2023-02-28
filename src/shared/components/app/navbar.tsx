@@ -30,7 +30,7 @@ import {
   wsClient,
   wsSubscribe,
 } from "../../utils";
-import { Icon, IconPayments } from "../common/icon";
+import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
 
 interface NavbarProps {
@@ -515,16 +515,11 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
                             <NavLink
                               to="/payments"
                               className="nav-link"
-                              title={"Payments"}
+                              title={i18n.t("Payments")}
                             >
-                              <div
-                                style={{
-                                  "margin-right": "4px",
-                                }}
-                              >
-                                <IconPayments />
-                              </div>
-                              Payments
+                              {/* <IconPayments /> */}
+                              <Icon icon="list" classes="mr-1" />
+                              {i18n.t("Payments")}
                             </NavLink>
                           </li>
                           <li>
@@ -705,6 +700,7 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
         notifyPrivateMessage(data.private_message_view, this.context.router);
       }
     } else if (op == UserOperation.PiPaymentFound) {
+      console.log("PiPaymentFound");
     }
   }
 

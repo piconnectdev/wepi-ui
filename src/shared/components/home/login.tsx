@@ -199,7 +199,6 @@ export class Login extends Component<any, State> {
         password,
       };
 
-      wsClient.login(form);
       WebSocketService.Instance.send(wsClient.login(form));
     }
   }
@@ -252,6 +251,7 @@ export class Login extends Component<any, State> {
         let data = wsJsonToRes<GetSiteResponse>(msg);
         this.setState({ siteRes: data });
       } else {
+        console.log(JSON.stringify(msg));
       }
     }
   }

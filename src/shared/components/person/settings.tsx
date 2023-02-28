@@ -1998,13 +1998,37 @@ export class Settings extends Component<any, SettingsState> {
     if (UserService.Instance.myUserInfo) {
       let mui = UserService.Instance.myUserInfo;
       let luv = mui.local_user_view;
+      let person = luv.person;
       var config = {
         amount: 0.001,
         memo: `Web3 person: ${luv.person.name} ${luv.person.display_name}`,
         metadata: {
           id: luv.person.id,
           cat: "person",
-          data: { person: luv.person },
+          data: {
+            person: {
+              id: person.id,
+              name: person.name,
+              display_name: person.display_name,
+              avatar: person.avatar,
+              published: person.published,
+              updated: person.updated,
+              actor_id: person.actor_id,
+              bio: person.bio,
+              banner: person.banned,
+              inbox_url: person.inbox_url,
+              shared_inbox_url: person.shared_inbox_url,
+              matrix_user_id: person.matrix_user_id,
+              instance_id: person.instance_id,
+              verified: person.verified,
+              home: person.home,
+              pi_address: person.pi_address,
+              web3_address: person.web3_address,
+              dap_address: person.dap_address,
+              srv_sign: person.srv_sign,
+              tx: person.tx,
+            },
+          },
         },
       };
       try {

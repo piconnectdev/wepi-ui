@@ -1853,7 +1853,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             name: i.props.post_view.creator.name,
             cid: i.props.post_view.community.id,
             post_id: i.props.post_view.post.id,
-            body: i.props.post_view.post.body,
+            //body: i.props.post_view.post.body,
             t: i.props.post_view.post.published,
             u: i.props.post_view.post.updated,
           },
@@ -1872,6 +1872,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         `tip ${i.props.post_view.creator.name} for page`
       );
     } catch (err) {
+      console.log("create payment error" + JSON.stringify(err));
     }
   }
 
@@ -1882,7 +1883,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       metadata: {
         id: i.props.post_view.post.id,
         cat: "page",
-        data: { page: i.props.post_view.post },
+        data: {
+          page: i.props.post_view.post,
+        },
       },
     };
     let auth = myAuth(true);
@@ -1897,6 +1900,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         `page ${i.props.post_view.post.id}`
       );
     } catch (err) {
+      console.log("create payment error" + JSON.stringify(err));
     }
   }
 

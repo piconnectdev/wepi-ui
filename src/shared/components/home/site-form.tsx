@@ -1219,7 +1219,22 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         id: i.props.siteRes.site_view.site.id,
         cat: "site",
         data: {
-          site: i.props.siteRes.site_view.site,
+          site: {
+            id: i.props.siteRes.site_view.site.id,
+            name: i.props.siteRes.site_view.site.name,
+            sidebar: i.props.siteRes.site_view.site.sidebar,
+            published: i.props.siteRes.site_view.site.published,
+            updated: i.props.siteRes.site_view.site.updated,
+            icon: i.props.siteRes.site_view.site.icon,
+            banner: i.props.siteRes.site_view.site.banner,
+            description: i.props.siteRes.site_view.site.description,
+            actor_id: i.props.siteRes.site_view.site.actor_id,
+            inbox_url: i.props.siteRes.site_view.site.inbox_url,
+            public_key: i.props.siteRes.site_view.site.public_key,
+            instance_id: i.props.siteRes.site_view.site.instance_id,
+            srv_sign: i.props.siteRes.site_view.site.srv_sign,
+            tx: i.props.siteRes.site_view.site.tx,
+          },
         },
       },
     };
@@ -1237,6 +1252,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         i.props.siteRes.site_view.site.name
       );
     } catch (err) {
+      console.log("create payment error" + JSON.stringify(err));
     }
   }
 

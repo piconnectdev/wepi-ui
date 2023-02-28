@@ -143,7 +143,7 @@ export class Payments extends Component<any, PaymentsState> {
                         width: "10%",
                       }}
                     >
-                      Created At
+                      Time
                     </th>
                     <th
                       className="text-center"
@@ -159,7 +159,15 @@ export class Payments extends Component<any, PaymentsState> {
                         width: "10%",
                       }}
                     >
-                      Address
+                      From
+                    </th>
+                    <th
+                      className="text-left"
+                      style={{
+                        width: "10%",
+                      }}
+                    >
+                      To
                     </th>
                     <th
                       className="text-center"
@@ -221,7 +229,19 @@ export class Payments extends Component<any, PaymentsState> {
                             </div>
                           </td>
                           <td className="text-center">
-                            {cv.verified ? <IconCheck /> : <IconXMark />}
+                            {cv.completed ? <IconCheck /> : <IconXMark />}
+                          </td>
+                          <td className="text-left d-none d-lg-table-cell">
+                            <div
+                              style={{
+                                width: "100px",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                              title={cv.from_address}
+                            >
+                              {cv.from_address}
+                            </div>
                           </td>
                           <td className="text-left d-none d-lg-table-cell">
                             <div
@@ -236,7 +256,7 @@ export class Payments extends Component<any, PaymentsState> {
                             </div>
                           </td>
                           <td className="text-center d-none d-lg-table-cell">
-                            {cv.direction ? (
+                            {cv.a2u == 0 ? (
                               <IconArrowRight />
                             ) : (
                               <IconArrowLeft />
