@@ -201,7 +201,7 @@ export class Payments extends Component<any, PaymentsState> {
                           <td className="text-center">
                             {cv.completed ? <IconCheck /> : <IconXMark />}
                           </td>
-                          <td className="text-center d-none d-lg-table-cell">
+                          <td className="text-center">
                             {cv.a2u == 0 ? (
                               <IconArrowRight />
                             ) : (
@@ -219,24 +219,20 @@ export class Payments extends Component<any, PaymentsState> {
                               {cv.memo}
                             </div>
                           </td>
-                          <td className="text-left d-none d-lg-table-cell">
+                          <td className="text-left d-lg-table-cell">
                             <div
                               style={{
-                                width: "100px",
-                                overflow: "hidden",
-                                "text-overflow": "ellipsis",
+                                width: "200px",
                               }}
                               title={cv.from_address}
                             >
                               {cv.from_address}
                             </div>
                           </td>
-                          <td className="text-left d-none d-lg-table-cell">
+                          <td className="text-left d-lg-table-cell">
                             <div
                               style={{
-                                width: "100px",
-                                overflow: "hidden",
-                                "text-overflow": "ellipsis",
+                                width: "200px",
                               }}
                               title={cv.to_address}
                             >
