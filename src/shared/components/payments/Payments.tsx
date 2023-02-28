@@ -163,6 +163,14 @@ export class Payments extends Component<any, PaymentsState> {
                     >
                       TXID
                     </th>
+                    <th
+                      className={"text-right"}
+                      style={{
+                        width: "10%",
+                      }}
+                    >
+                      ID
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,6 +260,7 @@ export class Payments extends Component<any, PaymentsState> {
                               {cv.tx_id}
                             </a>
                           </td>
+                          <td className="text-left">{cv.id}</td>
                         </tr>
                       ))}
                 </tbody>
