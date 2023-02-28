@@ -71,28 +71,22 @@ server.get("/css/themes/:name", async (req, res) => {
     res.sendFile(customTheme);
   } else {
     const internalTheme = path.resolve(`./dist/assets/css/themes/${theme}`);
-    res.sendFile(internalTheme);
+
+    // If the theme doesn't exist, just send litely
+    if (fs.existsSync(internalTheme)) {
+      res.sendFile(internalTheme);
+    } else {
+      res.sendFile(path.resolve("./dist/assets/css/themes/litely.css"));
+    }
   }
 });
 
 function buildThemeList(): string[] {
   let themes = [
-    "litera",
-    "materia",
-    "minty",
-    "solar",
-    "united",
-    "cyborg",
     "darkly",
     "darkly-red",
-    "journal",
-    "sketchy",
-    "vaporwave",
-    "vaporwave-dark",
-    "i386",
     "litely",
     "litely-red",
-    "nord",
     "wepi",
     "pi-network",
   ];

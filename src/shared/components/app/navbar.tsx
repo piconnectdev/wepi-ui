@@ -1,4 +1,4 @@
-import { Component, createRef, linkEvent, RefObject } from "inferno";
+import { Component, linkEvent } from "inferno";
 import { NavLink } from "inferno-router";
 import {
   CommentResponse,
@@ -43,7 +43,6 @@ interface NavbarState {
   unreadReportCount: number;
   unreadApplicationCount: number;
   searchParam: string;
-  toggleSearch: boolean;
   showDropdown: boolean;
   onSiteBanner?(url: string): any;
 }
@@ -54,14 +53,12 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   private unreadInboxCountSub: Subscription;
   private unreadReportCountSub: Subscription;
   private unreadApplicationCountSub: Subscription;
-  private searchTextField: RefObject<HTMLInputElement>;
   state: NavbarState = {
     unreadInboxCount: 0,
     unreadReportCount: 0,
     unreadApplicationCount: 0,
     expanded: false,
     searchParam: "",
-    toggleSearch: false,
     showDropdown: false,
   };
   subscription: any;
@@ -131,8 +128,6 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   componentDidMount() {
     // Subscribe to jwt changes
     if (isBrowser()) {
-      this.searchTextField = createRef();
-
       // On the first load, check the unreads
       let auth = myAuth(false);
       if (auth && UserService.Instance.myUserInfo) {
@@ -180,7 +175,6 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
   updateUrl() {
     const searchParam = this.state.searchParam;
     this.setState({ searchParam: "" });
-    this.setState({ toggleSearch: false });
     this.setState({ showDropdown: false, expanded: false });
     if (searchParam === "") {
       this.context.router.history.push(`/search/`);
@@ -366,35 +360,13 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
             ) && (
               <ul className="navbar-nav">
                 <li className="nav-item">
-                  <form
-                    className="form-inline mr-1"
-                    onSubmit={linkEvent(this, this.handleSearchSubmit)}
+                  <NavLink
+                    to="/search"
+                    className="nav-link"
+                    title={i18n.t("search")}
                   >
-                    <input
-                      id="search-input"
-                      className={`form-control mr-0 search-input ${
-                        this.state.toggleSearch ? "show-input" : "hide-input"
-                      }`}
-                      onInput={linkEvent(this, this.handleSearchParam)}
-                      value={this.state.searchParam}
-                      ref={this.searchTextField}
-                      disabled={!this.state.toggleSearch}
-                      type="text"
-                      placeholder={i18n.t("search")}
-                      onBlur={linkEvent(this, this.handleSearchBlur)}
-                    ></input>
-                    <label className="sr-only" htmlFor="search-input">
-                      {i18n.t("search")}
-                    </label>
-                    <button
-                      name="search-btn"
-                      onClick={linkEvent(this, this.handleSearchBtn)}
-                      className="px-1 btn btn-link nav-link"
-                      aria-label={i18n.t("search")}
-                    >
-                      <Icon icon="search" />
-                    </button>
-                  </form>
+                    <Icon icon="search" />
+                  </NavLink>
                 </li>
               </ul>
             )}
@@ -601,28 +573,6 @@ export class Navbar extends Component<NavbarProps, NavbarState> {
 
   handleSearchParam(i: Navbar, event: any) {
     i.setState({ searchParam: event.target.value });
-  }
-
-  handleSearchSubmit(i: Navbar, event: any) {
-    if (event) event.preventDefault();
-    i.updateUrl();
-  }
-
-  handleSearchBtn(i: Navbar, event: any) {
-    if (event) event.preventDefault();
-    i.setState({ toggleSearch: true });
-
-    i.searchTextField.current?.focus();
-    const offsetWidth = i.searchTextField.current?.offsetWidth;
-    if (i.state.searchParam && offsetWidth && offsetWidth > 100) {
-      i.updateUrl();
-    }
-  }
-
-  handleSearchBlur(i: Navbar, event: any) {
-    if (!(event.relatedTarget && event.relatedTarget.name !== "search-btn")) {
-      i.setState({ toggleSearch: false });
-    }
   }
 
   handleLogoutClick(i: Navbar) {
