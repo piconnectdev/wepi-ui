@@ -22,6 +22,7 @@ import {
   PersonBlockView,
   PersonViewSafe,
   PiLogin,
+  PiPaymentCompleteResponse,
   PiPaymentFound,
   PiWithdraw,
   PiWithdrawResponse,
@@ -1860,13 +1861,26 @@ export class Settings extends Component<any, SettingsState> {
           amount: data.amount,
         },
       });
-      toast(i18n.t("Get balances success"));
+      toast(i18n.t("Get balances success") + `, total ${data.amount} π`);
     } else if (op == UserOperation.CreateCommunity) {
       let data = wsJsonToRes<CommunityResponse>(msg);
       window.location.href = `/c/${data.community_view.community.name}`;
     } else if (op == UserOperation.PiWithdraw) {
       let data = wsJsonToRes<PiWithdrawResponse>(msg);
-      toast(i18n.t("Withdraw push to queue success!") + data.id);
+      toast(i18n.t("Withdrawal success") + data.id);
+      let getUser = UserService.Instance.myUserInfo;
+      let auth = myAuth(true);
+      if (getUser && auth) {
+        let formCheckBalance: GetPiBalances = {
+          domain: window.location.hostname,
+          asset: "PI",
+          auth: auth,
+        };
+        WebSocketService.Instance.send(wsClient.piBalances(formCheckBalance));
+      }
+    } else if (op == UserOperation.PiPaymentComplete) {
+      let data = wsJsonToRes<PiPaymentCompleteResponse>(msg);
+      toast(i18n.t("Payment completed") + ``);
     } else {
       this.setState({
         saveUserSettingsLoading: false,
@@ -2110,7 +2124,7 @@ export class Settings extends Component<any, SettingsState> {
           "reward",
           luv.person.id,
           undefined,
-          `Reward ${i.state.depositName} ${amnt} π by ${luv.person.name}`
+          `${i.state.depositName}`
         );
       } catch (err) {
         console.log("Error");
