@@ -99,7 +99,7 @@ export class Payments extends Component<any, PaymentsState> {
           <Fragment>
             <div className="row">
               <div className="col-md-6">
-                <h4>List Of Payments</h4>
+                <h4>Payments</h4>
               </div>
             </div>
             <div className="table-responsive">
@@ -272,7 +272,7 @@ export class Payments extends Component<any, PaymentsState> {
                           <td className="text-left">
                             <div
                               style={{
-                                width: "150px",
+                                width: "200px",
                                 overflow: "hidden",
                                 "text-overflow": "ellipsis",
                               }}
