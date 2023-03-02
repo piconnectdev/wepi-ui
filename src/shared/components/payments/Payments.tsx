@@ -186,7 +186,7 @@ export class Payments extends Component<any, PaymentsState> {
                           <td className={"text-left"}>
                             <div
                               style={{
-                                width: "100px",
+                                width: "150px",
                                 overflow: "hidden",
                                 "text-overflow": "ellipsis",
                               }}
@@ -261,7 +261,7 @@ export class Payments extends Component<any, PaymentsState> {
                               title={cv.id}
                             >
                               <a
-                                href={`https://www.pi-blockexplorer.com/explorer/transaction/${cv.tx_id}`}
+                                href={`${cv.tx_link}`}
                                 target={"_blank"}
                                 rel="noreferrer"
                               >
@@ -272,7 +272,7 @@ export class Payments extends Component<any, PaymentsState> {
                           <td className="text-left">
                             <div
                               style={{
-                                width: "200px",
+                                width: "150px",
                                 overflow: "hidden",
                                 "text-overflow": "ellipsis",
                               }}
