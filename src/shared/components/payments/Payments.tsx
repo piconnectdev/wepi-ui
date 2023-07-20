@@ -201,7 +201,7 @@ export class Payments extends Component<any, PaymentsState> {
                                 width: "180px",
                               }}
                             >
-                              {moment(cv.created_at).format(
+                              {moment(new Date(`${cv.created_at}Z`)).format(
                                 "YYYY-MM-DD HH:mm:ss"
                               )}
                             </div>
