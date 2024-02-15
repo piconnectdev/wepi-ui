@@ -1,15 +1,17 @@
-import { Component, linkEvent } from "inferno";
+import { myAuthRequired } from "@utils/app";
+import { Component, InfernoNode, linkEvent } from "inferno";
 import {
+  CreatePrivateMessage,
   CreatePrivateMessageReport,
   DeletePrivateMessage,
+  EditPrivateMessage,
   MarkPrivateMessageAsRead,
-  PersonSafe,
+  Person,
   PrivateMessageView,
 } from "lemmy-js-client";
-import { i18n } from "../../i18next";
-import { UserService, WebSocketService } from "../../services";
-import { mdToHtml, myAuth, toast, wsClient } from "../../utils";
-import { Icon } from "../common/icon";
+import { mdToHtml } from "../../markdown";
+import { I18NextService, UserService } from "../../services";
+import { Icon, Spinner } from "../common/icon";
 import { MomentTime } from "../common/moment-time";
 import { PersonListing } from "../person/person-listing";
 import { PrivateMessageForm } from "./private-message-form";
@@ -21,10 +23,18 @@ interface PrivateMessageState {
   viewSource: boolean;
   showReportDialog: boolean;
   reportReason?: string;
+  deleteLoading: boolean;
+  readLoading: boolean;
+  reportLoading: boolean;
 }
 
 interface PrivateMessageProps {
   private_message_view: PrivateMessageView;
+  onDelete(form: DeletePrivateMessage): void;
+  onMarkRead(form: MarkPrivateMessageAsRead): void;
+  onReport(form: CreatePrivateMessageReport): void;
+  onCreate(form: CreatePrivateMessage): void;
+  onEdit(form: EditPrivateMessage): void;
 }
 
 export class PrivateMessage extends Component<
@@ -37,15 +47,14 @@ export class PrivateMessage extends Component<
     collapsed: false,
     viewSource: false,
     showReportDialog: false,
+    deleteLoading: false,
+    readLoading: false,
+    reportLoading: false,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
-
     this.handleReplyCancel = this.handleReplyCancel.bind(this);
-    this.handlePrivateMessageCreate =
-      this.handlePrivateMessageCreate.bind(this);
-    this.handlePrivateMessageEdit = this.handlePrivateMessageEdit.bind(this);
   }
 
   get mine(): boolean {
@@ -55,19 +64,38 @@ export class PrivateMessage extends Component<
     );
   }
 
+  componentWillReceiveProps(
+    nextProps: Readonly<{ children?: InfernoNode } & PrivateMessageProps>
+  ): void {
+    if (this.props != nextProps) {
+      this.setState({
+        showReply: false,
+        showEdit: false,
+        collapsed: false,
+        viewSource: false,
+        showReportDialog: false,
+        deleteLoading: false,
+        readLoading: false,
+        reportLoading: false,
+      });
+    }
+  }
+
   render() {
-    let message_view = this.props.private_message_view;
-    let otherPerson: PersonSafe = this.mine
+    const message_view = this.props.private_message_view;
+    const otherPerson: Person = this.mine
       ? message_view.recipient
       : message_view.creator;
 
     return (
-      <div className="border-top border-light">
+      <div className="private-message border-top border-light">
         <div>
           <ul className="list-inline mb-0 text-muted small">
             {/* TODO refactor this */}
             <li className="list-inline-item">
-              {this.mine ? i18n.t("to") : i18n.t("from")}
+              {this.mine
+                ? I18NextService.i18n.t("to")
+                : I18NextService.i18n.t("from")}
             </li>
             <li className="list-inline-item">
               <PersonListing person={otherPerson} />
@@ -81,25 +109,24 @@ export class PrivateMessage extends Component<
               </span>
             </li>
             <li className="list-inline-item">
-              <div
-                role="button"
-                className="pointer text-monospace"
+              <button
+                type="button"
+                className="pointer text-monospace p-0 bg-transparent border-0 d-block"
                 onClick={linkEvent(this, this.handleMessageCollapse)}
               >
                 {this.state.collapsed ? (
-                  <Icon icon="plus-square" classes="icon-inline" />
+                  <Icon icon="plus-square" />
                 ) : (
-                  <Icon icon="minus-square" classes="icon-inline" />
+                  <Icon icon="minus-square" />
                 )}
-              </div>
+              </button>
             </li>
           </ul>
           {this.state.showEdit && (
             <PrivateMessageForm
               recipient={otherPerson}
               privateMessageView={message_view}
-              onEdit={this.handlePrivateMessageEdit}
-              onCreate={this.handlePrivateMessageCreate}
+              onEdit={this.props.onEdit}
               onCancel={this.handleReplyCancel}
             />
           )}
@@ -113,39 +140,46 @@ export class PrivateMessage extends Component<
                   dangerouslySetInnerHTML={mdToHtml(this.messageUnlessRemoved)}
                 />
               )}
-              <ul className="list-inline mb-0 text-muted font-weight-bold">
+              <ul className="list-inline mb-0 text-muted fw-bold">
                 {!this.mine && (
                   <>
                     <li className="list-inline-item">
                       <button
+                        type="button"
                         className="btn btn-link btn-animate text-muted"
                         onClick={linkEvent(this, this.handleMarkRead)}
                         data-tippy-content={
                           message_view.private_message.read
-                            ? i18n.t("mark_as_unread")
-                            : i18n.t("mark_as_read")
+                            ? I18NextService.i18n.t("mark_as_unread")
+                            : I18NextService.i18n.t("mark_as_read")
                         }
                         aria-label={
                           message_view.private_message.read
-                            ? i18n.t("mark_as_unread")
-                            : i18n.t("mark_as_read")
+                            ? I18NextService.i18n.t("mark_as_unread")
+                            : I18NextService.i18n.t("mark_as_read")
                         }
                       >
-                        <Icon
-                          icon="check"
-                          classes={`icon-inline ${
-                            message_view.private_message.read && "text-success"
-                          }`}
-                        />
+                        {this.state.readLoading ? (
+                          <Spinner />
+                        ) : (
+                          <Icon
+                            icon="check"
+                            classes={`icon-inline ${
+                              message_view.private_message.read &&
+                              "text-success"
+                            }`}
+                          />
+                        )}
                       </button>
                     </li>
                     <li className="list-inline-item">{this.reportButton}</li>
                     <li className="list-inline-item">
                       <button
+                        type="button"
                         className="btn btn-link btn-animate text-muted"
                         onClick={linkEvent(this, this.handleReplyClick)}
-                        data-tippy-content={i18n.t("reply")}
-                        aria-label={i18n.t("reply")}
+                        data-tippy-content={I18NextService.i18n.t("reply")}
+                        aria-label={I18NextService.i18n.t("reply")}
                       >
                         <Icon icon="reply1" classes="icon-inline" />
                       </button>
@@ -156,46 +190,53 @@ export class PrivateMessage extends Component<
                   <>
                     <li className="list-inline-item">
                       <button
+                        type="button"
                         className="btn btn-link btn-animate text-muted"
                         onClick={linkEvent(this, this.handleEditClick)}
-                        data-tippy-content={i18n.t("edit")}
-                        aria-label={i18n.t("edit")}
+                        data-tippy-content={I18NextService.i18n.t("edit")}
+                        aria-label={I18NextService.i18n.t("edit")}
                       >
                         <Icon icon="edit" classes="icon-inline" />
                       </button>
                     </li>
                     <li className="list-inline-item">
                       <button
+                        type="button"
                         className="btn btn-link btn-animate text-muted"
                         onClick={linkEvent(this, this.handleDeleteClick)}
                         data-tippy-content={
                           !message_view.private_message.deleted
-                            ? i18n.t("delete")
-                            : i18n.t("restore")
+                            ? I18NextService.i18n.t("delete")
+                            : I18NextService.i18n.t("restore")
                         }
                         aria-label={
                           !message_view.private_message.deleted
-                            ? i18n.t("delete")
-                            : i18n.t("restore")
+                            ? I18NextService.i18n.t("delete")
+                            : I18NextService.i18n.t("restore")
                         }
                       >
-                        <Icon
-                          icon="trash"
-                          classes={`icon-inline ${
-                            message_view.private_message.deleted &&
-                            "text-danger"
-                          }`}
-                        />
+                        {this.state.deleteLoading ? (
+                          <Spinner />
+                        ) : (
+                          <Icon
+                            icon="trash"
+                            classes={`icon-inline ${
+                              message_view.private_message.deleted &&
+                              "text-danger"
+                            }`}
+                          />
+                        )}
                       </button>
                     </li>
                   </>
                 )}
                 <li className="list-inline-item">
                   <button
+                    type="button"
                     className="btn btn-link btn-animate text-muted"
                     onClick={linkEvent(this, this.handleViewSource)}
-                    data-tippy-content={i18n.t("view_source")}
-                    aria-label={i18n.t("view_source")}
+                    data-tippy-content={I18NextService.i18n.t("view_source")}
+                    aria-label={I18NextService.i18n.t("view_source")}
                   >
                     <Icon
                       icon="file-text"
@@ -214,14 +255,14 @@ export class PrivateMessage extends Component<
             className="form-inline"
             onSubmit={linkEvent(this, this.handleReportSubmit)}
           >
-            <label className="sr-only" htmlFor="pm-report-reason">
-              {i18n.t("reason")}
+            <label className="visually-hidden" htmlFor="pm-report-reason">
+              {I18NextService.i18n.t("reason")}
             </label>
             <input
               type="text"
               id="pm-report-reason"
-              className="form-control mr-2"
-              placeholder={i18n.t("reason")}
+              className="form-control me-2"
+              placeholder={I18NextService.i18n.t("reason")}
               required
               value={this.state.reportReason}
               onInput={linkEvent(this, this.handleReportReasonChange)}
@@ -229,17 +270,27 @@ export class PrivateMessage extends Component<
             <button
               type="submit"
               className="btn btn-secondary"
-              aria-label={i18n.t("create_report")}
+              aria-label={I18NextService.i18n.t("create_report")}
             >
-              {i18n.t("create_report")}
+              {this.state.reportLoading ? (
+                <Spinner />
+              ) : (
+                I18NextService.i18n.t("create_report")
+              )}
             </button>
           </form>
         )}
         {this.state.showReply && (
-          <PrivateMessageForm
-            recipient={otherPerson}
-            onCreate={this.handlePrivateMessageCreate}
-          />
+          <div className="row">
+            <div className="col-sm-6">
+              <PrivateMessageForm
+                replyType={true}
+                recipient={otherPerson}
+                onCreate={this.props.onCreate}
+                onCancel={this.handleReplyCancel}
+              />
+            </div>
+          </div>
         )}
         {/* A collapsed clearfix */}
         {this.state.collapsed && <div className="row col-12"></div>}
@@ -250,10 +301,11 @@ export class PrivateMessage extends Component<
   get reportButton() {
     return (
       <button
+        type="button"
         className="btn btn-link btn-animate text-muted py-0"
         onClick={linkEvent(this, this.handleShowReportDialog)}
-        data-tippy-content={i18n.t("show_report_dialog")}
-        aria-label={i18n.t("show_report_dialog")}
+        data-tippy-content={I18NextService.i18n.t("show_report_dialog")}
+        aria-label={I18NextService.i18n.t("show_report_dialog")}
       >
         <Icon icon="flag" inline />
       </button>
@@ -261,8 +313,10 @@ export class PrivateMessage extends Component<
   }
 
   get messageUnlessRemoved(): string {
-    let message = this.props.private_message_view.private_message;
-    return message.deleted ? `*${i18n.t("deleted")}*` : message.content;
+    const message = this.props.private_message_view.private_message;
+    return message.deleted
+      ? `*${I18NextService.i18n.t("deleted")}*`
+      : message.content;
   }
 
   handleReplyClick(i: PrivateMessage) {
@@ -275,15 +329,12 @@ export class PrivateMessage extends Component<
   }
 
   handleDeleteClick(i: PrivateMessage) {
-    let auth = myAuth();
-    if (auth) {
-      let form: DeletePrivateMessage = {
-        private_message_id: i.props.private_message_view.private_message.id,
-        deleted: !i.props.private_message_view.private_message.deleted,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.deletePrivateMessage(form));
-    }
+    i.setState({ deleteLoading: true });
+    i.props.onDelete({
+      private_message_id: i.props.private_message_view.private_message.id,
+      deleted: !i.props.private_message_view.private_message.deleted,
+      auth: myAuthRequired(),
+    });
   }
 
   handleReplyCancel() {
@@ -291,15 +342,12 @@ export class PrivateMessage extends Component<
   }
 
   handleMarkRead(i: PrivateMessage) {
-    let auth = myAuth();
-    if (auth) {
-      let form: MarkPrivateMessageAsRead = {
-        private_message_id: i.props.private_message_view.private_message.id,
-        read: !i.props.private_message_view.private_message.read,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.markPrivateMessageAsRead(form));
-    }
+    i.setState({ readLoading: true });
+    i.props.onMarkRead({
+      private_message_id: i.props.private_message_view.private_message.id,
+      read: !i.props.private_message_view.private_message.read,
+      auth: myAuthRequired(),
+    });
   }
 
   handleMessageCollapse(i: PrivateMessage) {
@@ -319,32 +367,12 @@ export class PrivateMessage extends Component<
   }
 
   handleReportSubmit(i: PrivateMessage, event: any) {
-    if (event) event.preventDefault();
-    let auth = myAuth();
-    let reason = i.state.reportReason;
-    if (auth && reason) {
-      let form: CreatePrivateMessageReport = {
-        private_message_id: i.props.private_message_view.private_message.id,
-        reason,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.createPrivateMessageReport(form));
-
-      i.setState({ showReportDialog: false });
-    }
-  }
-
-  handlePrivateMessageEdit() {
-    this.setState({ showEdit: false });
-  }
-
-  handlePrivateMessageCreate(message: PrivateMessageView) {
-    if (
-      message.creator.id ==
-      UserService.Instance.myUserInfo?.local_user_view.person.id
-    ) {
-      this.setState({ showReply: false });
-      toast(i18n.t("message_sent"));
-    }
+    event.preventDefault();
+    i.setState({ reportLoading: true });
+    i.props.onReport({
+      private_message_id: i.props.private_message_view.private_message.id,
+      reason: i.state.reportReason ?? "",
+      auth: myAuthRequired(),
+    });
   }
 }

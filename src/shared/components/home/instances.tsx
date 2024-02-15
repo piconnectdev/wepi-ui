@@ -1,75 +1,166 @@
+import { setIsoData } from "@utils/app";
+import { RouteDataResponse } from "@utils/types";
 import { Component } from "inferno";
-import { GetSiteResponse } from "lemmy-js-client";
-import { i18n } from "../../i18next";
-import { relTags, setIsoData } from "../../utils";
+import {
+  GetFederatedInstancesResponse,
+  GetSiteResponse,
+  Instance,
+} from "lemmy-js-client";
+import { relTags } from "../../config";
+import { InitialFetchRequest } from "../../interfaces";
+import { FirstLoadService, I18NextService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
 import { HtmlTags } from "../common/html-tags";
+import { Spinner } from "../common/icon";
+
+type InstancesData = RouteDataResponse<{
+  federatedInstancesResponse: GetFederatedInstancesResponse;
+}>;
 
 interface InstancesState {
+  instancesRes: RequestState<GetFederatedInstancesResponse>;
   siteRes: GetSiteResponse;
+  isIsomorphic: boolean;
 }
 
 export class Instances extends Component<any, InstancesState> {
-  private isoData = setIsoData(this.context);
+  private isoData = setIsoData<InstancesData>(this.context);
   state: InstancesState = {
+    instancesRes: { state: "empty" },
     siteRes: this.isoData.site_res,
+    isIsomorphic: false,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
+
+    // Only fetch the data if coming from another route
+    if (FirstLoadService.isFirstLoad) {
+      this.state = {
+        ...this.state,
+        instancesRes: this.isoData.routeData.federatedInstancesResponse,
+        isIsomorphic: true,
+      };
+    }
+  }
+
+  async componentDidMount() {
+    if (!this.state.isIsomorphic) {
+      await this.fetchInstances();
+    }
+  }
+
+  async fetchInstances() {
+    this.setState({
+      instancesRes: { state: "loading" },
+    });
+
+    this.setState({
+      instancesRes: await HttpService.client.getFederatedInstances({}),
+    });
+  }
+
+  static async fetchInitialData({
+    client,
+  }: InitialFetchRequest): Promise<InstancesData> {
+    return {
+      federatedInstancesResponse: await client.getFederatedInstances({}),
+    };
   }
 
   get documentTitle(): string {
-    return `${i18n.t("instances")} - ${this.state.siteRes.site_view.site.name}`;
+    return `${I18NextService.i18n.t("instances")} - ${
+      this.state.siteRes.site_view.site.name
+    }`;
+  }
+
+  renderInstances() {
+    switch (this.state.instancesRes.state) {
+      case "loading":
+        return (
+          <h5>
+            <Spinner large />
+          </h5>
+        );
+      case "success": {
+        const instances = this.state.instancesRes.data.federated_instances;
+        return instances ? (
+          <>
+            <h1 className="h4 mb-4">{I18NextService.i18n.t("instances")}</h1>
+            <div className="row">
+              <div className="col-md-6">
+                <h2 className="h5 mb-3">
+                  {I18NextService.i18n.t("linked_instances")}
+                </h2>
+                {this.itemList(instances.linked)}
+              </div>
+            </div>
+            <div className="row">
+              {instances.allowed && instances.allowed.length > 0 && (
+                <div className="col-md-6">
+                  <h2 className="h5 mb-3">
+                    {I18NextService.i18n.t("allowed_instances")}
+                  </h2>
+                  {this.itemList(instances.allowed)}
+                </div>
+              )}
+              {instances.blocked && instances.blocked.length > 0 && (
+                <div className="col-md-6">
+                  <h2 className="h5 mb-3">
+                    {I18NextService.i18n.t("blocked_instances")}
+                  </h2>
+                  {this.itemList(instances.blocked)}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <></>
+        );
+      }
+    }
   }
 
   render() {
-    let federated_instances = this.state.siteRes.federated_instances;
-    return federated_instances ? (
-      <div className="container-lg">
+    return (
+      <div className="home-instances container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
         />
-        <div className="row">
-          <div className="col-md-6">
-            <h5>{i18n.t("linked_instances")}</h5>
-            {this.itemList(federated_instances.linked)}
-          </div>
-          {federated_instances.allowed &&
-            federated_instances.allowed.length > 0 && (
-              <div className="col-md-6">
-                <h5>{i18n.t("allowed_instances")}</h5>
-                {this.itemList(federated_instances.allowed)}
-              </div>
-            )}
-          {federated_instances.blocked &&
-            federated_instances.blocked.length > 0 && (
-              <div className="col-md-6">
-                <h5>{i18n.t("blocked_instances")}</h5>
-                {this.itemList(federated_instances.blocked)}
-              </div>
-            )}
-        </div>
+        {this.renderInstances()}
       </div>
-    ) : (
-      <></>
     );
   }
 
-  itemList(items: string[]) {
-    let noneFound = <div>{i18n.t("none_found")}</div>;
+  itemList(items: Instance[]) {
     return items.length > 0 ? (
-      <ul>
-        {items.map(i => (
-          <li key={i}>
-            <a href={`https://${i}`} rel={relTags}>
-              {i}
-            </a>
-          </li>
-        ))}
-      </ul>
+      <div className="table-responsive">
+        <table id="instances_table" className="table table-sm table-hover">
+          <thead className="pointer">
+            <tr>
+              <th>{I18NextService.i18n.t("name")}</th>
+              <th>{I18NextService.i18n.t("software")}</th>
+              <th>{I18NextService.i18n.t("version")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(i => (
+              <tr key={i.domain}>
+                <td>
+                  <a href={`https://${i.domain}`} rel={relTags}>
+                    {i.domain}
+                  </a>
+                </td>
+                <td>{i.software}</td>
+                <td>{i.version}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     ) : (
-      noneFound
+      <div>{I18NextService.i18n.t("none_found")}</div>
     );
   }
 }

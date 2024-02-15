@@ -1,224 +1,256 @@
-import autosize from "autosize";
-import { Component, createRef, linkEvent, RefObject } from "inferno";
-import {
-  AddAdminResponse,
-  AddModToCommunityResponse,
-  BanFromCommunityResponse,
-  BanPersonResponse,
-  BlockPersonResponse,
-  CommentNode as CommentNodeI,
-  CommentReportResponse,
-  CommentResponse,
-  CommentSortType,
-  CommunityResponse,
-  GetComments,
-  GetCommentsResponse,
-  GetCommunityResponse,
-  GetPost,
-  GetPostResponse,
-  GetSiteResponse,
-  ListingType,
-  PostReportResponse,
-  PostResponse,
-  PostView,
-  PurgeItemResponse,
-  Search,
-  SearchResponse,
-  SearchType,
-  SortType,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
-} from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
-import { CommentViewType, InitialFetchRequest } from "../../interfaces";
-import { UserService, WebSocketService } from "../../services";
 import {
   buildCommentsTree,
   commentsToFlatNodes,
-  commentTreeMaxDepth,
-  createCommentLikeRes,
-  createPostLikeRes,
-  debounce,
-  editCommentRes,
+  editComment,
+  editWith,
   enableDownvotes,
   enableNsfw,
   getCommentIdFromProps,
   getCommentParentId,
   getDepthFromComment,
   getIdFromProps,
-  insertCommentIntoTree,
-  isBrowser,
-  isImage,
   myAuth,
-  restoreScrollPosition,
-  saveCommentRes,
-  saveScrollPosition,
   setIsoData,
-  setupTippy,
-  toast,
-  trendingFetchLimit,
+  updateCommunityBlock,
   updatePersonBlock,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+} from "@utils/app";
+import {
+  isBrowser,
+  restoreScrollPosition,
+  saveScrollPosition,
+} from "@utils/browser";
+import { debounce, randomStr } from "@utils/helpers";
+import { isImage } from "@utils/media";
+import { RouteDataResponse } from "@utils/types";
+import autosize from "autosize";
+import classNames from "classnames";
+import { Component, RefObject, createRef, linkEvent } from "inferno";
+import {
+  AddAdmin,
+  AddModToCommunity,
+  AddModToCommunityResponse,
+  BanFromCommunity,
+  BanFromCommunityResponse,
+  BanPerson,
+  BanPersonResponse,
+  BlockCommunity,
+  BlockPerson,
+  CommentId,
+  CommentReplyResponse,
+  CommentResponse,
+  CommentSortType,
+  CommunityResponse,
+  CreateComment,
+  CreateCommentLike,
+  CreateCommentReport,
+  CreatePostLike,
+  CreatePostReport,
+  DeleteComment,
+  DeleteCommunity,
+  DeletePost,
+  DistinguishComment,
+  EditComment,
+  EditCommunity,
+  EditPost,
+  FeaturePost,
+  FollowCommunity,
+  GetComments,
+  GetCommentsResponse,
+  GetCommunityResponse,
+  GetPost,
+  GetPostResponse,
+  GetSiteResponse,
+  LockPost,
+  MarkCommentReplyAsRead,
+  MarkPersonMentionAsRead,
+  PostResponse,
+  PurgeComment,
+  PurgeCommunity,
+  PurgeItemResponse,
+  PurgePerson,
+  PurgePost,
+  RemoveComment,
+  RemoveCommunity,
+  RemovePost,
+  SaveComment,
+  SavePost,
+  TransferCommunity,
+} from "lemmy-js-client";
+import { commentTreeMaxDepth } from "../../config";
+import {
+  CommentNodeI,
+  CommentViewType,
+  InitialFetchRequest,
+} from "../../interfaces";
+import { FirstLoadService, I18NextService, UserService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
+import { setupTippy } from "../../tippy";
+import { toast } from "../../toast";
 import { CommentForm } from "../comment/comment-form";
 import { CommentNodes } from "../comment/comment-nodes";
 import { HtmlTags } from "../common/html-tags";
-import { Spinner } from "../common/icon";
+import { Icon, Spinner } from "../common/icon";
 import { Sidebar } from "../community/sidebar";
 import { PostListing } from "./post-listing";
 
 const commentsShownInterval = 15;
 
+type PostData = RouteDataResponse<{
+  postRes: GetPostResponse;
+  commentsRes: GetCommentsResponse;
+}>;
+
 interface PostState {
   postId?: string;
   commentId?: string;
-  postRes?: GetPostResponse;
-  commentsRes?: GetCommentsResponse;
-  commentTree: CommentNodeI[];
+  postRes: RequestState<GetPostResponse>;
+  commentsRes: RequestState<GetCommentsResponse>;
   commentSort: CommentSortType;
   commentViewType: CommentViewType;
   scrolled?: boolean;
-  loading: boolean;
-  crossPosts?: PostView[];
   siteRes: GetSiteResponse;
   commentSectionRef?: RefObject<HTMLDivElement>;
   showSidebarMobile: boolean;
   maxCommentsShown: number;
+  finished: Map<CommentId, boolean | undefined>;
+  isIsomorphic: boolean;
 }
 
 export class Post extends Component<any, PostState> {
-  private subscription?: Subscription;
-  private isoData = setIsoData(this.context);
+  private isoData = setIsoData<PostData>(this.context);
   private commentScrollDebounced: () => void;
   state: PostState = {
+    postRes: { state: "empty" },
+    commentsRes: { state: "empty" },
     postId: getIdFromProps(this.props),
     commentId: getCommentIdFromProps(this.props),
-    commentTree: [],
-    commentSort: CommentSortType[CommentSortType.Hot],
+    commentSort: "Hot",
     commentViewType: CommentViewType.Tree,
     scrolled: false,
-    loading: true,
     siteRes: this.isoData.site_res,
     showSidebarMobile: false,
     maxCommentsShown: commentsShownInterval,
+    finished: new Map(),
+    isIsomorphic: false,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
+    this.handleDeleteCommunityClick =
+      this.handleDeleteCommunityClick.bind(this);
+    this.handleEditCommunity = this.handleEditCommunity.bind(this);
+    this.handleFollow = this.handleFollow.bind(this);
+    this.handleModRemoveCommunity = this.handleModRemoveCommunity.bind(this);
+    this.handleCreateComment = this.handleCreateComment.bind(this);
+    this.handleEditComment = this.handleEditComment.bind(this);
+    this.handleSaveComment = this.handleSaveComment.bind(this);
+    this.handleBlockCommunity = this.handleBlockCommunity.bind(this);
+    this.handleBlockPerson = this.handleBlockPerson.bind(this);
+    this.handleDeleteComment = this.handleDeleteComment.bind(this);
+    this.handleRemoveComment = this.handleRemoveComment.bind(this);
+    this.handleCommentVote = this.handleCommentVote.bind(this);
+    this.handleAddModToCommunity = this.handleAddModToCommunity.bind(this);
+    this.handleAddAdmin = this.handleAddAdmin.bind(this);
+    this.handlePurgePerson = this.handlePurgePerson.bind(this);
+    this.handlePurgeComment = this.handlePurgeComment.bind(this);
+    this.handleCommentReport = this.handleCommentReport.bind(this);
+    this.handleDistinguishComment = this.handleDistinguishComment.bind(this);
+    this.handleTransferCommunity = this.handleTransferCommunity.bind(this);
+    this.handleFetchChildren = this.handleFetchChildren.bind(this);
+    this.handleCommentReplyRead = this.handleCommentReplyRead.bind(this);
+    this.handlePersonMentionRead = this.handlePersonMentionRead.bind(this);
+    this.handleBanFromCommunity = this.handleBanFromCommunity.bind(this);
+    this.handleBanPerson = this.handleBanPerson.bind(this);
+    this.handlePostEdit = this.handlePostEdit.bind(this);
+    this.handlePostVote = this.handlePostVote.bind(this);
+    this.handlePostReport = this.handlePostReport.bind(this);
+    this.handleLockPost = this.handleLockPost.bind(this);
+    this.handleDeletePost = this.handleDeletePost.bind(this);
+    this.handleRemovePost = this.handleRemovePost.bind(this);
+    this.handleSavePost = this.handleSavePost.bind(this);
+    this.handlePurgePost = this.handlePurgePost.bind(this);
+    this.handleFeaturePost = this.handleFeaturePost.bind(this);
 
     this.state = { ...this.state, commentSectionRef: createRef() };
 
     // Only fetch the data if coming from another route
-    if (this.isoData.path == this.context.router.route.match.url) {
+    if (FirstLoadService.isFirstLoad) {
+      const { commentsRes, postRes } = this.isoData.routeData;
+
       this.state = {
         ...this.state,
-        postRes: this.isoData.routeData[0] as GetPostResponse,
-        commentsRes: this.isoData.routeData[1] as GetCommentsResponse,
+        postRes,
+        commentsRes,
+        isIsomorphic: true,
       };
 
-      if (this.state.commentsRes) {
-        this.state = {
-          ...this.state,
-          commentTree: buildCommentsTree(
-            this.state.commentsRes.comments,
-            !!this.state.commentId
-          ),
-        };
-      }
-
-      this.state = { ...this.state, loading: false };
-
       if (isBrowser()) {
-        if (this.state.postRes) {
-          WebSocketService.Instance.send(
-            wsClient.communityJoin({
-              community_id: this.state.postRes.community_view.community.id,
-            })
-          );
-        }
-
-        if (this.state.postId) {
-          WebSocketService.Instance.send(
-            wsClient.postJoin({ post_id: this.state.postId })
-          );
-        }
-
-        this.fetchCrossPosts();
-
         if (this.checkScrollIntoCommentsParam) {
           this.scrollIntoCommentSection();
         }
       }
-    } else {
-      this.fetchPost();
     }
   }
 
-  fetchPost() {
-    let auth = myAuth(false);
-    let postForm: GetPost = {
-      id: this.state.postId,
-      comment_id: this.state.commentId,
-      auth,
-    };
-    WebSocketService.Instance.send(wsClient.getPost(postForm));
+  async fetchPost() {
+    this.setState({
+      postRes: { state: "loading" },
+      commentsRes: { state: "loading" },
+    });
 
-    let commentsForm: GetComments = {
-      post_id: this.state.postId,
-      parent_id: this.state.commentId,
-      max_depth: commentTreeMaxDepth,
-      sort: this.state.commentSort,
-      type_: ListingType.All,
-      saved_only: false,
-      auth,
-    };
-    WebSocketService.Instance.send(wsClient.getComments(commentsForm));
-  }
+    const auth = myAuth();
 
-  fetchCrossPosts() {
-    let q = this.state.postRes?.post_view.post.url;
-    if (q) {
-      let form: Search = {
-        q,
-        type_: SearchType.Url,
-        sort: SortType.TopAll,
-        listing_type: ListingType.All,
-        page: 1,
-        limit: trendingFetchLimit,
-        auth: myAuth(false),
-      };
-      WebSocketService.Instance.send(wsClient.search(form));
+    this.setState({
+      postRes: await HttpService.client.getPost({
+        id: this.state.postId,
+        comment_id: this.state.commentId,
+        auth,
+      }),
+      commentsRes: await HttpService.client.getComments({
+        post_id: this.state.postId,
+        parent_id: this.state.commentId,
+        max_depth: commentTreeMaxDepth,
+        sort: this.state.commentSort,
+        type_: "All",
+        saved_only: false,
+        auth,
+      }),
+    });
+
+    setupTippy();
+
+    if (!this.state.commentId) restoreScrollPosition(this.context);
+
+    if (this.checkScrollIntoCommentsParam) {
+      this.scrollIntoCommentSection();
     }
   }
 
-  static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let pathSplit = req.path.split("/");
-    let promises: Promise<any>[] = [];
+  static async fetchInitialData({
+    client,
+    path,
+    auth,
+  }: InitialFetchRequest): Promise<PostData> {
+    const pathSplit = path.split("/");
 
-    let pathType = pathSplit[1];
-    let id = pathSplit[2] ? pathSplit[2] : undefined;
-    let auth = req.auth;
+    const pathType = pathSplit.at(1);
+    const id = pathSplit.at(2) ? pathSplit.at(2) : undefined;
 
-    let postForm: GetPost = {
+    const postForm: GetPost = {
       auth,
     };
 
-    let commentsForm: GetComments = {
+    const commentsForm: GetComments = {
       max_depth: commentTreeMaxDepth,
-      sort: CommentSortType.Hot,
-      type_: ListingType.All,
+      sort: "Hot",
+      type_: "All",
       saved_only: false,
       auth,
     };
 
     // Set the correct id based on the path type
-    if (pathType == "post") {
+    if (pathType === "post") {
       postForm.id = id;
       commentsForm.post_id = id;
     } else {
@@ -226,36 +258,33 @@ export class Post extends Component<any, PostState> {
       commentsForm.parent_id = id;
     }
 
-    promises.push(req.client.getPost(postForm));
-    promises.push(req.client.getComments(commentsForm));
-
-    return promises;
+    return {
+      postRes: await client.getPost(postForm),
+      commentsRes: await client.getComments(commentsForm),
+    };
   }
 
   componentWillUnmount() {
-    this.subscription?.unsubscribe();
     document.removeEventListener("scroll", this.commentScrollDebounced);
 
     saveScrollPosition(this.context);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
+    if (!this.state.isIsomorphic) {
+      await this.fetchPost();
+    }
+
     autosize(document.querySelectorAll("textarea"));
 
     this.commentScrollDebounced = debounce(this.trackCommentsBoxScrolling, 100);
     document.addEventListener("scroll", this.commentScrollDebounced);
   }
 
-  componentDidUpdate(_lastProps: any) {
+  async componentDidUpdate(_lastProps: any) {
     // Necessary if you are on a post and you click another post (same route)
     if (_lastProps.location.pathname !== _lastProps.history.location.pathname) {
-      // TODO Couldnt get a refresh working. This does for now.
-      location.reload();
-
-      // let currentId = this.props.match.params.id;
-      // WebSocketService.Instance.getPost(currentId);
-      // this.context.refresh();
-      // this.context.router.history.push(_lastProps.location.pathname);
+      await this.fetchPost();
     }
   }
 
@@ -279,168 +308,224 @@ export class Post extends Component<any, PostState> {
   trackCommentsBoxScrolling = () => {
     const wrappedElement = document.getElementsByClassName("comments")[0];
     if (wrappedElement && this.isBottom(wrappedElement)) {
-      this.setState({
-        maxCommentsShown: this.state.maxCommentsShown + commentsShownInterval,
-      });
+      const commentCount =
+        this.state.commentsRes.state == "success"
+          ? this.state.commentsRes.data.comments.length
+          : 0;
+
+      if (this.state.maxCommentsShown < commentCount) {
+        this.setState({
+          maxCommentsShown: this.state.maxCommentsShown + commentsShownInterval,
+        });
+      }
     }
   };
 
   get documentTitle(): string {
-    let name_ = this.state.postRes?.post_view.post.name;
-    let siteName = this.state.siteRes.site_view.site.name;
-    return name_ ? `${name_} - ${siteName}` : "";
+    const siteName = this.state.siteRes.site_view.site.name;
+    return this.state.postRes.state == "success"
+      ? `${this.state.postRes.data.post_view.post.name} - ${siteName}`
+      : siteName;
   }
 
   get imageTag(): string | undefined {
-    let post = this.state.postRes?.post_view.post;
-    let thumbnail = post?.thumbnail_url;
-    let url = post?.url;
-    return thumbnail || (url && isImage(url) ? url : undefined);
+    if (this.state.postRes.state == "success") {
+      const post = this.state.postRes.data.post_view.post;
+      const thumbnail = post.thumbnail_url;
+      const url = post.url;
+      return thumbnail || (url && isImage(url) ? url : undefined);
+    } else return undefined;
   }
 
-  render() {
-    let res = this.state.postRes;
-    let description = res?.post_view.post.body;
-    return (
-      <div className="container-lg">
-        {this.state.loading ? (
+  renderPostRes() {
+    switch (this.state.postRes.state) {
+      case "loading":
+        return (
           <h5>
             <Spinner large />
           </h5>
-        ) : (
-          res && (
-            <div className="row">
-              <div className="col-12 col-md-8 mb-3">
-                <HtmlTags
-                  title={this.documentTitle}
-                  path={this.context.router.route.match.url}
-                  image={this.imageTag}
-                  description={description}
-                />
-                <PostListing
-                  post_view={res.post_view}
-                  duplicates={this.state.crossPosts}
-                  showBody
-                  showCommunity
-                  moderators={res.moderators}
-                  admins={this.state.siteRes.admins}
-                  enableDownvotes={enableDownvotes(this.state.siteRes)}
-                  enableNsfw={enableNsfw(this.state.siteRes)}
-                  allLanguages={this.state.siteRes.all_languages}
-                  siteLanguages={this.state.siteRes.discussion_languages}
-                />
-                <div ref={this.state.commentSectionRef} className="mb-2" />
-                <CommentForm
-                  node={res.post_view.post.id}
-                  disabled={res.post_view.post.locked}
-                  allLanguages={this.state.siteRes.all_languages}
-                  siteLanguages={this.state.siteRes.discussion_languages}
-                />
-                <div className="d-block d-md-none">
-                  <button
-                    className="btn btn-secondary d-inline-block w-100 mb-2 mr-3"
-                    onClick={linkEvent(this, this.handleShowSidebarMobile)}
-                  >
-                    Chi tiết cộng đồng{" "}
-                    {/* <Icon
-                      icon={
-                        this.state.showSidebarMobile
-                          ? `minus-square`
-                          : `plus-square`
-                      }
-                      classes="icon-inline"
-                    /> */}
-                  </button>
-                  {this.state.showSidebarMobile && this.sidebar()}
-                </div>
-                {this.sortRadios()}
-                {this.state.commentViewType == CommentViewType.Tree &&
-                  this.commentsTree()}
-                {this.state.commentViewType == CommentViewType.Flat &&
-                  this.commentsFlat()}
+        );
+      case "success": {
+        const res = this.state.postRes.data;
+        return (
+          <div className="row">
+            <main className="col-12 col-md-8 col-lg-9 mb-3">
+              <HtmlTags
+                title={this.documentTitle}
+                path={this.context.router.route.match.url}
+                canonicalPath={res.post_view.post.ap_id}
+                image={this.imageTag}
+                description={res.post_view.post.body}
+              />
+              <PostListing
+                post_view={res.post_view}
+                crossPosts={res.cross_posts}
+                showBody
+                showCommunity
+                moderators={res.moderators}
+                admins={this.state.siteRes.admins}
+                enableDownvotes={enableDownvotes(this.state.siteRes)}
+                enableNsfw={enableNsfw(this.state.siteRes)}
+                allLanguages={this.state.siteRes.all_languages}
+                siteLanguages={this.state.siteRes.discussion_languages}
+                onBlockPerson={this.handleBlockPerson}
+                onPostEdit={this.handlePostEdit}
+                onPostVote={this.handlePostVote}
+                onPostReport={this.handlePostReport}
+                onLockPost={this.handleLockPost}
+                onDeletePost={this.handleDeletePost}
+                onRemovePost={this.handleRemovePost}
+                onSavePost={this.handleSavePost}
+                onPurgePerson={this.handlePurgePerson}
+                onPurgePost={this.handlePurgePost}
+                onBanPerson={this.handleBanPerson}
+                onBanPersonFromCommunity={this.handleBanFromCommunity}
+                onAddModToCommunity={this.handleAddModToCommunity}
+                onAddAdmin={this.handleAddAdmin}
+                onTransferCommunity={this.handleTransferCommunity}
+                onFeaturePost={this.handleFeaturePost}
+              />
+              <div ref={this.state.commentSectionRef} className="mb-2" />
+              <CommentForm
+                node={res.post_view.post.id}
+                disabled={res.post_view.post.locked}
+                allLanguages={this.state.siteRes.all_languages}
+                siteLanguages={this.state.siteRes.discussion_languages}
+                containerClass="post-comment-container"
+                onUpsertComment={this.handleCreateComment}
+                finished={this.state.finished.get(
+                  "00000000-0000-0000-0000-000000000000"
+                )}
+              />
+              <div className="d-block d-md-none">
+                <button
+                  className="btn btn-secondary d-inline-block mb-2 me-3"
+                  onClick={linkEvent(this, this.handleShowSidebarMobile)}
+                >
+                  {I18NextService.i18n.t("sidebar")}{" "}
+                  <Icon
+                    icon={
+                      this.state.showSidebarMobile
+                        ? `minus-square`
+                        : `plus-square`
+                    }
+                    classes="icon-inline"
+                  />
+                </button>
+                {this.state.showSidebarMobile && this.sidebar()}
               </div>
-              <div className="d-none d-md-block col-md-4">{this.sidebar()}</div>
-            </div>
-          )
-        )}
-      </div>
-    );
+              {this.sortRadios()}
+              {this.state.commentViewType == CommentViewType.Tree &&
+                this.commentsTree()}
+              {this.state.commentViewType == CommentViewType.Flat &&
+                this.commentsFlat()}
+            </main>
+            <aside className="d-none d-md-block col-md-4 col-lg-3">
+              {this.sidebar()}
+            </aside>
+          </div>
+        );
+      }
+    }
+  }
+
+  render() {
+    return <div className="post container-lg">{this.renderPostRes()}</div>;
   }
 
   sortRadios() {
+    const radioId =
+      this.state.postRes.state === "success"
+        ? this.state.postRes.data.post_view.post.id
+        : randomStr();
+
     return (
       <>
-        <div className="btn-group btn-group-toggle flex-wrap mr-3 mb-2">
+        <div
+          className="btn-group btn-group-toggle flex-wrap me-3 mb-2"
+          role="group"
+        >
+          <input
+            id={`${radioId}-hot`}
+            type="radio"
+            className="btn-check"
+            value={"Hot"}
+            checked={this.state.commentSort === "Hot"}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
           <label
-            className={`btn btn-outline-secondary pointer ${
-              CommentSortType[this.state.commentSort] === CommentSortType.Hot &&
-              "active"
-            }`}
+            htmlFor={`${radioId}-hot`}
+            className={classNames("btn btn-outline-secondary pointer", {
+              active: this.state.commentSort === "Hot",
+            })}
           >
-            {i18n.t("hot")}
-            <input
-              type="radio"
-              value={CommentSortType.Hot}
-              checked={this.state.commentSort === CommentSortType.Hot}
-              onChange={linkEvent(this, this.handleCommentSortChange)}
-            />
+            {I18NextService.i18n.t("hot")}
           </label>
+          <input
+            id={`${radioId}-top`}
+            type="radio"
+            className="btn-check"
+            value={"Top"}
+            checked={this.state.commentSort === "Top"}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
           <label
-            className={`btn btn-outline-secondary pointer ${
-              CommentSortType[this.state.commentSort] === CommentSortType.Top &&
-              "active"
-            }`}
+            htmlFor={`${radioId}-top`}
+            className={classNames("btn btn-outline-secondary pointer", {
+              active: this.state.commentSort === "Top",
+            })}
           >
-            {i18n.t("top")}
-            <input
-              type="radio"
-              value={CommentSortType.Top}
-              checked={this.state.commentSort === CommentSortType.Top}
-              onChange={linkEvent(this, this.handleCommentSortChange)}
-            />
+            {I18NextService.i18n.t("top")}
           </label>
+          <input
+            id={`${radioId}-new`}
+            type="radio"
+            className="btn-check"
+            value={"New"}
+            checked={this.state.commentSort === "New"}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
           <label
-            className={`btn btn-outline-secondary pointer ${
-              CommentSortType[this.state.commentSort] === CommentSortType.New &&
-              "active"
-            }`}
+            htmlFor={`${radioId}-new`}
+            className={classNames("btn btn-outline-secondary pointer", {
+              active: this.state.commentSort === "New",
+            })}
           >
-            {i18n.t("new")}
-            <input
-              type="radio"
-              value={CommentSortType.New}
-              checked={this.state.commentSort === CommentSortType.New}
-              onChange={linkEvent(this, this.handleCommentSortChange)}
-            />
+            {I18NextService.i18n.t("new")}
           </label>
+          <input
+            id={`${radioId}-old`}
+            type="radio"
+            className="btn-check"
+            value={"Old"}
+            checked={this.state.commentSort === "Old"}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
           <label
-            className={`btn btn-outline-secondary pointer ${
-              CommentSortType[this.state.commentSort] === CommentSortType.Old &&
-              "active"
-            }`}
+            htmlFor={`${radioId}-old`}
+            className={classNames("btn btn-outline-secondary pointer", {
+              active: this.state.commentSort === "Old",
+            })}
           >
-            {i18n.t("old")}
-            <input
-              type="radio"
-              value={CommentSortType.Old}
-              checked={this.state.commentSort === CommentSortType.Old}
-              onChange={linkEvent(this, this.handleCommentSortChange)}
-            />
+            {I18NextService.i18n.t("old")}
           </label>
         </div>
-        <div className="btn-group btn-group-toggle flex-wrap mb-2">
+        <div className="btn-group btn-group-toggle flex-wrap mb-2" role="group">
+          <input
+            id={`${radioId}-chat`}
+            type="radio"
+            className="btn-check"
+            value={CommentViewType.Flat}
+            checked={this.state.commentViewType === CommentViewType.Flat}
+            onChange={linkEvent(this, this.handleCommentViewTypeChange)}
+          />
           <label
-            className={`btn btn-outline-secondary pointer ${
-              this.state.commentViewType === CommentViewType.Flat && "active"
-            }`}
+            htmlFor={`${radioId}-chat`}
+            className={classNames("btn btn-outline-secondary pointer", {
+              active: this.state.commentViewType === CommentViewType.Flat,
+            })}
           >
-            {i18n.t("chat")}
-            <input
-              type="radio"
-              value={CommentViewType.Flat}
-              checked={this.state.commentViewType === CommentViewType.Flat}
-              onChange={linkEvent(this, this.handleCommentViewTypeChange)}
-            />
+            {I18NextService.i18n.t("chat")}
           </label>
         </div>
       </>
@@ -449,69 +534,163 @@ export class Post extends Component<any, PostState> {
 
   commentsFlat() {
     // These are already sorted by new
-    let commentsRes = this.state.commentsRes;
-    let postRes = this.state.postRes;
-    return (
-      commentsRes &&
-      postRes && (
+    const commentsRes = this.state.commentsRes;
+    const postRes = this.state.postRes;
+
+    if (commentsRes.state == "success" && postRes.state == "success") {
+      return (
         <div>
           <CommentNodes
-            nodes={commentsToFlatNodes(commentsRes.comments)}
+            nodes={commentsToFlatNodes(commentsRes.data.comments)}
             viewType={this.state.commentViewType}
             maxCommentsShown={this.state.maxCommentsShown}
-            noIndent
-            locked={postRes.post_view.post.locked}
-            moderators={postRes.moderators}
+            isTopLevel
+            locked={postRes.data.post_view.post.locked}
+            moderators={postRes.data.moderators}
             admins={this.state.siteRes.admins}
             enableDownvotes={enableDownvotes(this.state.siteRes)}
             showContext
+            finished={this.state.finished}
             allLanguages={this.state.siteRes.all_languages}
             siteLanguages={this.state.siteRes.discussion_languages}
+            onSaveComment={this.handleSaveComment}
+            onBlockPerson={this.handleBlockPerson}
+            onDeleteComment={this.handleDeleteComment}
+            onRemoveComment={this.handleRemoveComment}
+            onCommentVote={this.handleCommentVote}
+            onCommentReport={this.handleCommentReport}
+            onDistinguishComment={this.handleDistinguishComment}
+            onAddModToCommunity={this.handleAddModToCommunity}
+            onAddAdmin={this.handleAddAdmin}
+            onTransferCommunity={this.handleTransferCommunity}
+            onFetchChildren={this.handleFetchChildren}
+            onPurgeComment={this.handlePurgeComment}
+            onPurgePerson={this.handlePurgePerson}
+            onCommentReplyRead={this.handleCommentReplyRead}
+            onPersonMentionRead={this.handlePersonMentionRead}
+            onBanPersonFromCommunity={this.handleBanFromCommunity}
+            onBanPerson={this.handleBanPerson}
+            onCreateComment={this.handleCreateComment}
+            onEditComment={this.handleEditComment}
           />
         </div>
-      )
-    );
+      );
+    }
   }
 
   sidebar() {
-    let res = this.state.postRes;
+    const res = this.state.postRes;
+    if (res.state === "success") {
+      return (
+        <Sidebar
+          community_view={res.data.community_view}
+          moderators={res.data.moderators}
+          admins={this.state.siteRes.admins}
+          enableNsfw={enableNsfw(this.state.siteRes)}
+          showIcon
+          allLanguages={this.state.siteRes.all_languages}
+          siteLanguages={this.state.siteRes.discussion_languages}
+          onDeleteCommunity={this.handleDeleteCommunityClick}
+          onLeaveModTeam={this.handleAddModToCommunity}
+          onFollowCommunity={this.handleFollow}
+          onRemoveCommunity={this.handleModRemoveCommunity}
+          onPurgeCommunity={this.handlePurgeCommunity}
+          onBlockCommunity={this.handleBlockCommunity}
+          onEditCommunity={this.handleEditCommunity}
+        />
+      );
+    }
+  }
+
+  commentsTree() {
+    const res = this.state.postRes;
+    const firstComment = this.commentTree().at(0)?.comment_view.comment;
+    const depth = getDepthFromComment(firstComment);
+    const showContextButton = depth ? depth > 0 : false;
+
     return (
-      res && (
-        <div className="mb-3">
-          <Sidebar
-            community_view={res.community_view}
-            moderators={res.moderators}
+      res.state == "success" && (
+        <div>
+          {!!this.state.commentId && (
+            <>
+              <button
+                className="ps-0 d-block btn btn-link text-muted"
+                onClick={linkEvent(this, this.handleViewPost)}
+              >
+                {I18NextService.i18n.t("view_all_comments")} ➔
+              </button>
+              {showContextButton && (
+                <button
+                  className="ps-0 d-block btn btn-link text-muted"
+                  onClick={linkEvent(this, this.handleViewContext)}
+                >
+                  {I18NextService.i18n.t("show_context")} ➔
+                </button>
+              )}
+            </>
+          )}
+          <CommentNodes
+            nodes={this.commentTree()}
+            viewType={this.state.commentViewType}
+            maxCommentsShown={this.state.maxCommentsShown}
+            locked={res.data.post_view.post.locked}
+            moderators={res.data.moderators}
             admins={this.state.siteRes.admins}
-            online={res.online}
-            enableNsfw={enableNsfw(this.state.siteRes)}
-            showIcon
+            enableDownvotes={enableDownvotes(this.state.siteRes)}
+            finished={this.state.finished}
             allLanguages={this.state.siteRes.all_languages}
             siteLanguages={this.state.siteRes.discussion_languages}
+            onSaveComment={this.handleSaveComment}
+            onBlockPerson={this.handleBlockPerson}
+            onDeleteComment={this.handleDeleteComment}
+            onRemoveComment={this.handleRemoveComment}
+            onCommentVote={this.handleCommentVote}
+            onCommentReport={this.handleCommentReport}
+            onDistinguishComment={this.handleDistinguishComment}
+            onAddModToCommunity={this.handleAddModToCommunity}
+            onAddAdmin={this.handleAddAdmin}
+            onTransferCommunity={this.handleTransferCommunity}
+            onFetchChildren={this.handleFetchChildren}
+            onPurgeComment={this.handlePurgeComment}
+            onPurgePerson={this.handlePurgePerson}
+            onCommentReplyRead={this.handleCommentReplyRead}
+            onPersonMentionRead={this.handlePersonMentionRead}
+            onBanPersonFromCommunity={this.handleBanFromCommunity}
+            onBanPerson={this.handleBanPerson}
+            onCreateComment={this.handleCreateComment}
+            onEditComment={this.handleEditComment}
           />
         </div>
       )
     );
   }
 
-  handleCommentSortChange(i: Post, event: any) {
+  commentTree(): CommentNodeI[] {
+    if (this.state.commentsRes.state == "success") {
+      return buildCommentsTree(
+        this.state.commentsRes.data.comments,
+        !!this.state.commentId
+      );
+    } else {
+      return [];
+    }
+  }
+
+  async handleCommentSortChange(i: Post, event: any) {
     i.setState({
-      commentSort: CommentSortType[event.target.value],
+      commentSort: event.target.value as CommentSortType,
       commentViewType: CommentViewType.Tree,
-      commentsRes: undefined,
-      postRes: undefined,
+      commentsRes: { state: "loading" },
+      postRes: { state: "loading" },
     });
-    i.fetchPost();
+    await i.fetchPost();
   }
 
   handleCommentViewTypeChange(i: Post, event: any) {
-    let comments = i.state.commentsRes?.comments;
-    if (comments) {
-      i.setState({
-        commentViewType: Number(event.target.value),
-        commentSort: CommentSortType.New,
-        commentTree: buildCommentsTree(comments, !!i.state.commentId),
-      });
-    }
+    i.setState({
+      commentViewType: Number(event.target.value),
+      commentSort: "New",
+    });
   }
 
   handleShowSidebarMobile(i: Post) {
@@ -519,284 +698,365 @@ export class Post extends Component<any, PostState> {
   }
 
   handleViewPost(i: Post) {
-    let id = i.state.postRes?.post_view.post.id;
-    if (id) {
+    if (i.state.postRes.state == "success") {
+      const id = i.state.postRes.data.post_view.post.id;
       i.context.router.history.push(`/post/${id}`);
     }
   }
 
   handleViewContext(i: Post) {
-    let parentId = getCommentParentId(
-      i.state.commentsRes?.comments?.at(0)?.comment
-    );
-    if (parentId) {
-      i.context.router.history.push(`/comment/${parentId}`);
+    if (i.state.commentsRes.state == "success") {
+      const parentId = getCommentParentId(
+        i.state.commentsRes.data.comments.at(0)?.comment
+      );
+      if (parentId) {
+        i.context.router.history.push(`/comment/${parentId}`);
+      }
     }
   }
 
-  commentsTree() {
-    let res = this.state.postRes;
-    let firstComment =
-      this.state.commentTree.length > 0
-        ? this.state.commentTree.at(0)?.comment_view.comment
-        : undefined;
-    let depth = getDepthFromComment(firstComment);
-    let showContextButton = depth ? depth > 0 : false;
-
-    return (
-      res && (
-        <div>
-          {!!this.state.commentId && (
-            <>
-              <button
-                className="pl-0 d-block btn btn-link text-muted"
-                onClick={linkEvent(this, this.handleViewPost)}
-              >
-                {i18n.t("view_all_comments")} ➔
-              </button>
-              {showContextButton && (
-                <button
-                  className="pl-0 d-block btn btn-link text-muted"
-                  onClick={linkEvent(this, this.handleViewContext)}
-                >
-                  {i18n.t("show_context")} ➔
-                </button>
-              )}
-            </>
-          )}
-          <CommentNodes
-            nodes={this.state.commentTree}
-            viewType={this.state.commentViewType}
-            maxCommentsShown={this.state.maxCommentsShown}
-            locked={res.post_view.post.locked}
-            moderators={res.moderators}
-            admins={this.state.siteRes.admins}
-            enableDownvotes={enableDownvotes(this.state.siteRes)}
-            allLanguages={this.state.siteRes.all_languages}
-            siteLanguages={this.state.siteRes.discussion_languages}
-          />
-        </div>
-      )
-    );
+  async handleDeleteCommunityClick(form: DeleteCommunity) {
+    const deleteCommunityRes = await HttpService.client.deleteCommunity(form);
+    this.updateCommunity(deleteCommunityRes);
   }
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      return;
-    } else if (msg.reconnect) {
-      let post_id = this.state.postRes?.post_view.post.id;
-      if (post_id) {
-        WebSocketService.Instance.send(wsClient.postJoin({ post_id }));
-        WebSocketService.Instance.send(
-          wsClient.getPost({
-            id: post_id,
-            auth: myAuth(false),
-          })
-        );
+  async handleAddModToCommunity(form: AddModToCommunity) {
+    const addModRes = await HttpService.client.addModToCommunity(form);
+    this.updateModerators(addModRes);
+  }
+
+  async handleFollow(form: FollowCommunity) {
+    const followCommunityRes = await HttpService.client.followCommunity(form);
+    this.updateCommunity(followCommunityRes);
+
+    // Update myUserInfo
+    if (followCommunityRes.state === "success") {
+      const communityId = followCommunityRes.data.community_view.community.id;
+      const mui = UserService.Instance.myUserInfo;
+      if (mui) {
+        mui.follows = mui.follows.filter(i => i.community.id != communityId);
       }
-    } else if (op == UserOperation.GetPost) {
-      let data = wsJsonToRes<GetPostResponse>(msg);
-      this.setState({ postRes: data });
+    }
+  }
 
-      // join the rooms
-      WebSocketService.Instance.send(
-        wsClient.postJoin({ post_id: data.post_view.post.id })
-      );
-      WebSocketService.Instance.send(
-        wsClient.communityJoin({
-          community_id: data.community_view.community.id,
-        })
-      );
+  async handlePurgeCommunity(form: PurgeCommunity) {
+    const purgeCommunityRes = await HttpService.client.purgeCommunity(form);
+    this.purgeItem(purgeCommunityRes);
+  }
 
-      // Get cross-posts
-      // TODO move this into initial fetch and refetch
-      this.fetchCrossPosts();
-      setupTippy();
-      if (!this.state.commentId) restoreScrollPosition(this.context);
+  async handlePurgePerson(form: PurgePerson) {
+    const purgePersonRes = await HttpService.client.purgePerson(form);
+    this.purgeItem(purgePersonRes);
+  }
 
-      if (this.checkScrollIntoCommentsParam) {
-        this.scrollIntoCommentSection();
-      }
-    } else if (op == UserOperation.GetComments) {
-      let data = wsJsonToRes<GetCommentsResponse>(msg);
-      // This section sets the comments res
-      let comments = this.state.commentsRes?.comments;
-      if (comments) {
-        // You might need to append here, since this could be building more comments from a tree fetch
-        // Remove the first comment, since it is the parent
-        let newComments = data.comments;
-        newComments.shift();
-        comments.push(...newComments);
-      } else {
-        this.setState({ commentsRes: data });
-      }
+  async handlePurgeComment(form: PurgeComment) {
+    const purgeCommentRes = await HttpService.client.purgeComment(form);
+    this.purgeItem(purgeCommentRes);
+  }
 
-      let cComments = this.state.commentsRes?.comments ?? [];
-      this.setState({
-        commentTree: buildCommentsTree(cComments, !!this.state.commentId),
-        loading: false,
+  async handlePurgePost(form: PurgePost) {
+    const purgeRes = await HttpService.client.purgePost(form);
+    this.purgeItem(purgeRes);
+  }
+
+  async handleBlockCommunity(form: BlockCommunity) {
+    const blockCommunityRes = await HttpService.client.blockCommunity(form);
+    if (blockCommunityRes.state == "success") {
+      updateCommunityBlock(blockCommunityRes.data);
+      this.setState(s => {
+        if (s.postRes.state == "success") {
+          s.postRes.data.community_view.blocked =
+            blockCommunityRes.data.blocked;
+        }
       });
-    } else if (op == UserOperation.CreateComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-
-      // Don't get comments from the post room, if the creator is blocked
-      let creatorBlocked = UserService.Instance.myUserInfo?.person_blocks
-        .map(pb => pb.target.id)
-        .includes(data.comment_view.creator.id);
-
-      // Necessary since it might be a user reply, which has the recipients, to avoid double
-      let postRes = this.state.postRes;
-      let commentsRes = this.state.commentsRes;
-      if (
-        data.recipient_ids.length == 0 &&
-        !creatorBlocked &&
-        postRes &&
-        data.comment_view.post.id == postRes.post_view.post.id &&
-        commentsRes
-      ) {
-        commentsRes.comments.unshift(data.comment_view);
-        insertCommentIntoTree(
-          this.state.commentTree,
-          data.comment_view,
-          !!this.state.commentId
-        );
-        postRes.post_view.counts.comments++;
-
-        this.setState(this.state);
-        setupTippy();
-      }
-    } else if (
-      op == UserOperation.EditComment ||
-      op == UserOperation.DeleteComment ||
-      op == UserOperation.RemoveComment
-    ) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      editCommentRes(data.comment_view, this.state.commentsRes?.comments);
-      this.setState(this.state);
-      setupTippy();
-    } else if (op == UserOperation.SaveComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      saveCommentRes(data.comment_view, this.state.commentsRes?.comments);
-      this.setState(this.state);
-      setupTippy();
-    } else if (op == UserOperation.CreateCommentLike) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      createCommentLikeRes(data.comment_view, this.state.commentsRes?.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      createPostLikeRes(data.post_view, this.state.postRes?.post_view);
-      this.setState(this.state);
-    } else if (
-      op == UserOperation.EditPost ||
-      op == UserOperation.DeletePost ||
-      op == UserOperation.RemovePost ||
-      op == UserOperation.LockPost ||
-      op == UserOperation.FeaturePost ||
-      op == UserOperation.SavePost
-    ) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      let res = this.state.postRes;
-      if (res) {
-        res.post_view = data.post_view;
-        this.setState(this.state);
-        setupTippy();
-      }
-    } else if (
-      op == UserOperation.EditCommunity ||
-      op == UserOperation.DeleteCommunity ||
-      op == UserOperation.RemoveCommunity ||
-      op == UserOperation.FollowCommunity
-    ) {
-      let data = wsJsonToRes<CommunityResponse>(msg);
-      let res = this.state.postRes;
-      if (res) {
-        res.community_view = data.community_view;
-        res.post_view.community = data.community_view.community;
-        this.setState(this.state);
-      }
-    } else if (op == UserOperation.BanFromCommunity) {
-      let data = wsJsonToRes<BanFromCommunityResponse>(msg);
-
-      let res = this.state.postRes;
-      if (res) {
-        if (res.post_view.creator.id == data.person_view.person.id) {
-          res.post_view.creator_banned_from_community = data.banned;
-        }
-      }
-
-      this.state.commentsRes?.comments
-        .filter(c => c.creator.id == data.person_view.person.id)
-        .forEach(c => (c.creator_banned_from_community = data.banned));
-      this.setState(this.state);
-    } else if (op == UserOperation.AddModToCommunity) {
-      let data = wsJsonToRes<AddModToCommunityResponse>(msg);
-      let res = this.state.postRes;
-      if (res) {
-        res.moderators = data.moderators;
-        this.setState(this.state);
-      }
-    } else if (op == UserOperation.BanPerson) {
-      let data = wsJsonToRes<BanPersonResponse>(msg);
-      this.state.commentsRes?.comments
-        .filter(c => c.creator.id == data.person_view.person.id)
-        .forEach(c => (c.creator.banned = data.banned));
-
-      let res = this.state.postRes;
-      if (res) {
-        if (res.post_view.creator.id == data.person_view.person.id) {
-          res.post_view.creator.banned = data.banned;
-        }
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.AddAdmin) {
-      let data = wsJsonToRes<AddAdminResponse>(msg);
-      this.setState(s => ((s.siteRes.admins = data.admins), s));
-    } else if (op == UserOperation.Search) {
-      let data = wsJsonToRes<SearchResponse>(msg);
-      let xPosts = data.posts.filter(
-        p => p.post.ap_id != this.state.postRes?.post_view.post.ap_id
-      );
-      this.setState({ crossPosts: xPosts.length > 0 ? xPosts : undefined });
-    } else if (op == UserOperation.LeaveAdmin) {
-      let data = wsJsonToRes<GetSiteResponse>(msg);
-      this.setState({ siteRes: data });
-    } else if (op == UserOperation.TransferCommunity) {
-      let data = wsJsonToRes<GetCommunityResponse>(msg);
-      let res = this.state.postRes;
-      if (res) {
-        res.community_view = data.community_view;
-        res.post_view.community = data.community_view.community;
-        res.moderators = data.moderators;
-        this.setState(this.state);
-      }
-    } else if (op == UserOperation.BlockPerson) {
-      let data = wsJsonToRes<BlockPersonResponse>(msg);
-      updatePersonBlock(data);
-    } else if (op == UserOperation.CreatePostReport) {
-      let data = wsJsonToRes<PostReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.CreateCommentReport) {
-      let data = wsJsonToRes<CommentReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (
-      op == UserOperation.PurgePerson ||
-      op == UserOperation.PurgePost ||
-      op == UserOperation.PurgeComment ||
-      op == UserOperation.PurgeCommunity
-    ) {
-      let data = wsJsonToRes<PurgeItemResponse>(msg);
-      if (data.success) {
-        toast(i18n.t("purge_success"));
-        this.context.router.history.push(`/`);
-      }
     }
+  }
+
+  async handleBlockPerson(form: BlockPerson) {
+    const blockPersonRes = await HttpService.client.blockPerson(form);
+    if (blockPersonRes.state == "success") {
+      updatePersonBlock(blockPersonRes.data);
+    }
+  }
+
+  async handleModRemoveCommunity(form: RemoveCommunity) {
+    const removeCommunityRes = await HttpService.client.removeCommunity(form);
+    this.updateCommunity(removeCommunityRes);
+  }
+
+  async handleEditCommunity(form: EditCommunity) {
+    const res = await HttpService.client.editCommunity(form);
+    this.updateCommunity(res);
+
+    return res;
+  }
+
+  async handleCreateComment(form: CreateComment) {
+    const createCommentRes = await HttpService.client.createComment(form);
+    this.createAndUpdateComments(createCommentRes);
+
+    return createCommentRes;
+  }
+
+  async handleEditComment(form: EditComment) {
+    const editCommentRes = await HttpService.client.editComment(form);
+    this.findAndUpdateComment(editCommentRes);
+
+    return editCommentRes;
+  }
+
+  async handleDeleteComment(form: DeleteComment) {
+    const deleteCommentRes = await HttpService.client.deleteComment(form);
+    this.findAndUpdateComment(deleteCommentRes);
+  }
+
+  async handleDeletePost(form: DeletePost) {
+    const deleteRes = await HttpService.client.deletePost(form);
+    this.updatePost(deleteRes);
+  }
+
+  async handleRemovePost(form: RemovePost) {
+    const removeRes = await HttpService.client.removePost(form);
+    this.updatePost(removeRes);
+  }
+
+  async handleRemoveComment(form: RemoveComment) {
+    const removeCommentRes = await HttpService.client.removeComment(form);
+    this.findAndUpdateComment(removeCommentRes);
+  }
+
+  async handleSaveComment(form: SaveComment) {
+    const saveCommentRes = await HttpService.client.saveComment(form);
+    this.findAndUpdateComment(saveCommentRes);
+  }
+
+  async handleSavePost(form: SavePost) {
+    const saveRes = await HttpService.client.savePost(form);
+    this.updatePost(saveRes);
+  }
+
+  async handleFeaturePost(form: FeaturePost) {
+    const featureRes = await HttpService.client.featurePost(form);
+    this.updatePost(featureRes);
+  }
+
+  async handleCommentVote(form: CreateCommentLike) {
+    const voteRes = await HttpService.client.likeComment(form);
+    this.findAndUpdateComment(voteRes);
+  }
+
+  async handlePostVote(form: CreatePostLike) {
+    const voteRes = await HttpService.client.likePost(form);
+    this.updatePost(voteRes);
+  }
+
+  async handlePostEdit(form: EditPost) {
+    const res = await HttpService.client.editPost(form);
+    this.updatePost(res);
+  }
+
+  async handleCommentReport(form: CreateCommentReport) {
+    const reportRes = await HttpService.client.createCommentReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  async handlePostReport(form: CreatePostReport) {
+    const reportRes = await HttpService.client.createPostReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  async handleLockPost(form: LockPost) {
+    const lockRes = await HttpService.client.lockPost(form);
+    this.updatePost(lockRes);
+  }
+
+  async handleDistinguishComment(form: DistinguishComment) {
+    const distinguishRes = await HttpService.client.distinguishComment(form);
+    this.findAndUpdateComment(distinguishRes);
+  }
+
+  async handleAddAdmin(form: AddAdmin) {
+    const addAdminRes = await HttpService.client.addAdmin(form);
+
+    if (addAdminRes.state === "success") {
+      this.setState(s => ((s.siteRes.admins = addAdminRes.data.admins), s));
+    }
+  }
+
+  async handleTransferCommunity(form: TransferCommunity) {
+    const transferCommunityRes = await HttpService.client.transferCommunity(
+      form
+    );
+    this.updateCommunityFull(transferCommunityRes);
+  }
+
+  async handleFetchChildren(form: GetComments) {
+    const moreCommentsRes = await HttpService.client.getComments(form);
+    if (
+      this.state.commentsRes.state == "success" &&
+      moreCommentsRes.state == "success"
+    ) {
+      const newComments = moreCommentsRes.data.comments;
+      // Remove the first comment, since it is the parent
+      newComments.shift();
+      const newRes = this.state.commentsRes;
+      newRes.data.comments.push(...newComments);
+      this.setState({ commentsRes: newRes });
+    }
+  }
+
+  async handleCommentReplyRead(form: MarkCommentReplyAsRead) {
+    const readRes = await HttpService.client.markCommentReplyAsRead(form);
+    this.findAndUpdateCommentReply(readRes);
+  }
+
+  async handlePersonMentionRead(form: MarkPersonMentionAsRead) {
+    // TODO not sure what to do here. Maybe it is actually optional, because post doesn't need it.
+    await HttpService.client.markPersonMentionAsRead(form);
+  }
+
+  async handleBanFromCommunity(form: BanFromCommunity) {
+    const banRes = await HttpService.client.banFromCommunity(form);
+    this.updateBan(banRes);
+  }
+
+  async handleBanPerson(form: BanPerson) {
+    const banRes = await HttpService.client.banPerson(form);
+    this.updateBan(banRes);
+  }
+
+  updateBanFromCommunity(banRes: RequestState<BanFromCommunityResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (
+          s.postRes.state == "success" &&
+          s.postRes.data.post_view.creator.id ==
+            banRes.data.person_view.person.id
+        ) {
+          s.postRes.data.post_view.creator_banned_from_community =
+            banRes.data.banned;
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        return s;
+      });
+    }
+  }
+
+  updateBan(banRes: RequestState<BanPersonResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (
+          s.postRes.state == "success" &&
+          s.postRes.data.post_view.creator.id ==
+            banRes.data.person_view.person.id
+        ) {
+          s.postRes.data.post_view.creator.banned = banRes.data.banned;
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        return s;
+      });
+    }
+  }
+
+  updateCommunity(communityRes: RequestState<CommunityResponse>) {
+    this.setState(s => {
+      if (s.postRes.state == "success" && communityRes.state == "success") {
+        s.postRes.data.community_view = communityRes.data.community_view;
+      }
+      return s;
+    });
+  }
+
+  updateCommunityFull(res: RequestState<GetCommunityResponse>) {
+    this.setState(s => {
+      if (s.postRes.state == "success" && res.state == "success") {
+        s.postRes.data.community_view = res.data.community_view;
+        s.postRes.data.moderators = res.data.moderators;
+      }
+      return s;
+    });
+  }
+
+  updatePost(post: RequestState<PostResponse>) {
+    this.setState(s => {
+      if (s.postRes.state == "success" && post.state == "success") {
+        s.postRes.data.post_view = post.data.post_view;
+      }
+      return s;
+    });
+  }
+
+  purgeItem(purgeRes: RequestState<PurgeItemResponse>) {
+    if (purgeRes.state == "success") {
+      toast(I18NextService.i18n.t("purge_success"));
+      this.context.router.history.push(`/`);
+    }
+  }
+
+  createAndUpdateComments(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state === "success" && res.state === "success") {
+        s.commentsRes.data.comments.unshift(res.data.comment_view);
+
+        // Set finished for the parent
+        s.finished.set(
+          getCommentParentId(res.data.comment_view.comment) ??
+            "00000000-0000-0000-0000-000000000000",
+          true
+        );
+      }
+      return s;
+    });
+  }
+
+  findAndUpdateComment(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editComment(
+          res.data.comment_view,
+          s.commentsRes.data.comments
+        );
+        s.finished.set(res.data.comment_view.comment.id, true);
+      }
+      return s;
+    });
+  }
+
+  findAndUpdateCommentReply(res: RequestState<CommentReplyResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editWith(
+          res.data.comment_reply_view,
+          s.commentsRes.data.comments
+        );
+      }
+      return s;
+    });
+  }
+
+  updateModerators(res: RequestState<AddModToCommunityResponse>) {
+    // Update the moderators
+    this.setState(s => {
+      if (s.postRes.state == "success" && res.state == "success") {
+        s.postRes.data.moderators = res.data.moderators;
+      }
+      return s;
+    });
   }
 }

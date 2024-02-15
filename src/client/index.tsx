@@ -1,18 +1,28 @@
+import { initializeSite, setupDateFns } from "@utils/app";
 import { hydrate } from "inferno-hydrate";
 import { BrowserRouter } from "inferno-router";
 import { App } from "../shared/components/app/app";
-import { initializeSite } from "../shared/utils";
+import { UserService } from "../shared/services";
 
-const site = window.isoData.site_res;
-initializeSite(site);
+import "bootstrap/js/dist/collapse";
+import "bootstrap/js/dist/dropdown";
 
-const wrapper = (
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
-);
+async function startClient() {
+  initializeSite(window.isoData.site_res);
 
-let root = document.getElementById("root");
-if (root) {
-  hydrate(wrapper, root);
+  await setupDateFns();
+
+  const wrapper = (
+    <BrowserRouter>
+      <App user={UserService.Instance.myUserInfo} />
+    </BrowserRouter>
+  );
+
+  const root = document.getElementById("root");
+
+  if (root) {
+    hydrate(wrapper, root);
+  }
 }
+
+startClient();

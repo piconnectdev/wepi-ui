@@ -1,77 +1,56 @@
+import { myAuth, setIsoData } from "@utils/app";
+import { capitalizeFirstLetter } from "@utils/helpers";
 import { Component, linkEvent } from "inferno";
-import {
-  GetSiteResponse,
-  LoginResponse,
-  PasswordChange as PWordChange,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
-} from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
-import { UserService, WebSocketService } from "../../services";
-import {
-  capitalizeFirstLetter,
-  isBrowser,
-  setIsoData,
-  toast,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+import { GetSiteResponse, LoginResponse } from "lemmy-js-client";
+import { HttpService, I18NextService, UserService } from "../../services";
+import { RequestState } from "../../services/HttpService";
 import { HtmlTags } from "../common/html-tags";
 import { Spinner } from "../common/icon";
+import PasswordInput from "../common/password-input";
 
 interface State {
+  passwordChangeRes: RequestState<LoginResponse>;
   form: {
     token: string;
     password?: string;
     password_verify?: string;
   };
-  loading: boolean;
   siteRes: GetSiteResponse;
 }
 
 export class PasswordChange extends Component<any, State> {
   private isoData = setIsoData(this.context);
-  private subscription?: Subscription;
 
   state: State = {
+    passwordChangeRes: { state: "empty" },
+    siteRes: this.isoData.site_res,
     form: {
       token: this.props.match.params.token,
     },
-    loading: false,
-    siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
-
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
-  }
-
-  componentWillUnmount() {
-    if (isBrowser()) {
-      this.subscription?.unsubscribe();
-    }
   }
 
   get documentTitle(): string {
-    return `${i18n.t("password_change")} - ${
+    return `${I18NextService.i18n.t("password_change")} - ${
       this.state.siteRes.site_view.site.name
     }`;
   }
 
   render() {
     return (
-      <div className="container-lg">
+      <div className="password-change container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
         />
         <div className="row">
           <div className="col-12 col-lg-6 offset-lg-3 mb-4">
-            <h5>{i18n.t("password_change")}</h5>
+            <h1 className="h4 mb-4">
+              {I18NextService.i18n.t("password_change")}
+            </h1>
             {this.passwordChangeForm()}
           </div>
         </div>
@@ -82,45 +61,30 @@ export class PasswordChange extends Component<any, State> {
   passwordChangeForm() {
     return (
       <form onSubmit={linkEvent(this, this.handlePasswordChangeSubmit)}>
-        <div className="form-group row">
-          <label className="col-sm-2 col-form-label" htmlFor="new-password">
-            {i18n.t("new_password")}
-          </label>
-          <div className="col-sm-10">
-            <input
-              id="new-password"
-              type="password"
-              value={this.state.form.password}
-              onInput={linkEvent(this, this.handlePasswordChange)}
-              className="form-control"
-              required
-              maxLength={60}
-            />
-          </div>
+        <div className="mb-3">
+          <PasswordInput
+            id="new-password"
+            value={this.state.form.password}
+            onInput={linkEvent(this, this.handlePasswordChange)}
+            showStrength
+            label={I18NextService.i18n.t("new_password")}
+          />
         </div>
-        <div className="form-group row">
-          <label className="col-sm-2 col-form-label" htmlFor="verify-password">
-            {i18n.t("verify_password")}
-          </label>
-          <div className="col-sm-10">
-            <input
-              id="verify-password"
-              type="password"
-              value={this.state.form.password_verify}
-              onInput={linkEvent(this, this.handleVerifyPasswordChange)}
-              className="form-control"
-              required
-              maxLength={60}
-            />
-          </div>
+        <div className="mb-3">
+          <PasswordInput
+            id="password"
+            value={this.state.form.password_verify}
+            onInput={linkEvent(this, this.handleVerifyPasswordChange)}
+            label={I18NextService.i18n.t("verify_password")}
+          />
         </div>
-        <div className="form-group row">
+        <div className="mb-3 row">
           <div className="col-sm-10">
             <button type="submit" className="btn btn-secondary">
-              {this.state.loading ? (
+              {this.state.passwordChangeRes.state == "loading" ? (
                 <Spinner />
               ) : (
-                capitalizeFirstLetter(i18n.t("save"))
+                capitalizeFirstLetter(I18NextService.i18n.t("save"))
               )}
             </button>
           </div>
@@ -139,36 +103,35 @@ export class PasswordChange extends Component<any, State> {
     i.setState(i.state);
   }
 
-  handlePasswordChangeSubmit(i: PasswordChange, event: any) {
-    if (event) event.preventDefault();
-    i.setState({ loading: true });
+  async handlePasswordChangeSubmit(i: PasswordChange, event: any) {
+    event.preventDefault();
+    i.setState({ passwordChangeRes: { state: "loading" } });
 
-    let password = i.state.form.password;
-    let password_verify = i.state.form.password_verify;
+    const password = i.state.form.password;
+    const password_verify = i.state.form.password_verify;
 
     if (password && password_verify) {
-      let form: PWordChange = {
-        token: i.state.form.token,
-        password,
-        password_verify,
-      };
+      i.setState({
+        passwordChangeRes: await HttpService.client.passwordChangeAfterReset({
+          token: i.state.form.token,
+          password,
+          password_verify,
+        }),
+      });
 
-      WebSocketService.Instance.send(wsClient.passwordChange(form));
-    }
-  }
+      if (i.state.passwordChangeRes.state === "success") {
+        const data = i.state.passwordChangeRes.data;
+        UserService.Instance.login({
+          res: data,
+        });
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      this.setState({ loading: false });
-      return;
-    } else if (op == UserOperation.PasswordChange) {
-      let data = wsJsonToRes<LoginResponse>(msg);
-      UserService.Instance.login(data);
-      this.props.history.push("/");
-      location.reload();
+        const site = await HttpService.client.getSite({ auth: myAuth() });
+        if (site.state === "success") {
+          UserService.Instance.myUserInfo = site.data.my_user;
+        }
+
+        i.props.history.replace("/");
+      }
     }
   }
 }

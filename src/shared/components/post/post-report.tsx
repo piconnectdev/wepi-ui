@@ -1,32 +1,43 @@
-import { Component, linkEvent } from "inferno";
+import { myAuthRequired } from "@utils/app";
+import { Component, InfernoNode, linkEvent } from "inferno";
 import { T } from "inferno-i18next-dess";
-import {
-  PostReportView,
-  PostView,
-  ResolvePostReport,
-  SubscribedType,
-} from "lemmy-js-client";
-import { i18n } from "../../i18next";
-import { WebSocketService } from "../../services";
-import { myAuth, wsClient } from "../../utils";
-import { Icon } from "../common/icon";
+import { PostReportView, PostView, ResolvePostReport } from "lemmy-js-client";
+import { I18NextService } from "../../services";
+import { Icon, Spinner } from "../common/icon";
 import { PersonListing } from "../person/person-listing";
 import { PostListing } from "./post-listing";
 
 interface PostReportProps {
   report: PostReportView;
+  onResolveReport(form: ResolvePostReport): void;
 }
 
-export class PostReport extends Component<PostReportProps, any> {
+interface PostReportState {
+  loading: boolean;
+}
+
+export class PostReport extends Component<PostReportProps, PostReportState> {
+  state: PostReportState = {
+    loading: false,
+  };
+
   constructor(props: any, context: any) {
     super(props, context);
   }
 
+  componentWillReceiveProps(
+    nextProps: Readonly<{ children?: InfernoNode } & PostReportProps>
+  ): void {
+    if (this.props != nextProps) {
+      this.setState({ loading: false });
+    }
+  }
+
   render() {
-    let r = this.props.report;
-    let resolver = r.resolver;
-    let post = r.post;
-    let tippyContent = i18n.t(
+    const r = this.props.report;
+    const resolver = r.resolver;
+    const post = r.post;
+    const tippyContent = I18NextService.i18n.t(
       r.post_report.resolved ? "unresolve_report" : "resolve_report"
     );
 
@@ -34,13 +45,13 @@ export class PostReport extends Component<PostReportProps, any> {
     post.name = r.post_report.original_post_name;
     post.url = r.post_report.original_post_url;
     post.body = r.post_report.original_post_body;
-    let pv: PostView = {
+    const pv: PostView = {
       post,
       creator: r.post_creator,
       community: r.community,
       creator_banned_from_community: r.creator_banned_from_community,
       counts: r.counts,
-      subscribed: SubscribedType.NotSubscribed,
+      subscribed: "NotSubscribed",
       saved: false,
       read: false,
       creator_blocked: false,
@@ -49,7 +60,7 @@ export class PostReport extends Component<PostReportProps, any> {
     };
 
     return (
-      <div>
+      <div className="post-report">
         <PostListing
           post_view={pv}
           showCommunity={true}
@@ -59,12 +70,30 @@ export class PostReport extends Component<PostReportProps, any> {
           allLanguages={[]}
           siteLanguages={[]}
           hideImage
+          // All of these are unused, since its view only
+          onPostEdit={() => {}}
+          onPostVote={() => {}}
+          onPostReport={() => {}}
+          onBlockPerson={() => {}}
+          onLockPost={() => {}}
+          onDeletePost={() => {}}
+          onRemovePost={() => {}}
+          onSavePost={() => {}}
+          onFeaturePost={() => {}}
+          onPurgePerson={() => {}}
+          onPurgePost={() => {}}
+          onBanPersonFromCommunity={() => {}}
+          onBanPerson={() => {}}
+          onAddModToCommunity={() => {}}
+          onAddAdmin={() => {}}
+          onTransferCommunity={() => {}}
         />
         <div>
-          {i18n.t("reporter")}: <PersonListing person={r.creator} />
+          {I18NextService.i18n.t("reporter")}:{" "}
+          <PersonListing person={r.creator} />
         </div>
         <div>
-          {i18n.t("reason")}: {r.post_report.reason}
+          {I18NextService.i18n.t("reason")}: {r.post_report.reason}
         </div>
         {resolver && (
           <div>
@@ -87,26 +116,27 @@ export class PostReport extends Component<PostReportProps, any> {
           data-tippy-content={tippyContent}
           aria-label={tippyContent}
         >
-          <Icon
-            icon="check"
-            classes={`icon-inline ${
-              r.post_report.resolved ? "text-success" : "text-danger"
-            }`}
-          />
+          {this.state.loading ? (
+            <Spinner />
+          ) : (
+            <Icon
+              icon="check"
+              classes={`icon-inline ${
+                r.post_report.resolved ? "text-success" : "text-danger"
+              }`}
+            />
+          )}
         </button>
       </div>
     );
   }
 
   handleResolveReport(i: PostReport) {
-    let auth = myAuth();
-    if (auth) {
-      let form: ResolvePostReport = {
-        report_id: i.props.report.post_report.id,
-        resolved: !i.props.report.post_report.resolved,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.resolvePostReport(form));
-    }
+    i.setState({ loading: true });
+    i.props.onResolveReport({
+      report_id: i.props.report.post_report.id,
+      resolved: !i.props.report.post_report.resolved,
+      auth: myAuthRequired(),
+    });
   }
 }

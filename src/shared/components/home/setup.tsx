@@ -1,19 +1,16 @@
+import { fetchThemeList, setIsoData } from "@utils/app";
 import { Component, linkEvent } from "inferno";
 import { Helmet } from "inferno-helmet";
 import {
+  CreateSite,
   GetSiteResponse,
   LoginResponse,
   Register,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
 } from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { delay, retryWhen, take } from "rxjs/operators";
-import { i18n } from "../../i18next";
-import { UserService, WebSocketService } from "../../services";
-import { setIsoData, toast, wsClient } from "../../utils";
+import { I18NextService, UserService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
 import { Spinner } from "../common/icon";
+import PasswordInput from "../common/password-input";
 import { SiteForm } from "./site-form";
 
 interface State {
@@ -29,54 +26,57 @@ interface State {
     answer?: string;
   };
   doneRegisteringUser: boolean;
-  userLoading: boolean;
+  registerRes: RequestState<LoginResponse>;
+  themeList: string[];
   siteRes: GetSiteResponse;
 }
 
 export class Setup extends Component<any, State> {
-  private subscription: Subscription;
   private isoData = setIsoData(this.context);
 
   state: State = {
+    registerRes: { state: "empty" },
+    themeList: [],
     form: {
       show_nsfw: true,
     },
     doneRegisteringUser: !!UserService.Instance.myUserInfo,
-    userLoading: false,
     siteRes: this.isoData.site_res,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        msg => this.parseMessage(msg),
-        err => console.error(err),
-        () => console.log("complete")
-      );
+    this.handleCreateSite = this.handleCreateSite.bind(this);
   }
 
-  componentWillUnmount() {
-    this.subscription.unsubscribe();
+  async componentDidMount() {
+    this.setState({ themeList: await fetchThemeList() });
   }
 
   get documentTitle(): string {
-    return `${i18n.t("setup")} - WePi`;
+    return `${I18NextService.i18n.t("setup")} - WePi`;
   }
 
   render() {
     return (
-      <div className="container-lg">
+      <div className="home-setup container-lg">
         <Helmet title={this.documentTitle} />
         <div className="row">
           <div className="col-12 offset-lg-3 col-lg-6">
-            <h3>{i18n.t("lemmy_instance_setup")}</h3>
+            <h1 className="h4 mb-4">
+              {I18NextService.i18n.t("lemmy_instance_setup")}
+            </h1>
             {!this.state.doneRegisteringUser ? (
               this.registerUser()
             ) : (
-              <SiteForm siteRes={this.state.siteRes} showLocal />
+              <SiteForm
+                showLocal
+                onSaveSite={this.handleCreateSite}
+                siteRes={this.state.siteRes}
+                themeList={this.state.themeList}
+                loading={false}
+              />
             )}
           </div>
         </div>
@@ -87,10 +87,10 @@ export class Setup extends Component<any, State> {
   registerUser() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h5>{i18n.t("setup_admin")}</h5>
-        <div className="form-group row">
+        <h2 className="h5 mb-3">{I18NextService.i18n.t("setup_admin")}</h2>
+        <div className="mb-3 row">
           <label className="col-sm-2 col-form-label" htmlFor="username">
-            {i18n.t("username")}
+            {I18NextService.i18n.t("username")}
           </label>
           <div className="col-sm-10">
             <input
@@ -105,9 +105,9 @@ export class Setup extends Component<any, State> {
             />
           </div>
         </div>
-        <div className="form-group row">
+        <div className="mb-3 row">
           <label className="col-sm-2 col-form-label" htmlFor="email">
-            {i18n.t("email")}
+            {I18NextService.i18n.t("email")}
           </label>
 
           <div className="col-sm-10">
@@ -115,53 +115,37 @@ export class Setup extends Component<any, State> {
               type="email"
               id="email"
               className="form-control"
-              placeholder={i18n.t("optional")}
+              placeholder={I18NextService.i18n.t("optional")}
               value={this.state.form.email}
               onInput={linkEvent(this, this.handleRegisterEmailChange)}
               minLength={3}
             />
           </div>
         </div>
-        <div className="form-group row">
-          <label className="col-sm-2 col-form-label" htmlFor="password">
-            {i18n.t("password")}
-          </label>
-          <div className="col-sm-10">
-            <input
-              type="password"
-              id="password"
-              value={this.state.form.password}
-              onInput={linkEvent(this, this.handleRegisterPasswordChange)}
-              className="form-control"
-              required
-              autoComplete="new-password"
-              minLength={10}
-              maxLength={60}
-            />
-          </div>
+        <div className="mb-3">
+          <PasswordInput
+            id="password"
+            value={this.state.form.password}
+            onInput={linkEvent(this, this.handleRegisterPasswordChange)}
+            label={I18NextService.i18n.t("password")}
+          />
         </div>
-        <div className="form-group row">
-          <label className="col-sm-2 col-form-label" htmlFor="verify-password">
-            {i18n.t("verify_password")}
-          </label>
-          <div className="col-sm-10">
-            <input
-              type="password"
-              id="verify-password"
-              value={this.state.form.password_verify}
-              onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
-              className="form-control"
-              required
-              autoComplete="new-password"
-              minLength={10}
-              maxLength={60}
-            />
-          </div>
+        <div className="mb-3">
+          <PasswordInput
+            id="verify-password"
+            value={this.state.form.password_verify}
+            onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
+            label={I18NextService.i18n.t("verify_password")}
+          />
         </div>
-        <div className="form-group row">
+        <div className="mb-3 row">
           <div className="col-sm-10">
             <button type="submit" className="btn btn-secondary">
-              {this.state.userLoading ? <Spinner /> : i18n.t("sign_up")}
+              {this.state.registerRes.state == "loading" ? (
+                <Spinner />
+              ) : (
+                I18NextService.i18n.t("sign_up")
+              )}
             </button>
           </div>
         </div>
@@ -169,29 +153,56 @@ export class Setup extends Component<any, State> {
     );
   }
 
-  handleRegisterSubmit(i: Setup, event: any) {
-    if (event) event.preventDefault();
-    i.setState({ userLoading: true });
-    if (event) event.preventDefault();
-    let cForm = i.state.form;
-    if (cForm.username && cForm.password && cForm.password_verify) {
-      let form: Register = {
-        username: cForm.username,
-        password: cForm.password,
-        password_verify: cForm.password_verify,
-        email: cForm.email,
-        show_nsfw: cForm.show_nsfw,
-        captcha_uuid: cForm.captcha_uuid,
-        captcha_answer: cForm.captcha_answer,
-        honeypot: cForm.honeypot,
-        answer: cForm.answer,
+  async handleRegisterSubmit(i: Setup, event: any) {
+    event.preventDefault();
+    i.setState({ registerRes: { state: "loading" } });
+    const {
+      username,
+      password_verify,
+      password,
+      email,
+      show_nsfw,
+      captcha_uuid,
+      captcha_answer,
+      honeypot,
+      answer,
+    } = i.state.form;
+
+    if (username && password && password_verify) {
+      const form: Register = {
+        username,
+        password,
+        password_verify,
+        email,
+        show_nsfw,
+        captcha_uuid,
+        captcha_answer,
+        honeypot,
+        answer,
       };
-      WebSocketService.Instance.send(wsClient.register(form));
+      i.setState({
+        registerRes: await HttpService.client.register(form),
+      });
+
+      if (i.state.registerRes.state == "success") {
+        const data = i.state.registerRes.data;
+
+        UserService.Instance.login({ res: data });
+        i.setState({ doneRegisteringUser: true });
+      }
+    }
+  }
+
+  async handleCreateSite(form: CreateSite) {
+    const createRes = await HttpService.client.createSite(form);
+    if (createRes.state === "success") {
+      this.props.history.replace("/");
+      location.reload();
     }
   }
 
   handleRegisterUsernameChange(i: Setup, event: any) {
-    i.state.form.username = event.target.value;
+    i.state.form.username = event.target.value.trim();
     i.setState(i.state);
   }
 
@@ -208,25 +219,5 @@ export class Setup extends Component<any, State> {
   handleRegisterPasswordVerifyChange(i: Setup, event: any) {
     i.state.form.password_verify = event.target.value;
     i.setState(i.state);
-  }
-
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      this.setState({ userLoading: false });
-      return;
-    } else if (op == UserOperation.Register) {
-      let data = wsJsonToRes<LoginResponse>(msg);
-      this.setState({ userLoading: false });
-      UserService.Instance.login(data);
-      if (UserService.Instance.jwtInfo) {
-        this.setState({ doneRegisteringUser: true });
-      }
-    } else if (op == UserOperation.CreateSite) {
-      window.location.href = "/";
-    } else if (op == UserOperation.EditSite) {
-      window.location.href = "/";
-    }
   }
 }

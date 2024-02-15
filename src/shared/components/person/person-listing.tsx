@@ -1,13 +1,17 @@
+import { showAvatars } from "@utils/app";
+import { getStaticDir } from "@utils/env";
+import { hostname, isCakeDay } from "@utils/helpers";
+import classNames from "classnames";
 import { Component } from "inferno";
 import { Link } from "inferno-router";
-import { PersonSafe } from "lemmy-js-client";
-import { hostname, isCakeDay, relTags, showAvatars } from "../../utils";
+import { Person } from "lemmy-js-client";
+import { relTags } from "../../config";
 import { Icon } from "../common/icon";
 import { PictrsImage } from "../common/pictrs-image";
 import { CakeDay } from "./cake-day";
 
 interface PersonListingProps {
-  person: PersonSafe;
+  person: Person;
   realLink?: boolean;
   useApubName?: boolean;
   muted?: boolean;
@@ -21,15 +25,15 @@ export class PersonListing extends Component<PersonListingProps, any> {
   }
 
   render() {
-    let person = this.props.person;
-    let local = person.local;
+    const person = this.props.person;
+    const local = person.local;
     let apubName: string, link: string, linkHome: string;
     linkHome = `/c/${person.name}`;
     if (local) {
       apubName = `@${person.name}`;
       link = `/u/${person.name}`;
     } else {
-      let domain = hostname(person.actor_id);
+      const domain = hostname(person.actor_id);
       apubName = `@${person.name}@${domain}`;
       link = !this.props.realLink
         ? `/u/${person.name}@${domain}`
@@ -49,7 +53,13 @@ export class PersonListing extends Component<PersonListingProps, any> {
         {!this.props.realLink ? (
           <Link
             title={apubName}
-            className={this.props.muted ? "text-muted" : "text-info"}
+            className={classNames(
+              "person-listing d-inline-flex align-items-baseline",
+              {
+                "text-muted": this.props.muted,
+                "text-info": !this.props.muted,
+              }
+            )}
             to={link}
           >
             {this.avatarAndName(displayName)}
@@ -57,7 +67,9 @@ export class PersonListing extends Component<PersonListingProps, any> {
         ) : (
           <a
             title={apubName}
-            className={this.props.muted ? "text-muted" : "text-info"}
+            className={`person-listing d-inline-flex align-items-baseline ${
+              this.props.muted ? "text-muted" : "text-info"
+            }`}
             href={link}
             rel={relTags}
           >
@@ -81,12 +93,17 @@ export class PersonListing extends Component<PersonListingProps, any> {
   }
 
   avatarAndName(displayName: string) {
-    let avatar = this.props.person.avatar;
+    const avatar = this.props.person.avatar;
     return (
       <>
-        {avatar && !this.props.hideAvatar && showAvatars() && (
-          <PictrsImage src={avatar} icon />
-        )}
+        {!this.props.hideAvatar &&
+          !this.props.person.banned &&
+          showAvatars() && (
+            <PictrsImage
+              src={avatar ?? `${getStaticDir()}/assets/icons/icon-96x96.png`}
+              icon
+            />
+          )}
         <span>{displayName}</span>
       </>
     );

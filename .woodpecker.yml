@@ -1,0 +1,45 @@
+pipeline:
+  fetch_git_submodules:
+    image: node:alpine
+    commands:
+      - apk add git
+      - git submodule init
+      - git submodule update --recursive --remote
+      # - git fetch --tags
+
+  yarn:
+    image: node:alpine
+    commands:
+      - yarn
+
+  yarn_lint:
+    image: node:alpine
+    commands:
+      - yarn lint
+
+  yarn_build_dev:
+    image: node:alpine
+    commands:
+      - yarn build:dev
+
+  publish_release_docker:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy-ui
+      dockerfile: Dockerfile
+      platforms: linux/amd64
+      auto_tag: true
+    when:
+      event: tag
+
+  nightly_build:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy-ui
+      dockerfile: Dockerfile
+      platforms: linux/amd64
+      tag: dev
+    when:
+      event: cron

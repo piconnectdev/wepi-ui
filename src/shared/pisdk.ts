@@ -1,6 +1,15 @@
 import { PiApprove, PiPaymentComplete, PiPaymentFound } from "lemmy-js-client";
-import { WebSocketService } from "./services";
-import { toast, wsClient } from "./utils";
+import { toast } from "./toast";
+
+export function utf8ToHex(str: string) {
+  return Array.from(str)
+    .map(c =>
+      c.charCodeAt(0) < 128
+        ? c.charCodeAt(0).toString(16)
+        : encodeURIComponent(c).replace(/\%/g, "").toLowerCase()
+    )
+    .join("");
+}
 
 export async function createPayment(
   config: any,
@@ -37,7 +46,7 @@ export async function createPayment(
     console.log("PiPaymentFound, auth:" + auth);
     console.log("PaymentDTO:" + JSON.stringify(payment));
     console.log("PiPaymentFound: data" + JSON.stringify(found));
-    WebSocketService.Instance.send(wsClient.piPaymentFound(found));
+    //HttpService.Instance.send(wsClient.piPaymentFound(found));
     return;
   }; // Read more about this in the SDK reference
 
@@ -53,7 +62,7 @@ export async function createPayment(
     approve.ref_id = ref_id;
     approve.comment = comment;
     approve.auth = auth;
-    WebSocketService.Instance.send(wsClient.piPaymentApprove(approve));
+    //WebSocketService.Instance.send(wsClient.piPaymentApprove(approve));
   };
 
   const onReadyForCompletion = (payment_id, txid, paymentConfig) => {
@@ -67,7 +76,7 @@ export async function createPayment(
     payment.comment = comment;
     payment.auth = auth;
     payment.txid = txid;
-    WebSocketService.Instance.send(wsClient.piPaymentComplete(payment));
+    //WebSocketService.Instance.send(wsClient.piPaymentComplete(payment));
   };
 
   const onCancel = paymentId => {

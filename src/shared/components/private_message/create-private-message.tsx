@@ -1,47 +1,41 @@
+import { getRecipientIdFromProps, myAuth, setIsoData } from "@utils/app";
+import { RouteDataResponse } from "@utils/types";
 import { Component } from "inferno";
 import {
+  CreatePrivateMessage as CreatePrivateMessageI,
   GetPersonDetails,
   GetPersonDetailsResponse,
   GetSiteResponse,
-  SortType,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
 } from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
 import { InitialFetchRequest } from "../../interfaces";
-import { UserService, WebSocketService } from "../../services";
-import {
-  getRecipientIdFromProps,
-  isBrowser,
-  myAuth,
-  setIsoData,
-  toast,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+import { FirstLoadService, I18NextService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
+import { toast } from "../../toast";
 import { HtmlTags } from "../common/html-tags";
 import { Spinner } from "../common/icon";
 import { PrivateMessageForm } from "./private-message-form";
 
+type CreatePrivateMessageData = RouteDataResponse<{
+  recipientDetailsResponse: GetPersonDetailsResponse;
+}>;
+
 interface CreatePrivateMessageState {
   siteRes: GetSiteResponse;
-  recipientDetailsRes?: GetPersonDetailsResponse;
-  recipient_id: string;
-  loading: boolean;
+  recipientRes: RequestState<GetPersonDetailsResponse>;
+  recipientId: string;
+  isIsomorphic: boolean;
 }
 
 export class CreatePrivateMessage extends Component<
   any,
   CreatePrivateMessageState
 > {
-  private isoData = setIsoData(this.context);
-  private subscription?: Subscription;
+  private isoData = setIsoData<CreatePrivateMessageData>(this.context);
   state: CreatePrivateMessageState = {
     siteRes: this.isoData.site_res,
-    recipient_id: getRecipientIdFromProps(this.props),
-    loading: true,
+    recipientRes: { state: "empty" },
+    recipientId: getRecipientIdFromProps(this.props),
+    isIsomorphic: false,
   };
 
   constructor(props: any, context: any) {
@@ -49,105 +43,113 @@ export class CreatePrivateMessage extends Component<
     this.handlePrivateMessageCreate =
       this.handlePrivateMessageCreate.bind(this);
 
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
-
-    if (!UserService.Instance.myUserInfo && isBrowser()) {
-      toast(i18n.t("not_logged_in"), "danger");
-      this.context.router.history.push(`/login`);
-    }
-
     // Only fetch the data if coming from another route
-    if (this.isoData.path == this.context.router.route.match.url) {
+    if (FirstLoadService.isFirstLoad) {
       this.state = {
         ...this.state,
-        recipientDetailsRes: this.isoData
-          .routeData[0] as GetPersonDetailsResponse,
-        loading: false,
+        recipientRes: this.isoData.routeData.recipientDetailsResponse,
+        isIsomorphic: true,
       };
-    } else {
-      this.fetchPersonDetails();
     }
   }
 
-  fetchPersonDetails() {
-    let form: GetPersonDetails = {
-      person_id: this.state.recipient_id,
-      sort: SortType.New,
-      saved_only: false,
-      auth: myAuth(false),
-    };
-    WebSocketService.Instance.send(wsClient.getPersonDetails(form));
+  async componentDidMount() {
+    if (!this.state.isIsomorphic) {
+      await this.fetchPersonDetails();
+    }
   }
 
-  static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let person_id = req.path.split("/").pop();
-    let form: GetPersonDetails = {
+  static async fetchInitialData({
+    client,
+    path,
+    auth,
+  }: InitialFetchRequest): Promise<CreatePrivateMessageData> {
+    //const person_id = Number(path.split("/").pop());
+    const person_id = path.split("/").pop();
+
+    const form: GetPersonDetails = {
       person_id,
-      sort: SortType.New,
+      sort: "New",
       saved_only: false,
-      auth: req.auth,
+      auth,
     };
-    return [req.client.getPersonDetails(form)];
+
+    return {
+      recipientDetailsResponse: await client.getPersonDetails(form),
+    };
+  }
+
+  async fetchPersonDetails() {
+    this.setState({
+      recipientRes: { state: "loading" },
+    });
+
+    this.setState({
+      recipientRes: await HttpService.client.getPersonDetails({
+        person_id: this.state.recipientId,
+        sort: "New",
+        saved_only: false,
+        auth: myAuth(),
+      }),
+    });
   }
 
   get documentTitle(): string {
-    let name_ = this.state.recipientDetailsRes?.person_view.person.name;
-    return name_ ? `${i18n.t("create_private_message")} - ${name_}` : "";
+    if (this.state.recipientRes.state == "success") {
+      const name_ = this.state.recipientRes.data.person_view.person.name;
+      return `${I18NextService.i18n.t("create_private_message")} - ${name_}`;
+    } else {
+      return "";
+    }
   }
 
-  componentWillUnmount() {
-    if (isBrowser()) {
-      this.subscription?.unsubscribe();
+  renderRecipientRes() {
+    switch (this.state.recipientRes.state) {
+      case "loading":
+        return (
+          <h5>
+            <Spinner large />
+          </h5>
+        );
+      case "success": {
+        const res = this.state.recipientRes.data;
+        return (
+          <div className="row">
+            <div className="col-12 col-lg-6 offset-lg-3 mb-4">
+              <h1 className="h4 mb-4">
+                {I18NextService.i18n.t("create_private_message")}
+              </h1>
+              <PrivateMessageForm
+                onCreate={this.handlePrivateMessageCreate}
+                recipient={res.person_view.person}
+              />
+            </div>
+          </div>
+        );
+      }
     }
   }
 
   render() {
-    let res = this.state.recipientDetailsRes;
     return (
-      <div className="container-lg">
+      <div className="create-private-message container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
         />
-        {this.state.loading ? (
-          <h5>
-            <Spinner large />
-          </h5>
-        ) : (
-          res && (
-            <div className="row">
-              <div className="col-12 col-lg-6 offset-lg-3 mb-4">
-                <h5>{i18n.t("create_private_message")}</h5>
-                <PrivateMessageForm
-                  onCreate={this.handlePrivateMessageCreate}
-                  recipient={res.person_view.person}
-                />
-              </div>
-            </div>
-          )
-        )}
+        {this.renderRecipientRes()}
       </div>
     );
   }
 
-  handlePrivateMessageCreate() {
-    toast(i18n.t("message_sent"));
+  async handlePrivateMessageCreate(form: CreatePrivateMessageI) {
+    const res = await HttpService.client.createPrivateMessage(form);
 
-    // Navigate to the front
-    this.context.router.history.push("/");
-  }
+    if (res.state == "success") {
+      toast(I18NextService.i18n.t("message_sent"));
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      this.setState({ loading: false });
-      return;
-    } else if (op == UserOperation.GetPersonDetails) {
-      let data = wsJsonToRes<GetPersonDetailsResponse>(msg);
-      this.setState({ recipientDetailsRes: data, loading: false });
+      // Navigate to the front
+      this.context.router.history.push("/");
     }
   }
 }

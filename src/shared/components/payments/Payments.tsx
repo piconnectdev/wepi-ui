@@ -1,13 +1,9 @@
 import { Component, Fragment } from "inferno";
-import {
-  GetPayments,
-  PiPaymentSafe,
-  UserOperation,
-  wsUserOp,
-} from "lemmy-js-client";
-import moment from "moment";
-import { UserService, WebSocketService } from "../../services";
-import { getPageFromProps, myAuth, wsClient, wsSubscribe } from "../../utils";
+import { GetPayments, PiPaymentSafe } from "lemmy-js-client";
+//import moment from "moment";
+import { UserService } from "../../services";
+//import { getPageFromProps, } from "../../utils";
+import { myAuth } from "@utils/app";
 import { HtmlTags } from "../common/html-tags";
 import {
   IconArrowLeft,
@@ -42,8 +38,8 @@ export class Payments extends Component<any, PaymentsState> {
 
   constructor(props: any, context: any) {
     super(props, context);
-    this.parseMessage = this.parseMessage.bind(this);
-    wsSubscribe(this.parseMessage);
+    //this.parseMessage = this.parseMessage.bind(this);
+    //wsSubscribe(this.parseMessage);
   }
 
   componentWillUnmount() {
@@ -53,10 +49,10 @@ export class Payments extends Component<any, PaymentsState> {
   }
 
   handleGetPaymentSubmit() {
-    let getUser = UserService.Instance.myUserInfo;
-    let auth = myAuth(true);
+    const getUser = UserService.Instance.myUserInfo;
+    const auth = myAuth();
     if (getUser && auth) {
-      let form: GetPayments = {
+      const form: GetPayments = {
         person_id: getUser.local_user_view.person.id,
         //person_name?: string;
         //step?: number;
@@ -72,7 +68,7 @@ export class Payments extends Component<any, PaymentsState> {
       this.setState({
         loading: true,
       });
-      WebSocketService.Instance.send(wsClient.piGetPayments(form));
+      //WebSocketService.Instance.send(wsClient.piGetPayments(form));
     }
   }
 
@@ -300,20 +296,20 @@ export class Payments extends Component<any, PaymentsState> {
     this.props.history.push(`/payments/page/${page}`);
   };
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
+  // parseMessage(msg: any) {
+  //   let op = wsUserOp(msg);
 
-    switch (op) {
-      case UserOperation.GetPayments: {
-        const piPayments = msg.data.pipayments;
-        this.setState({
-          piPayments,
-          loading: false,
-        });
-        break;
-      }
-      default:
-        break;
-    }
-  }
+  //   switch (op) {
+  //     case UserOperation.GetPayments: {
+  //       const piPayments = msg.data.pipayments;
+  //       this.setState({
+  //         piPayments,
+  //         loading: false,
+  //       });
+  //       break;
+  //     }
+  //     default:
+  //       break;
+  //   }
+  // }
 }

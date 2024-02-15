@@ -1,0 +1,5 @@
+src/shared/translations
+lemmy-translations
+src/assets/css/themes/*.css
+stats.json
+dist

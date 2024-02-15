@@ -1,7 +1,12 @@
 import { Component } from "inferno";
+import { NavLink } from "inferno-router";
 import { GetSiteResponse } from "lemmy-js-client";
+import { docsUrl, joinLemmyUrl, repoUrl } from "../../config";
+import { I18NextService } from "../../services";
+import { VERSION } from "../../version";
+
 interface FooterProps {
-  site: GetSiteResponse;
+  site?: GetSiteResponse;
 }
 
 export class Footer extends Component<FooterProps, any> {
@@ -11,60 +16,52 @@ export class Footer extends Component<FooterProps, any> {
 
   render() {
     return (
-      <footer className="footer-distributed">
-        <div className="footer-left">
-          <h3>
-            We<span>Pi</span>
-          </h3>
-
-          <p className="footer-links">
-            <a href="#" className="link-1"></a>
-          </p>
-
-          <p className="footer-company-name">Copyleft © 2023</p>
-        </div>
-
-        <div className="footer-center">
-          <div>
-            <i className="fa fa-map-marker"></i>
-            <p>
-              <span>Fediverse</span>
-            </p>
-          </div>
-
-          <div>
-            <i className="fa fa-phone"></i>
-            <p>+0.000.000.000</p>
-          </div>
-
-          <div>
-            <i className="fa fa-envelope"></i>
-            <p>
-              <a href="mailto:contact@wepi.social">contact@wepi.social</a>
-            </p>
-          </div>
-        </div>
-
-        <div className="footer-right">
-          <p className="footer-company-about text-muted">
-          <span><a href="/static/assets/tos.txt">WePi Social Network</a></span>
-          <a href="/static/assets/privacy.txt">By Pioneers, for Pioneers</a>
-          </p>
-
-          <div className="footer-icons">
-            <a href="#">
-              <i className="fa fa-facebook"></i>
-            </a>
-            <a href="#">
-              <i className="fa fa-twitter"></i>
-            </a>
-            <a href="#">
-              <i className="fa fa-linkedin"></i>
-            </a>
-            <a href="#">
-              <i className="fa fa-github"></i>
-            </a>
-          </div>
+      <footer className="app-footer container-lg navbar navbar-expand-md navbar-light navbar-bg p-3">
+        <div className="navbar-collapse">
+          <ul className="navbar-nav ms-auto">
+            {this.props.site?.version !== VERSION && (
+              <li className="nav-item">
+                <span className="nav-link">UI: {VERSION}</span>
+              </li>
+            )}
+            <li className="nav-item">
+              <span className="nav-link">BE: {this.props.site?.version}</span>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/modlog">
+                {I18NextService.i18n.t("modlog")}
+              </NavLink>
+            </li>
+            {this.props.site?.site_view.local_site.legal_information && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/legal">
+                  {I18NextService.i18n.t("legal_information")}
+                </NavLink>
+              </li>
+            )}
+            {this.props.site?.site_view.local_site.federation_enabled && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/instances">
+                  {I18NextService.i18n.t("instances")}
+                </NavLink>
+              </li>
+            )}
+            <li className="nav-item">
+              <a className="nav-link" href={docsUrl}>
+                {I18NextService.i18n.t("docs")}
+              </a>
+            </li>
+            <li className="nav-item">
+              <a className="nav-link" href={repoUrl}>
+                {I18NextService.i18n.t("code")}
+              </a>
+            </li>
+            <li className="nav-item">
+              <a className="nav-link" href={joinLemmyUrl}>
+                {new URL(joinLemmyUrl).hostname}
+              </a>
+            </li>
+          </ul>
         </div>
       </footer>
     );

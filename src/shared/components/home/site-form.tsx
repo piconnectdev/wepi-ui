@@ -1,28 +1,22 @@
-import { Component, InfernoMouseEvent, linkEvent } from "inferno";
+import { myAuthRequired } from "@utils/app";
+import { capitalizeFirstLetter, validInstanceTLD } from "@utils/helpers";
+import {
+  Component,
+  InfernoKeyboardEvent,
+  InfernoMouseEvent,
+  InfernoNode,
+  linkEvent,
+} from "inferno";
 import { Prompt } from "inferno-router";
 import {
   CreateSite,
   EditSite,
   GetSiteResponse,
+  Instance,
   ListingType,
-  RegistrationMode,
 } from "lemmy-js-client";
-import { i18n } from "../../i18next";
-import { createPayment } from "../../pisdk";
-import { WebSocketService } from "../../services";
-import {
-  capitalizeFirstLetter,
-  convertUUIDtoULID,
-  eth001,
-  fetchThemeList,
-  gasPrice,
-  isBrowser,
-  myAuth,
-  toast,
-  utf8ToHex,
-  web3AnchorAddress,
-  wsClient,
-} from "../../utils";
+import deepEqual from "lodash.isequal";
+import { I18NextService } from "../../services";
 import { Icon, Spinner } from "../common/icon";
 import { ImageUploadForm } from "../common/image-upload-form";
 import { LanguageSelect } from "../common/language-select";
@@ -30,23 +24,70 @@ import { ListingTypeSelect } from "../common/listing-type-select";
 import { MarkdownTextArea } from "../common/markdown-textarea";
 
 interface SiteFormProps {
-  siteRes: GetSiteResponse;
+  blockedInstances?: Instance[];
+  allowedInstances?: Instance[];
   showLocal?: boolean;
+  themeList?: string[];
+  onSaveSite(form: EditSite): void;
+  siteRes: GetSiteResponse;
+  loading: boolean;
 }
 
 interface SiteFormState {
   siteForm: EditSite;
-  loading: boolean;
-  themeList?: string[];
+  instance_select: {
+    allowed_instances: string;
+    blocked_instances: string;
+  };
+  submitted: boolean;
 }
+
+type InstanceKey = "allowed_instances" | "blocked_instances";
 
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   state: SiteFormState = {
-    siteForm: {
-      auth: "TODO",
+    siteForm: this.initSiteForm(),
+    instance_select: {
+      allowed_instances: "",
+      blocked_instances: "",
     },
-    loading: false,
+    submitted: false,
   };
+
+  initSiteForm(): EditSite {
+    const site = this.props.siteRes.site_view.site;
+    const ls = this.props.siteRes.site_view.local_site;
+
+    return {
+      name: site.name,
+      sidebar: site.sidebar,
+      description: site.description,
+      enable_downvotes: ls.enable_downvotes,
+      registration_mode: ls.registration_mode,
+      enable_nsfw: ls.enable_nsfw,
+      community_creation_admin_only: ls.community_creation_admin_only,
+      icon: site.icon,
+      banner: site.banner,
+      require_email_verification: ls.require_email_verification,
+      application_question: ls.application_question,
+      private_instance: ls.private_instance,
+      default_theme: ls.default_theme,
+      default_post_listing_type: ls.default_post_listing_type,
+      legal_information: ls.legal_information,
+      application_email_admins: ls.application_email_admins,
+      reports_email_admins: ls.reports_email_admins,
+      hide_modlog_mod_names: ls.hide_modlog_mod_names,
+      discussion_languages: this.props.siteRes.discussion_languages,
+      slur_filter_regex: ls.slur_filter_regex,
+      actor_name_max_length: ls.actor_name_max_length,
+      federation_enabled: ls.federation_enabled,
+      captcha_enabled: ls.captcha_enabled,
+      captcha_difficulty: ls.captcha_difficulty,
+      allowed_instances: this.props.allowedInstances?.map(i => i.domain),
+      blocked_instances: this.props.blockedInstances?.map(i => i.domain),
+      auth: "TODO",
+    };
+  }
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -68,1002 +109,734 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     this.handleDiscussionLanguageChange =
       this.handleDiscussionLanguageChange.bind(this);
 
-    let site = this.props.siteRes.site_view.site;
-    let ls = this.props.siteRes.site_view.local_site;
-    let lsrl = this.props.siteRes.site_view.local_site_rate_limit;
-    this.state = {
-      ...this.state,
-      siteForm: {
-        name: site.name,
-        sidebar: site.sidebar,
-        description: site.description,
-        enable_downvotes: ls.enable_downvotes,
-        registration_mode: ls.registration_mode,
-        enable_nsfw: ls.enable_nsfw,
-        community_creation_admin_only: ls.community_creation_admin_only,
-        icon: site.icon,
-        banner: site.banner,
-        require_email_verification: ls.require_email_verification,
-        application_question: ls.application_question,
-        private_instance: ls.private_instance,
-        default_theme: ls.default_theme,
-        default_post_listing_type: ls.default_post_listing_type,
-        legal_information: ls.legal_information,
-        application_email_admins: ls.application_email_admins,
-        reports_email_admins: ls.reports_email_admins,
-        hide_modlog_mod_names: ls.hide_modlog_mod_names,
-        discussion_languages: this.props.siteRes.discussion_languages,
-        slur_filter_regex: ls.slur_filter_regex,
-        actor_name_max_length: ls.actor_name_max_length,
-        rate_limit_message: lsrl.message,
-        rate_limit_message_per_second: lsrl.message_per_second,
-        rate_limit_comment: lsrl.comment,
-        rate_limit_comment_per_second: lsrl.comment_per_second,
-        rate_limit_image: lsrl.image,
-        rate_limit_image_per_second: lsrl.image_per_second,
-        rate_limit_post: lsrl.post,
-        rate_limit_post_per_second: lsrl.post_per_second,
-        rate_limit_register: lsrl.register,
-        rate_limit_register_per_second: lsrl.register_per_second,
-        rate_limit_search: lsrl.search,
-        rate_limit_search_per_second: lsrl.search_per_second,
-        federation_enabled: ls.federation_enabled,
-        federation_debug: ls.federation_debug,
-        federation_worker_count: ls.federation_worker_count,
-        captcha_enabled: ls.captcha_enabled,
-        captcha_difficulty: ls.captcha_difficulty,
-        allowed_instances: this.props.siteRes.federated_instances?.allowed,
-        blocked_instances: this.props.siteRes.federated_instances?.blocked,
-        taglines: this.props.siteRes.taglines?.map(x => x.content),
-        auth: "TODO",
-      },
-    };
-  }
+    this.handleAddInstance = this.handleAddInstance.bind(this);
+    this.handleRemoveInstance = this.handleRemoveInstance.bind(this);
 
-  async componentDidMount() {
-    this.setState({ themeList: await fetchThemeList() });
-  }
-
-  // Necessary to stop the loading
-  componentWillReceiveProps() {
-    this.setState({ loading: false });
-  }
-
-  componentDidUpdate() {
-    if (
-      !this.state.loading &&
-      !this.props.siteRes.site_view.local_site.site_setup &&
-      (this.state.siteForm.name ||
-        this.state.siteForm.sidebar ||
-        this.state.siteForm.application_question ||
-        this.state.siteForm.description)
-    ) {
-      window.onbeforeunload = () => true;
-    } else {
-      window.onbeforeunload = null;
-    }
-  }
-
-  componentWillUnmount() {
-    window.onbeforeunload = null;
+    this.handleInstanceEnterPress = this.handleInstanceEnterPress.bind(this);
+    this.handleInstanceTextChange = this.handleInstanceTextChange.bind(this);
   }
 
   render() {
-    let siteSetup = this.props.siteRes.site_view.local_site.site_setup;
+    const siteSetup = this.props.siteRes.site_view.local_site.site_setup;
     return (
-      <>
+      <form
+        className="site-form"
+        onSubmit={linkEvent(this, this.handleSaveSiteSubmit)}
+      >
         <Prompt
+          message={I18NextService.i18n.t("block_leaving")}
           when={
-            !this.state.loading &&
+            !this.props.loading &&
             !siteSetup &&
-            (this.state.siteForm.name ||
+            !!(
+              this.state.siteForm.name ||
               this.state.siteForm.sidebar ||
               this.state.siteForm.application_question ||
-              this.state.siteForm.description)
+              this.state.siteForm.description
+            ) &&
+            !this.state.submitted
           }
-          message={i18n.t("block_leaving")}
         />
-        <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
-          <h5>{`${
-            siteSetup
-              ? capitalizeFirstLetter(i18n.t("save"))
-              : capitalizeFirstLetter(i18n.t("name"))
-          } ${i18n.t("your_site")}`}</h5>
-          <div className="form-group row">
-            <label className="col-12 col-form-label" htmlFor="create-site-name">
-              {i18n.t("name")}
-            </label>
-            <div className="col-12">
-              <input
-                type="text"
-                id="create-site-name"
-                className="form-control"
-                value={this.state.siteForm.name}
-                onInput={linkEvent(this, this.handleSiteNameChange)}
-                required
-                minLength={3}
-                maxLength={20}
-              />
-            </div>
+        <h2 className="h5">{`${
+          siteSetup
+            ? capitalizeFirstLetter(I18NextService.i18n.t("edit"))
+            : capitalizeFirstLetter(I18NextService.i18n.t("setup"))
+        } ${I18NextService.i18n.t("your_site")}`}</h2>
+        <div className="mb-3 row">
+          <label className="col-12 col-form-label" htmlFor="create-site-name">
+            {I18NextService.i18n.t("name")}
+          </label>
+          <div className="col-12">
+            <input
+              type="text"
+              id="create-site-name"
+              className="form-control"
+              value={this.state.siteForm.name}
+              onInput={linkEvent(this, this.handleSiteNameChange)}
+              required
+              minLength={3}
+              maxLength={20}
+            />
           </div>
-          <div className="form-group">
-            <label>{i18n.t("icon")}</label>
+        </div>
+        <div className="row mb-3">
+          <label className="col-sm-2 col-form-label">
+            {I18NextService.i18n.t("icon")}
+          </label>
+          <div className="col-sm-10">
             <ImageUploadForm
-              uploadTitle={i18n.t("upload_icon")}
+              uploadTitle={I18NextService.i18n.t("upload_icon")}
               imageSrc={this.state.siteForm.icon}
               onUpload={this.handleIconUpload}
               onRemove={this.handleIconRemove}
               rounded
             />
           </div>
-          <div className="form-group">
-            <label>{i18n.t("banner")}</label>
+        </div>
+        <div className="row mb-3">
+          <label className="col-sm-2 col-form-label">
+            {I18NextService.i18n.t("banner")}
+          </label>
+          <div className="col-sm-10">
             <ImageUploadForm
-              uploadTitle={i18n.t("upload_banner")}
+              uploadTitle={I18NextService.i18n.t("upload_banner")}
               imageSrc={this.state.siteForm.banner}
               onUpload={this.handleBannerUpload}
               onRemove={this.handleBannerRemove}
             />
           </div>
-          <div className="form-group row">
-            <label className="col-12 col-form-label" htmlFor="site-desc">
-              {i18n.t("description")}
-            </label>
-            <div className="col-12">
+        </div>
+        <div className="mb-3 row">
+          <label className="col-12 col-form-label" htmlFor="site-desc">
+            {I18NextService.i18n.t("description")}
+          </label>
+          <div className="col-12">
+            <input
+              type="text"
+              className="form-control"
+              id="site-desc"
+              value={this.state.siteForm.description}
+              onInput={linkEvent(this, this.handleSiteDescChange)}
+              maxLength={150}
+            />
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <label className="col-12 col-form-label">
+            {I18NextService.i18n.t("sidebar")}
+          </label>
+          <div className="col-12">
+            <MarkdownTextArea
+              initialContent={this.state.siteForm.sidebar}
+              onContentChange={this.handleSiteSidebarChange}
+              hideNavigationWarnings
+              allLanguages={[]}
+              siteLanguages={[]}
+            />
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <label className="col-12 col-form-label">
+            {I18NextService.i18n.t("legal_information")}
+          </label>
+          <div className="col-12">
+            <MarkdownTextArea
+              initialContent={this.state.siteForm.legal_information}
+              onContentChange={this.handleSiteLegalInfoChange}
+              hideNavigationWarnings
+              allLanguages={[]}
+              siteLanguages={[]}
+            />
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
               <input
-                type="text"
-                className="form-control"
-                id="site-desc"
-                value={this.state.siteForm.description}
-                onInput={linkEvent(this, this.handleSiteDescChange)}
-                maxLength={150}
+                className="form-check-input"
+                id="create-site-downvotes"
+                type="checkbox"
+                checked={this.state.siteForm.enable_downvotes}
+                onChange={linkEvent(this, this.handleSiteEnableDownvotesChange)}
               />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-downvotes"
+              >
+                {I18NextService.i18n.t("enable_downvotes")}
+              </label>
             </div>
           </div>
-          <div className="form-group row">
-            <label className="col-12 col-form-label">{i18n.t("sidebar")}</label>
-            <div className="col-12">
-              <MarkdownTextArea
-                initialContent={this.state.siteForm.sidebar}
-                onContentChange={this.handleSiteSidebarChange}
-                hideNavigationWarnings
-                allLanguages={[]}
-                siteLanguages={[]}
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-enable-nsfw"
+                type="checkbox"
+                checked={this.state.siteForm.enable_nsfw}
+                onChange={linkEvent(this, this.handleSiteEnableNsfwChange)}
               />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-enable-nsfw"
+              >
+                {I18NextService.i18n.t("enable_nsfw")}
+              </label>
             </div>
           </div>
-          <div className="form-group row">
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <label
+              className="form-check-label me-2"
+              htmlFor="create-site-registration-mode"
+            >
+              {I18NextService.i18n.t("registration_mode")}
+            </label>
+            <select
+              id="create-site-registration-mode"
+              value={this.state.siteForm.registration_mode}
+              onChange={linkEvent(this, this.handleSiteRegistrationModeChange)}
+              className="form-select d-inline-block w-auto"
+            >
+              <option value={"RequireApplication"}>
+                {I18NextService.i18n.t("require_registration_application")}
+              </option>
+              <option value={"Open"}>
+                {I18NextService.i18n.t("open_registration")}
+              </option>
+              <option value={"Closed"}>
+                {I18NextService.i18n.t("close_registration")}
+              </option>
+            </select>
+          </div>
+        </div>
+        {this.state.siteForm.registration_mode == "RequireApplication" && (
+          <div className="mb-3 row">
             <label className="col-12 col-form-label">
-              {i18n.t("legal_information")}
+              {I18NextService.i18n.t("application_questionnaire")}
             </label>
             <div className="col-12">
               <MarkdownTextArea
-                initialContent={this.state.siteForm.legal_information}
-                onContentChange={this.handleSiteLegalInfoChange}
+                initialContent={this.state.siteForm.application_question}
+                onContentChange={this.handleSiteApplicationQuestionChange}
                 hideNavigationWarnings
                 allLanguages={[]}
                 siteLanguages={[]}
               />
             </div>
           </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-downvotes"
-                  type="checkbox"
-                  checked={this.state.siteForm.enable_downvotes}
-                  onChange={linkEvent(
-                    this,
-                    this.handleSiteEnableDownvotesChange
-                  )}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-downvotes"
-                >
-                  {i18n.t("enable_downvotes")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-enable-nsfw"
-                  type="checkbox"
-                  checked={this.state.siteForm.enable_nsfw}
-                  onChange={linkEvent(this, this.handleSiteEnableNsfwChange)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-enable-nsfw"
-                >
-                  {i18n.t("enable_nsfw")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <label
-                className="form-check-label mr-2"
-                htmlFor="create-site-registration-mode"
-              >
-                {i18n.t("registration_mode")}
-              </label>
-              <select
-                id="create-site-registration-mode"
-                value={this.state.siteForm.registration_mode}
+        )}
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-community-creation-admin-only"
+                type="checkbox"
+                checked={this.state.siteForm.community_creation_admin_only}
                 onChange={linkEvent(
                   this,
-                  this.handleSiteRegistrationModeChange
+                  this.handleSiteCommunityCreationAdminOnly
                 )}
-                className="custom-select w-auto"
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-community-creation-admin-only"
               >
-                <option value={RegistrationMode.RequireApplication}>
-                  {i18n.t("require_registration_application")}
-                </option>
-                <option value={RegistrationMode.Open}>
-                  {i18n.t("open_registration")}
-                </option>
-                <option value={RegistrationMode.Closed}>
-                  {i18n.t("close_registration")}
-                </option>
-              </select>
-            </div>
-          </div>
-          {this.state.siteForm.registration_mode ==
-            RegistrationMode.RequireApplication && (
-            <div className="form-group row">
-              <label className="col-12 col-form-label">
-                {i18n.t("application_questionnaire")}
+                {I18NextService.i18n.t("community_creation_admin_only")}
               </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-require-email-verification"
+                type="checkbox"
+                checked={this.state.siteForm.require_email_verification}
+                onChange={linkEvent(
+                  this,
+                  this.handleSiteRequireEmailVerification
+                )}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-require-email-verification"
+              >
+                {I18NextService.i18n.t("require_email_verification")}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-application-email-admins"
+                type="checkbox"
+                checked={this.state.siteForm.application_email_admins}
+                onChange={linkEvent(
+                  this,
+                  this.handleSiteApplicationEmailAdmins
+                )}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-email-admins"
+              >
+                {I18NextService.i18n.t("application_email_admins")}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-reports-email-admins"
+                type="checkbox"
+                checked={this.state.siteForm.reports_email_admins}
+                onChange={linkEvent(this, this.handleSiteReportsEmailAdmins)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-reports-email-admins"
+              >
+                {I18NextService.i18n.t("reports_email_admins")}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <label
+              className="form-check-label me-2"
+              htmlFor="create-site-default-theme"
+            >
+              {I18NextService.i18n.t("theme")}
+            </label>
+            <select
+              id="create-site-default-theme"
+              value={this.state.siteForm.default_theme}
+              onChange={linkEvent(this, this.handleSiteDefaultTheme)}
+              className="form-select d-inline-block w-auto"
+            >
+              <option value="browser">
+                {I18NextService.i18n.t("browser_default")}
+              </option>
+              <option value="browser-compact">
+                {I18NextService.i18n.t("browser_default_compact")}
+              </option>
+              {this.props.themeList?.map(theme => (
+                <option key={theme} value={theme}>
+                  {theme}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {this.props.showLocal && (
+          <form className="mb-3 row">
+            <label className="col-sm-3 col-form-label">
+              {I18NextService.i18n.t("listing_type")}
+            </label>
+            <div className="col-sm-9">
+              <ListingTypeSelect
+                type_={this.state.siteForm.default_post_listing_type ?? "Local"}
+                showLocal
+                showSubscribed={false}
+                onChange={this.handleDefaultPostListingTypeChange}
+              />
+            </div>
+          </form>
+        )}
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-private-instance"
+                type="checkbox"
+                checked={this.state.siteForm.private_instance}
+                onChange={linkEvent(this, this.handleSitePrivateInstance)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-private-instance"
+              >
+                {I18NextService.i18n.t("private_instance")}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-hide-modlog-mod-names"
+                type="checkbox"
+                checked={this.state.siteForm.hide_modlog_mod_names}
+                onChange={linkEvent(this, this.handleSiteHideModlogModNames)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-hide-modlog-mod-names"
+              >
+                {I18NextService.i18n.t("hide_modlog_mod_names")}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <label
+            className="col-12 col-form-label"
+            htmlFor="create-site-slur-filter-regex"
+          >
+            {I18NextService.i18n.t("slur_filter_regex")}
+          </label>
+          <div className="col-12">
+            <input
+              type="text"
+              id="create-site-slur-filter-regex"
+              placeholder="(word1|word2)"
+              className="form-control"
+              value={this.state.siteForm.slur_filter_regex}
+              onInput={linkEvent(this, this.handleSiteSlurFilterRegex)}
+              minLength={3}
+            />
+          </div>
+        </div>
+        <LanguageSelect
+          allLanguages={this.props.siteRes.all_languages}
+          siteLanguages={this.props.siteRes.discussion_languages}
+          selectedLanguageIds={this.state.siteForm.discussion_languages}
+          multiple={true}
+          onChange={this.handleDiscussionLanguageChange}
+          showAll
+        />
+        <div className="mb-3 row">
+          <label
+            className="col-12 col-form-label"
+            htmlFor="create-site-actor-name"
+          >
+            {I18NextService.i18n.t("actor_name_max_length")}
+          </label>
+          <div className="col-12">
+            <input
+              type="number"
+              id="create-site-actor-name"
+              className="form-control"
+              min={5}
+              value={this.state.siteForm.actor_name_max_length}
+              onInput={linkEvent(this, this.handleSiteActorNameMaxLength)}
+            />
+          </div>
+        </div>
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-federation-enabled"
+                type="checkbox"
+                checked={this.state.siteForm.federation_enabled}
+                onChange={linkEvent(this, this.handleSiteFederationEnabled)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-federation-enabled"
+              >
+                {I18NextService.i18n.t("federation_enabled")}
+              </label>
+            </div>
+          </div>
+        </div>
+        {this.state.siteForm.federation_enabled && (
+          <>
+            <div className="mb-3 row">
+              {this.federatedInstanceSelect("allowed_instances")}
+              {this.federatedInstanceSelect("blocked_instances")}
+            </div>
+            <div className="mb-3 row">
               <div className="col-12">
-                <MarkdownTextArea
-                  initialContent={this.state.siteForm.application_question}
-                  onContentChange={this.handleSiteApplicationQuestionChange}
-                  hideNavigationWarnings
-                  allLanguages={[]}
-                  siteLanguages={[]}
-                />
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    id="create-site-federation-debug"
+                    type="checkbox"
+                    checked={this.state.siteForm.federation_debug}
+                    onChange={linkEvent(this, this.handleSiteFederationDebug)}
+                  />
+                  <label
+                    className="form-check-label"
+                    htmlFor="create-site-federation-debug"
+                  >
+                    {I18NextService.i18n.t("federation_debug")}
+                  </label>
+                </div>
               </div>
             </div>
-          )}
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-community-creation-admin-only"
-                  type="checkbox"
-                  checked={this.state.siteForm.community_creation_admin_only}
-                  onChange={linkEvent(
-                    this,
-                    this.handleSiteCommunityCreationAdminOnly
-                  )}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-community-creation-admin-only"
-                >
-                  {i18n.t("community_creation_admin_only")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-require-email-verification"
-                  type="checkbox"
-                  checked={this.state.siteForm.require_email_verification}
-                  onChange={linkEvent(
-                    this,
-                    this.handleSiteRequireEmailVerification
-                  )}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-require-email-verification"
-                >
-                  {i18n.t("require_email_verification")}
-                </label>
-              </div>
+          </>
+        )}
+        <div className="mb-3 row">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                id="create-site-captcha-enabled"
+                type="checkbox"
+                checked={this.state.siteForm.captcha_enabled}
+                onChange={linkEvent(this, this.handleSiteCaptchaEnabled)}
+              />
+              <label
+                className="form-check-label"
+                htmlFor="create-site-captcha-enabled"
+              >
+                {I18NextService.i18n.t("captcha_enabled")}
+              </label>
             </div>
           </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-application-email-admins"
-                  type="checkbox"
-                  checked={this.state.siteForm.application_email_admins}
-                  onChange={linkEvent(
-                    this,
-                    this.handleSiteApplicationEmailAdmins
-                  )}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-email-admins"
-                >
-                  {i18n.t("application_email_admins")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-reports-email-admins"
-                  type="checkbox"
-                  checked={this.state.siteForm.reports_email_admins}
-                  onChange={linkEvent(this, this.handleSiteReportsEmailAdmins)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-reports-email-admins"
-                >
-                  {i18n.t("reports_email_admins")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
+        </div>
+        {this.state.siteForm.captcha_enabled && (
+          <div className="mb-3 row">
             <div className="col-12">
               <label
-                className="form-check-label mr-2"
-                htmlFor="create-site-default-theme"
+                className="form-check-label me-2"
+                htmlFor="create-site-captcha-difficulty"
               >
-                {i18n.t("theme")}
+                {I18NextService.i18n.t("captcha_difficulty")}
               </label>
               <select
-                id="create-site-default-theme"
-                value={this.state.siteForm.default_theme}
-                onChange={linkEvent(this, this.handleSiteDefaultTheme)}
-                className="custom-select w-auto"
+                id="create-site-captcha-difficulty"
+                value={this.state.siteForm.captcha_difficulty}
+                onChange={linkEvent(this, this.handleSiteCaptchaDifficulty)}
+                className="form-select d-inline-block w-auto"
               >
-                <option value="browser">{i18n.t("browser_default")}</option>
-                {this.state.themeList?.map(theme => (
-                  <option key={theme} value={theme}>
-                    {theme}
-                  </option>
-                ))}
+                <option value="easy">{I18NextService.i18n.t("easy")}</option>
+                <option value="medium">
+                  {I18NextService.i18n.t("medium")}
+                </option>
+                <option value="hard">{I18NextService.i18n.t("hard")}</option>
               </select>
             </div>
           </div>
-          {this.props.showLocal && (
-            <form className="form-group row">
-              <label className="col-sm-3">{i18n.t("listing_type")}</label>
-              <div className="col-sm-9">
-                <ListingTypeSelect
-                  type_={
-                    ListingType[
-                      this.state.siteForm.default_post_listing_type ?? "Local"
-                    ]
-                  }
-                  showLocal
-                  showSubscribed={false}
-                  onChange={this.handleDefaultPostListingTypeChange}
-                />
-              </div>
-            </form>
-          )}
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-private-instance"
-                  type="checkbox"
-                  checked={this.state.siteForm.private_instance}
-                  onChange={linkEvent(this, this.handleSitePrivateInstance)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-private-instance"
-                >
-                  {i18n.t("private_instance")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-hide-modlog-mod-names"
-                  type="checkbox"
-                  checked={this.state.siteForm.hide_modlog_mod_names}
-                  onChange={linkEvent(this, this.handleSiteHideModlogModNames)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-hide-modlog-mod-names"
-                >
-                  {i18n.t("hide_modlog_mod_names")}
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-slur-filter-regex"
+        )}
+        <div className="mb-3 row">
+          <div className="col-12">
+            <button
+              type="submit"
+              className="btn btn-secondary me-2"
+              disabled={this.props.loading}
             >
-              {i18n.t("slur_filter_regex")}
-            </label>
-            <div className="col-12">
-              <input
-                type="text"
-                id="create-site-slur-filter-regex"
-                placeholder="(word1|word2)"
-                className="form-control"
-                value={this.state.siteForm.slur_filter_regex}
-                onInput={linkEvent(this, this.handleSiteSlurFilterRegex)}
-                minLength={3}
-              />
-            </div>
-          </div>
-          <LanguageSelect
-            allLanguages={this.props.siteRes.all_languages}
-            siteLanguages={this.props.siteRes.discussion_languages}
-            selectedLanguageIds={this.state.siteForm.discussion_languages}
-            multiple={true}
-            onChange={this.handleDiscussionLanguageChange}
-            showAll
-          />
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-actor-name"
-            >
-              {i18n.t("actor_name_max_length")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-actor-name"
-                className="form-control"
-                min={5}
-                value={this.state.siteForm.actor_name_max_length}
-                onInput={linkEvent(this, this.handleSiteActorNameMaxLength)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-federation-enabled"
-                  type="checkbox"
-                  checked={this.state.siteForm.federation_enabled}
-                  onChange={linkEvent(this, this.handleSiteFederationEnabled)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-federation-enabled"
-                >
-                  {i18n.t("federation_enabled")}
-                </label>
-              </div>
-            </div>
-          </div>
-          {this.state.siteForm.federation_enabled && (
-            <>
-              <div className="form-group row">
-                <label
-                  className="col-12 col-form-label"
-                  htmlFor="create-site-allowed-instances"
-                >
-                  {i18n.t("allowed_instances")}
-                </label>
-                <div className="col-12">
-                  <input
-                    type="text"
-                    placeholder="instance1.tld,instance2.tld"
-                    id="create-site-allowed-instances"
-                    className="form-control"
-                    value={this.instancesToString(
-                      this.state.siteForm.allowed_instances
-                    )}
-                    onInput={linkEvent(this, this.handleSiteAllowedInstances)}
-                  />
-                </div>
-              </div>
-              <div className="form-group row">
-                <label
-                  className="col-12 col-form-label"
-                  htmlFor="create-site-blocked-instances"
-                >
-                  {i18n.t("blocked_instances")}
-                </label>
-                <div className="col-12">
-                  <input
-                    type="text"
-                    placeholder="instance1.tld,instance2.tld"
-                    id="create-site-blocked-instances"
-                    className="form-control"
-                    value={this.instancesToString(
-                      this.state.siteForm.blocked_instances
-                    )}
-                    onInput={linkEvent(this, this.handleSiteBlockedInstances)}
-                  />
-                </div>
-              </div>
-              <div className="form-group row">
-                <div className="col-12">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      id="create-site-federation-debug"
-                      type="checkbox"
-                      checked={this.state.siteForm.federation_debug}
-                      onChange={linkEvent(this, this.handleSiteFederationDebug)}
-                    />
-                    <label
-                      className="form-check-label"
-                      htmlFor="create-site-federation-debug"
-                    >
-                      {i18n.t("federation_debug")}
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="form-group row">
-                <label
-                  className="col-12 col-form-label"
-                  htmlFor="create-site-federation-worker-count"
-                >
-                  {i18n.t("federation_worker_count")}
-                </label>
-                <div className="col-12">
-                  <input
-                    type="number"
-                    id="create-site-federation-worker-count"
-                    className="form-control"
-                    min={0}
-                    value={this.state.siteForm.federation_worker_count}
-                    onInput={linkEvent(
-                      this,
-                      this.handleSiteFederationWorkerCount
-                    )}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-          <div className="form-group row">
-            <div className="col-12">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  id="create-site-captcha-enabled"
-                  type="checkbox"
-                  checked={this.state.siteForm.captcha_enabled}
-                  onChange={linkEvent(this, this.handleSiteCaptchaEnabled)}
-                />
-                <label
-                  className="form-check-label"
-                  htmlFor="create-site-captcha-enabled"
-                >
-                  {i18n.t("captcha_enabled")}
-                </label>
-              </div>
-            </div>
-          </div>
-          {this.state.siteForm.captcha_enabled && (
-            <div className="form-group row">
-              <div className="col-12">
-                <label
-                  className="form-check-label mr-2"
-                  htmlFor="create-site-captcha-difficulty"
-                >
-                  {i18n.t("captcha_difficulty")}
-                </label>
-                <select
-                  id="create-site-captcha-difficulty"
-                  value={this.state.siteForm.captcha_difficulty}
-                  onChange={linkEvent(this, this.handleSiteCaptchaDifficulty)}
-                  className="custom-select w-auto"
-                >
-                  <option value="easy">{i18n.t("easy")}</option>
-                  <option value="medium">{i18n.t("medium")}</option>
-                  <option value="hard">{i18n.t("hard")}</option>
-                </select>
-              </div>
-            </div>
-          )}
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-message"
-            >
-              {i18n.t("rate_limit_message")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-message"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_message}
-                onInput={linkEvent(this, this.handleSiteRateLimitMessage)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-message-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-message-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_message_per_second}
-                onInput={linkEvent(
-                  this,
-                  this.handleSiteRateLimitMessagePerSecond
-                )}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-post"
-            >
-              {i18n.t("rate_limit_post")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-post"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_post}
-                onInput={linkEvent(this, this.handleSiteRateLimitPost)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-post-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-post-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_post_per_second}
-                onInput={linkEvent(this, this.handleSiteRateLimitPostPerSecond)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-register"
-            >
-              {i18n.t("rate_limit_register")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-register"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_register}
-                onInput={linkEvent(this, this.handleSiteRateLimitRegister)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-register-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-register-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_register_per_second}
-                onInput={linkEvent(
-                  this,
-                  this.handleSiteRateLimitRegisterPerSecond
-                )}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-image"
-            >
-              {i18n.t("rate_limit_image")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-image"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_image}
-                onInput={linkEvent(this, this.handleSiteRateLimitImage)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-image-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-image-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_image_per_second}
-                onInput={linkEvent(
-                  this,
-                  this.handleSiteRateLimitImagePerSecond
-                )}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-comment"
-            >
-              {i18n.t("rate_limit_comment")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-comment"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_comment}
-                onInput={linkEvent(this, this.handleSiteRateLimitComment)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-comment-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-comment-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_comment_per_second}
-                onInput={linkEvent(
-                  this,
-                  this.handleSiteRateLimitCommentPerSecond
-                )}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-search"
-            >
-              {i18n.t("rate_limit_search")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-search"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_search}
-                onInput={linkEvent(this, this.handleSiteRateLimitSearch)}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <label
-              className="col-12 col-form-label"
-              htmlFor="create-site-rate-limit-search-per-second"
-            >
-              {i18n.t("per_second")}
-            </label>
-            <div className="col-12">
-              <input
-                type="number"
-                id="create-site-rate-limit-search-per-second"
-                className="form-control"
-                min={0}
-                value={this.state.siteForm.rate_limit_search_per_second}
-                onInput={linkEvent(
-                  this,
-                  this.handleSiteRateLimitSearchPerSecond
-                )}
-              />
-            </div>
-          </div>
-          <div className="form-group row">
-            <h5 className="col-12">{i18n.t("taglines")}</h5>
-            <div className="table-responsive col-12">
-              <table id="taglines_table" className="table table-sm table-hover">
-                <thead className="pointer"></thead>
-                <tbody>
-                  {this.state.siteForm.taglines?.map((cv, index) => (
-                    <tr key={index}>
-                      <td>
-                        <MarkdownTextArea
-                          initialContent={cv}
-                          onContentChange={s =>
-                            this.handleTaglineChange(this, index, s)
-                          }
-                          hideNavigationWarnings
-                          allLanguages={this.props.siteRes.all_languages}
-                          siteLanguages={
-                            this.props.siteRes.discussion_languages
-                          }
-                        />
-                      </td>
-                      <td className="text-right">
-                        <button
-                          className="btn btn-link btn-animate text-muted"
-                          onClick={e =>
-                            this.handleDeleteTaglineClick(this, index, e)
-                          }
-                          data-tippy-content={i18n.t("delete")}
-                          aria-label={i18n.t("delete")}
-                        >
-                          <Icon
-                            icon="trash"
-                            classes={`icon-inline text-danger`}
-                          />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                className="btn btn-sm btn-secondary mr-2"
-                onClick={e => this.handleAddTaglineClick(this, e)}
-              >
-                {i18n.t("add_tagline")}
-              </button>
-            </div>
-          </div>
-          <div className="form-group row">
-            <div className="col-12">
-              <button
-                type="submit"
-                className="btn btn-secondary mr-2"
-                disabled={this.state.loading}
-              >
-                {this.state.loading ? (
-                  <Spinner />
-                ) : siteSetup ? (
-                  capitalizeFirstLetter(i18n.t("save"))
-                ) : (
-                  capitalizeFirstLetter(i18n.t("create"))
-                )}
-              </button>
-              {siteSetup && (
-                <button
-                  type="button"
-                  className="btn btn-secondary mr-2"
-                  onClick={linkEvent(this, this.handleBlockchain)}
-                >
-                  {i18n.t("Blockchain")}
-                </button>
+              {this.props.loading ? (
+                <Spinner />
+              ) : siteSetup ? (
+                capitalizeFirstLetter(I18NextService.i18n.t("save"))
+              ) : (
+                capitalizeFirstLetter(I18NextService.i18n.t("create"))
               )}
-            </div>
+            </button>
           </div>
-        </form>
-      </>
+        </div>
+      </form>
     );
   }
 
-  handleCreateSiteSubmit(i: SiteForm, event: any) {
-    if (event) event.preventDefault();
-    i.setState({ loading: true });
-    let auth = myAuth() ?? "TODO";
+  componentDidUpdate(
+    prevProps: Readonly<{ children?: InfernoNode } & SiteFormProps>
+  ) {
+    if (
+      !(
+        deepEqual(prevProps.allowedInstances, this.props.allowedInstances) ||
+        deepEqual(prevProps.blockedInstances, this.props.blockedInstances)
+      )
+    ) {
+      this.setState({ siteForm: this.initSiteForm() });
+    }
+  }
+
+  federatedInstanceSelect(key: InstanceKey) {
+    const id = `create_site_${key}`;
+    const value = this.state.instance_select[key];
+    const selectedInstances = this.state.siteForm[key];
+    return (
+      <div className="col-12 col-md-6">
+        <label className="col-form-label" htmlFor={id}>
+          {I18NextService.i18n.t(key)}
+        </label>
+        <div className="d-flex justify-content-between align-items-center">
+          <input
+            type="text"
+            placeholder="instance.tld"
+            id={id}
+            className="form-control"
+            value={value}
+            onInput={linkEvent(key, this.handleInstanceTextChange)}
+            onKeyUp={linkEvent(key, this.handleInstanceEnterPress)}
+          />
+          <button
+            type="button"
+            className="btn btn-sm bg-success ms-2"
+            onClick={linkEvent(key, this.handleAddInstance)}
+            style={"width: 2rem; height: 2rem;"}
+            tabIndex={
+              -1 /* Making this untabble because handling enter key in text input makes keyboard support for this button redundant */
+            }
+          >
+            <Icon
+              icon="add"
+              classes="icon-inline text-light m-auto d-block position-static"
+            />
+          </button>
+        </div>
+        {selectedInstances && selectedInstances.length > 0 && (
+          <ul className="mt-3 list-unstyled w-100 d-flex flex-column justify-content-around align-items-center">
+            {selectedInstances.map(instance => (
+              <li
+                key={instance}
+                className="my-1 w-100 w-md-75 d-flex align-items-center justify-content-between"
+              >
+                <label className="d-block m-0 w-100 " htmlFor={instance}>
+                  <strong>{instance}</strong>
+                </label>
+                <button
+                  id={instance}
+                  type="button"
+                  style={"width: 2rem; height: 2rem;"}
+                  className="btn btn-sm bg-danger"
+                  onClick={linkEvent(
+                    { key, instance },
+                    this.handleRemoveInstance
+                  )}
+                >
+                  <Icon
+                    icon="x"
+                    classes="icon-inline text-light m-auto d-block position-static"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+
+  handleInstanceTextChange(type: InstanceKey, event: any) {
+    this.setState(s => ({
+      ...s,
+      instance_select: {
+        ...s.instance_select,
+        [type]: event.target.value,
+      },
+    }));
+  }
+
+  handleInstanceEnterPress(
+    key: InstanceKey,
+    event: InfernoKeyboardEvent<HTMLInputElement>
+  ) {
+    if (event.code.toLowerCase() === "enter") {
+      event.preventDefault();
+
+      this.handleAddInstance(key);
+    }
+  }
+
+  handleSaveSiteSubmit(i: SiteForm, event: any) {
+    event.preventDefault();
+    const auth = myAuthRequired();
     i.setState(s => ((s.siteForm.auth = auth), s));
+    i.setState({ submitted: true });
+
+    const stateSiteForm = i.state.siteForm;
+
+    let form: EditSite | CreateSite;
+
     if (i.props.siteRes.site_view.local_site.site_setup) {
-      WebSocketService.Instance.send(wsClient.editSite(i.state.siteForm));
+      form = stateSiteForm;
     } else {
-      let sForm = i.state.siteForm;
-      let form: CreateSite = {
-        name: sForm.name ?? "My site",
-        sidebar: sForm.sidebar,
-        description: sForm.description,
-        icon: sForm.icon,
-        banner: sForm.banner,
-        community_creation_admin_only: sForm.community_creation_admin_only,
-        enable_nsfw: sForm.enable_nsfw,
-        enable_downvotes: sForm.enable_downvotes,
-        application_question: sForm.application_question,
-        registration_mode: sForm.registration_mode,
-        require_email_verification: sForm.require_email_verification,
-        private_instance: sForm.private_instance,
-        default_theme: sForm.default_theme,
-        default_post_listing_type: sForm.default_post_listing_type,
-        application_email_admins: sForm.application_email_admins,
-        hide_modlog_mod_names: sForm.hide_modlog_mod_names,
-        legal_information: sForm.legal_information,
-        slur_filter_regex: sForm.slur_filter_regex,
-        actor_name_max_length: sForm.actor_name_max_length,
-        rate_limit_message: sForm.rate_limit_message,
-        rate_limit_message_per_second: sForm.rate_limit_message_per_second,
-        rate_limit_comment: sForm.rate_limit_comment,
-        rate_limit_comment_per_second: sForm.rate_limit_comment_per_second,
-        rate_limit_image: sForm.rate_limit_image,
-        rate_limit_image_per_second: sForm.rate_limit_image_per_second,
-        rate_limit_post: sForm.rate_limit_post,
-        rate_limit_post_per_second: sForm.rate_limit_post_per_second,
-        rate_limit_register: sForm.rate_limit_register,
-        rate_limit_register_per_second: sForm.rate_limit_register_per_second,
-        rate_limit_search: sForm.rate_limit_search,
-        rate_limit_search_per_second: sForm.rate_limit_search_per_second,
-        federation_enabled: sForm.federation_enabled,
-        federation_debug: sForm.federation_debug,
-        federation_worker_count: sForm.federation_worker_count,
-        captcha_enabled: sForm.captcha_enabled,
-        captcha_difficulty: sForm.captcha_difficulty,
-        allowed_instances: sForm.allowed_instances,
-        blocked_instances: sForm.blocked_instances,
-        discussion_languages: sForm.discussion_languages,
-        taglines: sForm.taglines,
+      form = {
+        name: stateSiteForm.name ?? "My site",
+        sidebar: stateSiteForm.sidebar,
+        description: stateSiteForm.description,
+        icon: stateSiteForm.icon,
+        banner: stateSiteForm.banner,
+        community_creation_admin_only:
+          stateSiteForm.community_creation_admin_only,
+        enable_nsfw: stateSiteForm.enable_nsfw,
+        enable_downvotes: stateSiteForm.enable_downvotes,
+        application_question: stateSiteForm.application_question,
+        registration_mode: stateSiteForm.registration_mode,
+        require_email_verification: stateSiteForm.require_email_verification,
+        private_instance: stateSiteForm.private_instance,
+        default_theme: stateSiteForm.default_theme,
+        default_post_listing_type: stateSiteForm.default_post_listing_type,
+        application_email_admins: stateSiteForm.application_email_admins,
+        hide_modlog_mod_names: stateSiteForm.hide_modlog_mod_names,
+        legal_information: stateSiteForm.legal_information,
+        slur_filter_regex: stateSiteForm.slur_filter_regex,
+        actor_name_max_length: stateSiteForm.actor_name_max_length,
+        rate_limit_message: stateSiteForm.rate_limit_message,
+        rate_limit_message_per_second:
+          stateSiteForm.rate_limit_message_per_second,
+        rate_limit_comment: stateSiteForm.rate_limit_comment,
+        rate_limit_comment_per_second:
+          stateSiteForm.rate_limit_comment_per_second,
+        rate_limit_image: stateSiteForm.rate_limit_image,
+        rate_limit_image_per_second: stateSiteForm.rate_limit_image_per_second,
+        rate_limit_post: stateSiteForm.rate_limit_post,
+        rate_limit_post_per_second: stateSiteForm.rate_limit_post_per_second,
+        rate_limit_register: stateSiteForm.rate_limit_register,
+        rate_limit_register_per_second:
+          stateSiteForm.rate_limit_register_per_second,
+        rate_limit_search: stateSiteForm.rate_limit_search,
+        rate_limit_search_per_second:
+          stateSiteForm.rate_limit_search_per_second,
+        federation_enabled: stateSiteForm.federation_enabled,
+        federation_debug: stateSiteForm.federation_debug,
+        captcha_enabled: stateSiteForm.captcha_enabled,
+        captcha_difficulty: stateSiteForm.captcha_difficulty,
+        allowed_instances: stateSiteForm.allowed_instances,
+        blocked_instances: stateSiteForm.blocked_instances,
+        discussion_languages: stateSiteForm.discussion_languages,
         auth,
       };
-      WebSocketService.Instance.send(wsClient.createSite(form));
     }
-    i.setState(i.state);
+
+    i.props.onSaveSite(form);
   }
 
-  instancesToString(opt?: string[]): string {
-    return opt ? opt.join(",") : "";
+  handleAddInstance(key: InstanceKey) {
+    const instance = this.state.instance_select[key].trim();
+
+    if (!validInstanceTLD(instance)) {
+      return;
+    }
+
+    if (!this.state.siteForm[key]?.includes(instance)) {
+      this.setState(s => ({
+        ...s,
+        siteForm: {
+          ...s.siteForm,
+          [key]: [...(s.siteForm[key] ?? []), instance],
+        },
+        instance_select: {
+          ...s.instance_select,
+          [key]: "",
+        },
+      }));
+
+      const oppositeKey: InstanceKey =
+        key === "allowed_instances" ? "blocked_instances" : "allowed_instances";
+      if (this.state.siteForm[oppositeKey]?.includes(instance)) {
+        this.handleRemoveInstance({ key: oppositeKey, instance });
+      }
+    }
   }
 
-  handleSiteAllowedInstances(i: SiteForm, event: any) {
-    let list = splitToList(event.target.value);
-    i.setState(s => ((s.siteForm.allowed_instances = list), s));
-  }
-
-  handleSiteBlockedInstances(i: SiteForm, event: any) {
-    let list = splitToList(event.target.value);
-    i.setState(s => ((s.siteForm.blocked_instances = list), s));
+  handleRemoveInstance({
+    key,
+    instance,
+  }: {
+    key: InstanceKey;
+    instance: string;
+  }) {
+    this.setState(s => ({
+      ...s,
+      siteForm: {
+        ...s.siteForm,
+        [key]: s.siteForm[key]?.filter(i => i !== instance),
+      },
+    }));
   }
 
   handleSiteNameChange(i: SiteForm, event: any) {
@@ -1080,7 +853,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   handleTaglineChange(i: SiteForm, index: number, val: string) {
-    let taglines = i.state.siteForm.taglines;
+    const taglines = i.state.siteForm.taglines;
     if (taglines) {
       taglines[index] = val;
       i.setState(i.state);
@@ -1092,8 +865,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     index: number,
     event: InfernoMouseEvent<HTMLButtonElement>
   ) {
-    if (event) event.preventDefault();
-    let taglines = i.state.siteForm.taglines;
+    event.preventDefault();
+    const taglines = i.state.siteForm.taglines;
     if (taglines) {
       taglines.splice(index, 1);
       i.state.siteForm.taglines = undefined;
@@ -1266,7 +1039,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     config.metadata.site.private_key = undefined;
 
     try {
-      let auth = myAuth(false);
+      const auth = myAuth(false);
       await createPayment(
         config,
         window.location.hostname,
@@ -1307,96 +1080,6 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     );
   }
 
-  handleSiteRateLimitMessage(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_message = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitMessagePerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_message_per_second = Number(event.target.value)),
-        s
-      )
-    );
-  }
-
-  handleSiteRateLimitPost(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_post = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitPostPerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_post_per_second = Number(event.target.value)), s
-      )
-    );
-  }
-
-  handleSiteRateLimitImage(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_image = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitImagePerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_image_per_second = Number(event.target.value)), s
-      )
-    );
-  }
-
-  handleSiteRateLimitComment(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_comment = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitCommentPerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_comment_per_second = Number(event.target.value)),
-        s
-      )
-    );
-  }
-
-  handleSiteRateLimitSearch(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_search = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitSearchPerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_search_per_second = Number(event.target.value)),
-        s
-      )
-    );
-  }
-
-  handleSiteRateLimitRegister(i: SiteForm, event: any) {
-    i.setState(
-      s => ((s.siteForm.rate_limit_register = Number(event.target.value)), s)
-    );
-  }
-
-  handleSiteRateLimitRegisterPerSecond(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.rate_limit_register_per_second = Number(
-          event.target.value
-        )),
-        s
-      )
-    );
-  }
-
   handleSiteFederationEnabled(i: SiteForm, event: any) {
     i.state.siteForm.federation_enabled = event.target.checked;
     i.setState(i.state);
@@ -1405,14 +1088,6 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   handleSiteFederationDebug(i: SiteForm, event: any) {
     i.state.siteForm.federation_debug = event.target.checked;
     i.setState(i.state);
-  }
-
-  handleSiteFederationWorkerCount(i: SiteForm, event: any) {
-    i.setState(
-      s => (
-        (s.siteForm.federation_worker_count = Number(event.target.value)), s
-      )
-    );
   }
 
   handleSiteCaptchaEnabled(i: SiteForm, event: any) {
@@ -1429,20 +1104,6 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   handleDefaultPostListingTypeChange(val: ListingType) {
-    this.setState(
-      s => (
-        (s.siteForm.default_post_listing_type = ListingType[ListingType[val]]),
-        s
-      )
-    );
-  }
-}
-
-function splitToList(commaList: string): string[] {
-  if (commaList !== "") {
-    let list = commaList.trim().split(",");
-    return list;
-  } else {
-    return [];
+    this.setState(s => ((s.siteForm.default_post_listing_type = val), s));
   }
 }

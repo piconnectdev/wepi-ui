@@ -1,60 +1,76 @@
-import { Component, linkEvent } from "inferno";
+import { myAuthRequired } from "@utils/app";
+import { Component, InfernoNode, linkEvent } from "inferno";
 import { T } from "inferno-i18next-dess";
 import {
-  CommentNode as CommentNodeI,
   CommentReportView,
   CommentView,
   ResolveCommentReport,
-  SubscribedType,
 } from "lemmy-js-client";
-import { i18n } from "../../i18next";
-import { CommentViewType } from "../../interfaces";
-import { WebSocketService } from "../../services";
-import { myAuth, wsClient } from "../../utils";
-import { Icon } from "../common/icon";
+import { CommentNodeI, CommentViewType } from "../../interfaces";
+import { I18NextService } from "../../services";
+import { Icon, Spinner } from "../common/icon";
 import { PersonListing } from "../person/person-listing";
 import { CommentNode } from "./comment-node";
 
 interface CommentReportProps {
   report: CommentReportView;
+  onResolveReport(form: ResolveCommentReport): void;
 }
 
-export class CommentReport extends Component<CommentReportProps, any> {
+interface CommentReportState {
+  loading: boolean;
+}
+
+export class CommentReport extends Component<
+  CommentReportProps,
+  CommentReportState
+> {
+  state: CommentReportState = {
+    loading: false,
+  };
   constructor(props: any, context: any) {
     super(props, context);
   }
 
+  componentWillReceiveProps(
+    nextProps: Readonly<{ children?: InfernoNode } & CommentReportProps>
+  ): void {
+    if (this.props != nextProps) {
+      this.setState({ loading: false });
+    }
+  }
+
   render() {
-    let r = this.props.report;
-    let comment = r.comment;
-    let tippyContent = i18n.t(
+    const r = this.props.report;
+    const comment = r.comment;
+    const tippyContent = I18NextService.i18n.t(
       r.comment_report.resolved ? "unresolve_report" : "resolve_report"
     );
 
     // Set the original post data ( a troll could change it )
     comment.content = r.comment_report.original_comment_text;
 
-    let comment_view: CommentView = {
+    const comment_view: CommentView = {
       comment,
       creator: r.comment_creator,
       post: r.post,
       community: r.community,
       creator_banned_from_community: r.creator_banned_from_community,
       counts: r.counts,
-      subscribed: SubscribedType.NotSubscribed,
+      subscribed: "NotSubscribed",
       saved: false,
       creator_blocked: false,
       my_vote: r.my_vote,
     };
 
-    let node: CommentNodeI = {
+    const node: CommentNodeI = {
       comment_view,
       children: [],
       depth: 0,
     };
 
     return (
-      <div>
+      <div className="comment-report">
         <CommentNode
           node={node}
           viewType={CommentViewType.Flat}
@@ -64,12 +80,33 @@ export class CommentReport extends Component<CommentReportProps, any> {
           allLanguages={[]}
           siteLanguages={[]}
           hideImages
+          // All of these are unused, since its viewonly
+          finished={new Map()}
+          onSaveComment={() => {}}
+          onBlockPerson={() => {}}
+          onDeleteComment={() => {}}
+          onRemoveComment={() => {}}
+          onCommentVote={() => {}}
+          onCommentReport={() => {}}
+          onDistinguishComment={() => {}}
+          onAddModToCommunity={() => {}}
+          onAddAdmin={() => {}}
+          onTransferCommunity={() => {}}
+          onPurgeComment={() => {}}
+          onPurgePerson={() => {}}
+          onCommentReplyRead={() => {}}
+          onPersonMentionRead={() => {}}
+          onBanPersonFromCommunity={() => {}}
+          onBanPerson={() => {}}
+          onCreateComment={() => Promise.resolve({ state: "empty" })}
+          onEditComment={() => Promise.resolve({ state: "empty" })}
         />
         <div>
-          {i18n.t("reporter")}: <PersonListing person={r.creator} />
+          {I18NextService.i18n.t("reporter")}:{" "}
+          <PersonListing person={r.creator} />
         </div>
         <div>
-          {i18n.t("reason")}: {r.comment_report.reason}
+          {I18NextService.i18n.t("reason")}: {r.comment_report.reason}
         </div>
         {r.resolver && (
           <div>
@@ -92,26 +129,27 @@ export class CommentReport extends Component<CommentReportProps, any> {
           data-tippy-content={tippyContent}
           aria-label={tippyContent}
         >
-          <Icon
-            icon="check"
-            classes={`icon-inline ${
-              r.comment_report.resolved ? "text-success" : "text-danger"
-            }`}
-          />
+          {this.state.loading ? (
+            <Spinner />
+          ) : (
+            <Icon
+              icon="check"
+              classes={`icon-inline ${
+                r.comment_report.resolved ? "text-success" : "text-danger"
+              }`}
+            />
+          )}
         </button>
       </div>
     );
   }
 
   handleResolveReport(i: CommentReport) {
-    let auth = myAuth();
-    if (auth) {
-      let form: ResolveCommentReport = {
-        report_id: i.props.report.comment_report.id,
-        resolved: !i.props.report.comment_report.resolved,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.resolveCommentReport(form));
-    }
+    i.setState({ loading: true });
+    i.props.onResolveReport({
+      report_id: i.props.report.comment_report.id,
+      resolved: !i.props.report.comment_report.resolved,
+      auth: myAuthRequired(),
+    });
   }
 }

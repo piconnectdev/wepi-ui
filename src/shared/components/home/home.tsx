@@ -1,14 +1,53 @@
-import { Component, linkEvent } from "inferno";
+import {
+  commentsToFlatNodes,
+  editComment,
+  editPost,
+  editWith,
+  enableDownvotes,
+  enableNsfw,
+  getCommentParentId,
+  getDataTypeString,
+  myAuth,
+  postToCommentSortType,
+  setIsoData,
+  showLocal,
+  updatePersonBlock,
+} from "@utils/app";
+import {
+  getPageFromString,
+  getQueryParams,
+  getQueryString,
+  getRandomFromList,
+} from "@utils/helpers";
+import { canCreateCommunity } from "@utils/roles";
+import type { QueryParams } from "@utils/types";
+import { RouteDataResponse } from "@utils/types";
+import { NoOptionI18nKeys } from "i18next";
+import { Component, MouseEventHandler, linkEvent } from "inferno";
 import { T } from "inferno-i18next-dess";
 import { Link } from "inferno-router";
 import {
-  AddAdminResponse,
+  AddAdmin,
+  AddModToCommunity,
+  BanFromCommunity,
+  BanFromCommunityResponse,
+  BanPerson,
   BanPersonResponse,
-  BlockPersonResponse,
-  CommentReportResponse,
+  BlockPerson,
+  CommentId,
+  CommentReplyResponse,
   CommentResponse,
-  CommentView,
-  CommunityView,
+  CreateComment,
+  CreateCommentLike,
+  CreateCommentReport,
+  CreatePostLike,
+  CreatePostReport,
+  DeleteComment,
+  DeletePost,
+  DistinguishComment,
+  EditComment,
+  EditPost,
+  FeaturePost,
   GetComments,
   GetCommentsResponse,
   GetPosts,
@@ -17,60 +56,39 @@ import {
   ListCommunities,
   ListCommunitiesResponse,
   ListingType,
-  PostReportResponse,
+  LockPost,
+  MarkCommentReplyAsRead,
+  MarkPersonMentionAsRead,
   PostResponse,
-  PostView,
+  PurgeComment,
   PurgeItemResponse,
-  SiteResponse,
+  PurgePerson,
+  PurgePost,
+  RemoveComment,
+  RemovePost,
+  SaveComment,
+  SavePost,
   SortType,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
+  TransferCommunity,
 } from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
+import { fetchLimit, relTags, trendingFetchLimit } from "../../config";
 import {
   CommentViewType,
   DataType,
   InitialFetchRequest,
 } from "../../interfaces";
-import { UserService, WebSocketService } from "../../services";
+import { mdToHtml } from "../../markdown";
 import {
-  canCreateCommunity,
-  commentsToFlatNodes,
-  createCommentLikeRes,
-  createPostLikeFindRes,
-  editCommentRes,
-  editPostFindRes,
-  enableDownvotes,
-  enableNsfw,
-  fetchLimit,
-  getDataTypeFromProps,
-  getListingTypeFromProps,
-  getPageFromProps,
-  getRandomFromList,
-  getSortTypeFromProps,
-  isBrowser,
-  isPostBlocked,
-  mdToHtml,
-  myAuth,
-  notifyPost,
-  nsfwCheck,
-  postToCommentSortType,
-  relTags,
-  restoreScrollPosition,
-  saveCommentRes,
-  saveScrollPosition,
-  setIsoData,
-  setupTippy,
-  showLocal,
-  toast,
-  trendingFetchLimit,
-  updatePersonBlock,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+  FirstLoadService,
+  HomeCacheService,
+  I18NextService,
+  UserService,
+} from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
+import { setupTippy } from "../../tippy";
+import { toast } from "../../toast";
 import { CommentNodes } from "../comment/comment-nodes";
+import { DataTypeSelect } from "../common/data-type-select";
 import { HtmlTags } from "../common/html-tags";
 import { Icon, Spinner } from "../common/icon";
 import { ListingTypeSelect } from "../common/listing-type-select";
@@ -81,58 +99,138 @@ import { PostListings } from "../post/post-listings";
 import { SiteSidebar } from "./site-sidebar";
 
 interface HomeState {
-  trendingCommunities: CommunityView[];
-  siteRes: GetSiteResponse;
-  posts: PostView[];
-  comments: CommentView[];
-  listingType: ListingType;
-  dataType: DataType;
-  sort: SortType;
-  page: number;
+  postsRes: RequestState<GetPostsResponse>;
+  commentsRes: RequestState<GetCommentsResponse>;
+  trendingCommunitiesRes: RequestState<ListCommunitiesResponse>;
   showSubscribedMobile: boolean;
   showTrendingMobile: boolean;
   showSidebarMobile: boolean;
   subscribedCollapsed: boolean;
-  loading: boolean;
+  scrolled: boolean;
   tagline?: string;
+  siteRes: GetSiteResponse;
+  finished: Map<CommentId, boolean | undefined>;
+  isIsomorphic: boolean;
 }
 
 interface HomeProps {
-  listingType: ListingType;
+  listingType?: ListingType;
   dataType: DataType;
   sort: SortType;
   page: number;
 }
 
-interface UrlParams {
-  listingType?: ListingType;
-  dataType?: string;
-  sort?: SortType;
-  page?: number;
+type HomeData = RouteDataResponse<{
+  postsRes: GetPostsResponse;
+  commentsRes: GetCommentsResponse;
+  trendingCommunitiesRes: ListCommunitiesResponse;
+}>;
+
+function getRss(listingType: ListingType) {
+  const { sort } = getHomeQueryParams();
+  const auth = myAuth();
+
+  let rss: string | undefined = undefined;
+
+  switch (listingType) {
+    case "All": {
+      rss = `/feeds/all.xml?sort=${sort}`;
+      break;
+    }
+    case "Local": {
+      rss = `/feeds/local.xml?sort=${sort}`;
+      break;
+    }
+    case "Subscribed": {
+      rss = auth ? `/feeds/front/${auth}.xml?sort=${sort}` : undefined;
+      break;
+    }
+  }
+
+  return (
+    rss && (
+      <>
+        <a href={rss} rel={relTags} title="RSS">
+          <Icon icon="rss" classes="text-muted small" />
+        </a>
+        <link rel="alternate" type="application/atom+xml" href={rss} />
+      </>
+    )
+  );
 }
 
+function getDataTypeFromQuery(type?: string): DataType {
+  return type ? DataType[type] : DataType.Post;
+}
+
+function getListingTypeFromQuery(type?: string): ListingType | undefined {
+  const myListingType =
+    UserService.Instance.myUserInfo?.local_user_view?.local_user
+      ?.default_listing_type;
+
+  return type ? (type as ListingType) : myListingType;
+}
+
+function getSortTypeFromQuery(type?: string): SortType {
+  const mySortType =
+    UserService.Instance.myUserInfo?.local_user_view?.local_user
+      ?.default_sort_type;
+
+  return (type ? (type as SortType) : mySortType) ?? "Active";
+}
+
+const getHomeQueryParams = () =>
+  getQueryParams<HomeProps>({
+    sort: getSortTypeFromQuery,
+    listingType: getListingTypeFromQuery,
+    page: getPageFromString,
+    dataType: getDataTypeFromQuery,
+  });
+
+const MobileButton = ({
+  textKey,
+  show,
+  onClick,
+}: {
+  textKey: NoOptionI18nKeys;
+  show: boolean;
+  onClick: MouseEventHandler<HTMLButtonElement>;
+}) => (
+  <button
+    className="btn btn-secondary d-inline-block mb-2 me-3"
+    onClick={onClick}
+  >
+    {I18NextService.i18n.t(textKey)}{" "}
+    <Icon icon={show ? `minus-square` : `plus-square`} classes="icon-inline" />
+  </button>
+);
+
+const LinkButton = ({
+  path,
+  translationKey,
+}: {
+  path: string;
+  translationKey: NoOptionI18nKeys;
+}) => (
+  <Link className="btn btn-secondary d-block" to={path}>
+    {I18NextService.i18n.t(translationKey)}
+  </Link>
+);
+
 export class Home extends Component<any, HomeState> {
-  private isoData = setIsoData(this.context);
-  private subscription?: Subscription;
+  private isoData = setIsoData<HomeData>(this.context);
   state: HomeState = {
-    trendingCommunities: [],
+    postsRes: { state: "empty" },
+    commentsRes: { state: "empty" },
+    trendingCommunitiesRes: { state: "empty" },
+    scrolled: true,
     siteRes: this.isoData.site_res,
     showSubscribedMobile: false,
     showTrendingMobile: false,
     showSidebarMobile: false,
     subscribedCollapsed: false,
-    loading: true,
-    posts: [],
-    comments: [],
-    listingType: getListingTypeFromProps(
-      this.props,
-      ListingType[
-        this.isoData.site_res.site_view.local_site.default_post_listing_type
-      ]
-    ),
-    dataType: getDataTypeFromProps(this.props),
-    sort: getSortTypeFromProps(this.props),
-    page: getPageFromProps(this.props),
+    finished: new Map(),
+    isIsomorphic: false,
   };
 
   constructor(props: any, context: any) {
@@ -143,114 +241,93 @@ export class Home extends Component<any, HomeState> {
     this.handleDataTypeChange = this.handleDataTypeChange.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
 
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
+    this.handleCreateComment = this.handleCreateComment.bind(this);
+    this.handleEditComment = this.handleEditComment.bind(this);
+    this.handleSaveComment = this.handleSaveComment.bind(this);
+    this.handleBlockPerson = this.handleBlockPerson.bind(this);
+    this.handleDeleteComment = this.handleDeleteComment.bind(this);
+    this.handleRemoveComment = this.handleRemoveComment.bind(this);
+    this.handleCommentVote = this.handleCommentVote.bind(this);
+    this.handleAddModToCommunity = this.handleAddModToCommunity.bind(this);
+    this.handleAddAdmin = this.handleAddAdmin.bind(this);
+    this.handlePurgePerson = this.handlePurgePerson.bind(this);
+    this.handlePurgeComment = this.handlePurgeComment.bind(this);
+    this.handleCommentReport = this.handleCommentReport.bind(this);
+    this.handleDistinguishComment = this.handleDistinguishComment.bind(this);
+    this.handleTransferCommunity = this.handleTransferCommunity.bind(this);
+    this.handleCommentReplyRead = this.handleCommentReplyRead.bind(this);
+    this.handlePersonMentionRead = this.handlePersonMentionRead.bind(this);
+    this.handleBanFromCommunity = this.handleBanFromCommunity.bind(this);
+    this.handleBanPerson = this.handleBanPerson.bind(this);
+    this.handlePostEdit = this.handlePostEdit.bind(this);
+    this.handlePostVote = this.handlePostVote.bind(this);
+    this.handlePostReport = this.handlePostReport.bind(this);
+    this.handleLockPost = this.handleLockPost.bind(this);
+    this.handleDeletePost = this.handleDeletePost.bind(this);
+    this.handleRemovePost = this.handleRemovePost.bind(this);
+    this.handleSavePost = this.handleSavePost.bind(this);
+    this.handlePurgePost = this.handlePurgePost.bind(this);
+    this.handleFeaturePost = this.handleFeaturePost.bind(this);
 
     // Only fetch the data if coming from another route
-    if (this.isoData.path == this.context.router.route.match.url) {
-      let postsRes = this.isoData.routeData[0] as GetPostsResponse | undefined;
-      let commentsRes = this.isoData.routeData[1] as
-        | GetCommentsResponse
-        | undefined;
-      let trendingRes = this.isoData.routeData[2] as
-        | ListCommunitiesResponse
-        | undefined;
+    if (FirstLoadService.isFirstLoad) {
+      const { trendingCommunitiesRes, commentsRes, postsRes } =
+        this.isoData.routeData;
 
-      if (postsRes) {
-        this.state = { ...this.state, posts: postsRes.posts };
-      }
-
-      if (commentsRes) {
-        this.state = { ...this.state, comments: commentsRes.comments };
-      }
-
-      if (isBrowser()) {
-        WebSocketService.Instance.send(
-          wsClient.communityJoin({
-            community_id: "00000000-0000-0000-0000-000000000000",
-          })
-        );
-      }
-      const taglines = this.state.siteRes.taglines;
       this.state = {
         ...this.state,
-        trendingCommunities: trendingRes?.communities ?? [],
-        loading: false,
-        tagline: getRandomFromList(taglines)?.content,
+        trendingCommunitiesRes,
+        commentsRes,
+        postsRes,
+        isIsomorphic: true,
       };
-    } else {
-      this.fetchTrendingCommunities();
-      this.fetchData();
-    }
-  }
 
-  fetchTrendingCommunities() {
-    let listCommunitiesForm: ListCommunities = {
-      type_: ListingType.Local,
-      sort: SortType.Hot,
-      limit: trendingFetchLimit,
-      auth: myAuth(false),
-    };
-    WebSocketService.Instance.send(
-      wsClient.listCommunities(listCommunitiesForm)
-    );
-  }
-
-  componentDidMount() {
-    // This means it hasn't been set up yet
-    if (!this.state.siteRes.site_view.local_site.site_setup) {
-      this.context.router.history.push("/setup");
+      HomeCacheService.postsRes = postsRes;
     }
-    setupTippy();
+
+    this.state.tagline = getRandomFromList(
+      this.state?.siteRes?.taglines ?? []
+    )?.content;
   }
 
   componentWillUnmount() {
-    saveScrollPosition(this.context);
-    this.subscription?.unsubscribe();
+    HomeCacheService.activate();
   }
 
-  static getDerivedStateFromProps(
-    props: HomeProps,
-    state: HomeState
-  ): HomeProps {
-    return {
-      listingType: getListingTypeFromProps(props, state.listingType),
-      dataType: getDataTypeFromProps(props),
-      sort: getSortTypeFromProps(props),
-      page: getPageFromProps(props),
+  async componentDidMount() {
+    if (
+      !this.state.isIsomorphic ||
+      !Object.values(this.isoData.routeData).some(
+        res => res.state === "success" || res.state === "failed"
+      )
+    ) {
+      await Promise.all([this.fetchTrendingCommunities(), this.fetchData()]);
+    }
+
+    setupTippy();
+  }
+
+  static async fetchInitialData({
+    client,
+    auth,
+    query: { dataType: urlDataType, listingType, page: urlPage, sort: urlSort },
+    site,
+  }: InitialFetchRequest<QueryParams<HomeProps>>): Promise<HomeData> {
+    const dataType = getDataTypeFromQuery(urlDataType);
+    const type_ =
+      getListingTypeFromQuery(listingType) ??
+      site.site_view.local_site.default_post_listing_type;
+    const sort = getSortTypeFromQuery(urlSort);
+
+    const page = urlPage ? Number(urlPage) : 1;
+
+    let postsRes: RequestState<GetPostsResponse> = { state: "empty" };
+    let commentsRes: RequestState<GetCommentsResponse> = {
+      state: "empty",
     };
-  }
 
-  static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let pathSplit = req.path.split("/");
-    let dataType: DataType = pathSplit[3]
-      ? DataType[pathSplit[3]]
-      : DataType.Post;
-    let mui = UserService.Instance.myUserInfo;
-    let auth = req.auth;
-
-    // TODO figure out auth default_listingType, default_sort_type
-    let type_: ListingType = pathSplit[5]
-      ? ListingType[pathSplit[5]]
-      : mui
-      ? Object.values(ListingType)[
-          mui.local_user_view.local_user.default_listing_type
-        ]
-      : ListingType.Local;
-    let sort: SortType = pathSplit[7]
-      ? SortType[pathSplit[7]]
-      : mui
-      ? (Object.values(SortType)[
-          mui.local_user_view.local_user.default_sort_type
-        ] as SortType)
-      : SortType.Active;
-
-    let page = pathSplit[9] ? Number(pathSplit[9]) : 1;
-
-    let promises: Promise<any>[] = [];
-
-    if (dataType == DataType.Post) {
-      let getPostsForm: GetPosts = {
+    if (dataType === DataType.Post) {
+      const getPostsForm: GetPosts = {
         type_,
         page,
         limit: fetchLimit,
@@ -259,10 +336,9 @@ export class Home extends Component<any, HomeState> {
         auth,
       };
 
-      promises.push(req.client.getPosts(getPostsForm));
-      promises.push(Promise.resolve());
+      postsRes = await client.getPosts(getPostsForm);
     } else {
-      let getCommentsForm: GetComments = {
+      const getCommentsForm: GetComments = {
         page,
         limit: fetchLimit,
         sort: postToCommentSortType(sort),
@@ -270,63 +346,62 @@ export class Home extends Component<any, HomeState> {
         saved_only: false,
         auth,
       };
-      promises.push(Promise.resolve());
-      promises.push(req.client.getComments(getCommentsForm));
+
+      commentsRes = await client.getComments(getCommentsForm);
     }
 
-    let trendingCommunitiesForm: ListCommunities = {
-      type_: ListingType.Local,
-      sort: SortType.Hot,
+    const trendingCommunitiesForm: ListCommunities = {
+      type_: "Local",
+      sort: "Hot",
       limit: trendingFetchLimit,
       auth,
     };
-    promises.push(req.client.listCommunities(trendingCommunitiesForm));
 
-    return promises;
-  }
-
-  componentDidUpdate(_: any, lastState: HomeState) {
-    if (
-      lastState.listingType !== this.state.listingType ||
-      lastState.dataType !== this.state.dataType ||
-      lastState.sort !== this.state.sort ||
-      lastState.page !== this.state.page
-    ) {
-      this.setState({ loading: true });
-      this.fetchData();
-    }
+    return {
+      trendingCommunitiesRes: await client.listCommunities(
+        trendingCommunitiesForm
+      ),
+      commentsRes,
+      postsRes,
+    };
   }
 
   get documentTitle(): string {
-    let siteView = this.state.siteRes.site_view;
-    let desc = this.state.siteRes.site_view.site.description;
-    return desc ? `${siteView.site.name} - ${desc}` : siteView.site.name;
+    const { name, description } = this.state.siteRes.site_view.site;
+
+    return description ? `${name} - ${description}` : name;
   }
 
   render() {
-    let tagline = this.state.tagline;
+    const {
+      tagline,
+      siteRes: {
+        site_view: {
+          local_site: { site_setup },
+        },
+      },
+    } = this.state;
 
     return (
-      <div className="container-lg">
+      <div className="home container-lg">
         <HtmlTags
           title={this.documentTitle}
           path={this.context.router.route.match.url}
         />
-        {this.state.siteRes.site_view.local_site.site_setup && (
+        {site_setup && (
           <div className="row">
-            <main role="main" className="col-12 col-md-8">
+            <main role="main" className="col-12 col-md-8 col-lg-9">
               {tagline && (
                 <div
                   id="tagline"
                   dangerouslySetInnerHTML={mdToHtml(tagline)}
                 ></div>
               )}
-              <div className="d-block d-md-none">{this.mobileView()}</div>
-              {this.posts()}
-              {this.notUser()}
+              <div className="d-block d-md-none">{this.mobileView}</div>
+              {this.posts}
             </main>
-            <aside className="d-none d-md-block col-md-4">
-              {this.mySidebar()}
+            <aside className="d-none d-md-block col-md-4 col-lg-3">
+              {this.mySidebar}
             </aside>
           </div>
         )}
@@ -335,97 +410,58 @@ export class Home extends Component<any, HomeState> {
   }
 
   get hasFollows(): boolean {
-    let mui = UserService.Instance.myUserInfo;
+    const mui = UserService.Instance.myUserInfo;
     return !!mui && mui.follows.length > 0;
   }
-  notUser() {
-    if (!UserService.Instance.myUserInfo && isBrowser()) {
-      return (
-        <div className="mb-4 mx-5">
-          <a
-            href="/login"
-            className="btn btn-info btn-block"
-            role="button"
-            aria-pressed="true"
-          >
-            {i18n.t("login")}
-          </a>
 
-          <a
-            href="/signup"
-            className="btn btn-info btn-block"
-            role="button"
-            aria-pressed="true"
-          >
-            {i18n.t("sign_up")}
-          </a>
-        </div>
-      );
-    }
-  }
-  mobileView() {
-    let siteRes = this.state.siteRes;
-    let siteView = siteRes.site_view;
+  get mobileView() {
+    const {
+      siteRes: {
+        site_view: { counts, site },
+        admins,
+      },
+      showSubscribedMobile,
+      showTrendingMobile,
+      showSidebarMobile,
+    } = this.state;
+
     return (
       <div className="row">
         <div className="col-12">
-          {/* {this.hasFollows && (
-            <button
-              className="btn btn-secondary d-inline-block mb-2 mr-3"
+          {this.hasFollows && (
+            <MobileButton
+              textKey="subscribed"
+              show={showSubscribedMobile}
               onClick={linkEvent(this, this.handleShowSubscribedMobile)}
-            >
-              {i18n.t("subscribed")}{" "}
-              <Icon
-                icon={
-                  this.state.showSubscribedMobile
-                    ? `minus-square`
-                    : `plus-square`
-                }
-                classes="icon-inline"
-              />
-            </button>
-          )} */}
-          <button
-            className="btn btn-secondary d-inline-block mb-2 mr-3"
-            onClick={linkEvent(this, this.handleShowTrendingMobile)}
-          >
-            {i18n.t("trending")}{" "}
-            <Icon
-              icon={
-                this.state.showTrendingMobile ? `minus-square` : `plus-square`
-              }
-              classes="icon-inline"
-            />
-          </button>
-          <button
-            className="btn btn-secondary d-inline-block mb-2 mr-3"
-            onClick={linkEvent(this, this.handleShowSidebarMobile)}
-          >
-            {i18n.t("sidebar")}{" "}
-            <Icon
-              icon={
-                this.state.showSidebarMobile ? `minus-square` : `plus-square`
-              }
-              classes="icon-inline"
-            />
-          </button>
-          {this.state.showSidebarMobile && (
-            <SiteSidebar
-              site={siteView.site}
-              admins={siteRes.admins}
-              counts={siteView.counts}
-              online={siteRes.online}
-              showLocal={showLocal(this.isoData)}
             />
           )}
-          {this.state.showTrendingMobile && (
-            <div className="col-12 card border-secondary mb-3">
-              <div className="card-body">{this.trendingCommunities()}</div>
+          <MobileButton
+            textKey="trending"
+            show={showTrendingMobile}
+            onClick={linkEvent(this, this.handleShowTrendingMobile)}
+          />
+          <MobileButton
+            textKey="sidebar"
+            show={showSidebarMobile}
+            onClick={linkEvent(this, this.handleShowSidebarMobile)}
+          />
+          {showSidebarMobile && (
+            <SiteSidebar
+              site={site}
+              admins={admins}
+              counts={counts}
+              showLocal={showLocal(this.isoData)}
+              isMobile={true}
+            />
+          )}
+          {showTrendingMobile && (
+            <div className="card border-secondary mb-3">
+              {this.trendingCommunities()}
             </div>
           )}
-          {this.state.showSubscribedMobile && (
-            <div className="col-12 card border-secondary mb-3">
-              <div className="card-body">{this.subscribedCommunities()}</div>
+          {showSubscribedMobile && (
+            <div className="card border-secondary mb-3">
+              {this.subscribedCommunities(true)}
             </div>
           )}
         </div>
@@ -433,228 +469,377 @@ export class Home extends Component<any, HomeState> {
     );
   }
 
-  mySidebar() {
-    let siteRes = this.state.siteRes;
-    let siteView = siteRes.site_view;
+  get mySidebar() {
+    const {
+      siteRes: {
+        site_view: { counts, site },
+        admins,
+      },
+    } = this.state;
+
     return (
-      <div>
-        {!this.state.loading && (
-          <div>
-            <div className="card border-secondary mb-3">
-              <div className="card-body">
-                {this.trendingCommunities()}
-                {canCreateCommunity(this.state.siteRes) &&
-                  this.createCommunityButton()}
-                {this.exploreCommunitiesButton()}
-              </div>
-            </div>
-            <SiteSidebar
-              site={siteView.site}
-              admins={siteRes.admins}
-              counts={siteView.counts}
-              online={siteRes.online}
-              showLocal={showLocal(this.isoData)}
-            />
-            {this.hasFollows && (
-              <div className="card border-secondary mb-3">
-                <div className="card-body">{this.subscribedCommunities()}</div>
-              </div>
-            )}
+      <div id="sidebarContainer">
+        <section id="sidebarMain" className="card border-secondary mb-3">
+          {this.trendingCommunities()}
+        </section>
+        <SiteSidebar
+          site={site}
+          admins={admins}
+          counts={counts}
+          showLocal={showLocal(this.isoData)}
+        />
+        {this.hasFollows && (
+          <div className="accordion">
+            <section
+              id="sidebarSubscribed"
+              className="card border-secondary mb-3"
+            >
+              {this.subscribedCommunities(false)}
+            </section>
           </div>
         )}
       </div>
-    );
-  }
-
-  createCommunityButton() {
-    return (
-      <Link className="mt-2 btn btn-secondary btn-block" to="/create_community">
-        {i18n.t("create_a_community")}
-      </Link>
-    );
-  }
-
-  exploreCommunitiesButton() {
-    return (
-      <Link className="btn btn-secondary btn-block" to="/communities">
-        {i18n.t("explore_communities")}
-      </Link>
     );
   }
 
   trendingCommunities() {
-    return (
-      <div>
-        <h5>
-          <T i18nKey="trending_communities">
-            #
-            <Link className="text-body" to="/communities">
-              #
-            </Link>
-          </T>
-        </h5>
-        <ul className="list-inline mb-0">
-          {this.state.trendingCommunities.map(cv => (
-            <li
-              key={cv.community.id}
-              className="list-inline-item d-inline-block"
-            >
-              <CommunityLink community={cv.community} />
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-
-  subscribedCommunities() {
-    return (
-      <div>
-        <h5>
-          <T class="d-inline" i18nKey="subscribed_to_communities">
-            #
-            <Link className="text-body" to="/communities">
-              #
-            </Link>
-          </T>
-          <button
-            className="btn btn-sm text-muted"
-            onClick={linkEvent(this, this.handleCollapseSubscribe)}
-            aria-label={i18n.t("collapse")}
-            data-tippy-content={i18n.t("collapse")}
-          >
-            {this.state.subscribedCollapsed ? (
-              <Icon icon="plus-square" classes="icon-inline" />
-            ) : (
-              <Icon icon="minus-square" classes="icon-inline" />
-            )}
-          </button>
-        </h5>
-        {!this.state.subscribedCollapsed && (
-          <ul className="list-inline mb-0">
-            {UserService.Instance.myUserInfo?.follows.map(cfv => (
-              <li
-                key={cfv.community.id}
-                className="list-inline-item d-inline-block"
-              >
-                <CommunityLink community={cfv.community} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  }
-
-  updateUrl(paramUpdates: UrlParams) {
-    const listingTypeStr = paramUpdates.listingType || this.state.listingType;
-    const dataTypeStr = paramUpdates.dataType || DataType[this.state.dataType];
-    const sortStr = paramUpdates.sort || this.state.sort;
-    const page = paramUpdates.page || this.state.page;
-    this.props.history.push(
-      `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${page}`
-    );
-  }
-
-  posts() {
-    return (
-      <div className="main-content-wrapper">
-        {this.state.loading ? (
+    switch (this.state.trendingCommunitiesRes?.state) {
+      case "loading":
+        return (
           <h5>
             <Spinner large />
           </h5>
-        ) : (
-          <div>
-            {this.selects()}
-            {this.listings()}
-            <Paginator
-              page={this.state.page}
-              onChange={this.handlePageChange}
-            />
+        );
+      case "success": {
+        const trending = this.state.trendingCommunitiesRes.data.communities;
+        return (
+          <>
+            <header className="card-header d-flex align-items-center">
+              <h5 className="mb-0">
+                <T i18nKey="trending_communities">
+                  #
+                  <Link className="text-body" to="/communities">
+                    #
+                  </Link>
+                </T>
+              </h5>
+            </header>
+            <div className="card-body">
+              {trending.length > 0 && (
+                <ul className="list-inline">
+                  {trending.map(cv => (
+                    <li key={cv.community.id} className="list-inline-item">
+                      <CommunityLink community={cv.community} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canCreateCommunity(this.state.siteRes) && (
+                <LinkButton
+                  path="/create_community"
+                  translationKey="create_a_community"
+                />
+              )}
+              <LinkButton
+                path="/communities"
+                translationKey="explore_communities"
+              />
+            </div>
+          </>
+        );
+      }
+    }
+  }
+
+  subscribedCommunities(isMobile = false) {
+    const { subscribedCollapsed } = this.state;
+
+    return (
+      <>
+        <header
+          className="card-header d-flex align-items-center"
+          id="sidebarSubscribedHeader"
+        >
+          <h5 className="mb-0 d-inline">
+            <T class="d-inline" i18nKey="subscribed_to_communities">
+              #
+              <Link className="text-body" to="/communities">
+                #
+              </Link>
+            </T>
+          </h5>
+          {!isMobile && (
+            <button
+              type="button"
+              className="btn btn-sm text-muted"
+              onClick={linkEvent(this, this.handleCollapseSubscribe)}
+              aria-label={
+                subscribedCollapsed
+                  ? I18NextService.i18n.t("expand")
+                  : I18NextService.i18n.t("collapse")
+              }
+              data-tippy-content={
+                subscribedCollapsed
+                  ? I18NextService.i18n.t("expand")
+                  : I18NextService.i18n.t("collapse")
+              }
+              aria-expanded="true"
+              aria-controls="sidebarSubscribedBody"
+            >
+              <Icon
+                icon={`${subscribedCollapsed ? "plus" : "minus"}-square`}
+                classes="icon-inline"
+              />
+            </button>
+          )}
+        </header>
+        {!subscribedCollapsed && (
+          <div
+            id="sidebarSubscribedBody"
+            aria-labelledby="sidebarSubscribedHeader"
+          >
+            <div className="card-body">
+              <ul className="list-inline mb-0">
+                {UserService.Instance.myUserInfo?.follows.map(cfv => (
+                  <li
+                    key={cfv.community.id}
+                    className="list-inline-item d-inline-block"
+                  >
+                    <CommunityLink community={cfv.community} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
+      </>
+    );
+  }
+
+  async updateUrl({ dataType, listingType, page, sort }: Partial<HomeProps>) {
+    const {
+      dataType: urlDataType,
+      listingType: urlListingType,
+      page: urlPage,
+      sort: urlSort,
+    } = getHomeQueryParams();
+
+    const queryParams: QueryParams<HomeProps> = {
+      dataType: getDataTypeString(dataType ?? urlDataType),
+      listingType: listingType ?? urlListingType,
+      page: (page ?? urlPage).toString(),
+      sort: sort ?? urlSort,
+    };
+
+    this.props.history.push({
+      pathname: "/",
+      search: getQueryString(queryParams),
+    });
+
+    if (!this.state.scrolled) {
+      this.setState({ scrolled: true });
+      setTimeout(() => window.scrollTo(0, 0), 0);
+    }
+
+    await this.fetchData();
+  }
+
+  get posts() {
+    const { page } = getHomeQueryParams();
+
+    return (
+      <div className="main-content-wrapper">
+        <div>
+          {this.selects}
+          {this.listings}
+          <Paginator page={page} onChange={this.handlePageChange} />
+        </div>
       </div>
     );
   }
 
-  listings() {
-    return this.state.dataType == DataType.Post ? (
-      <PostListings
-        posts={this.state.posts}
-        showCommunity
-        removeDuplicates
-        enableDownvotes={enableDownvotes(this.state.siteRes)}
-        enableNsfw={enableNsfw(this.state.siteRes)}
-        allLanguages={this.state.siteRes.all_languages}
-        siteLanguages={this.state.siteRes.discussion_languages}
-      />
-    ) : (
-      <CommentNodes
-        nodes={commentsToFlatNodes(this.state.comments)}
-        viewType={CommentViewType.Flat}
-        noIndent
-        showCommunity
-        showContext
-        enableDownvotes={enableDownvotes(this.state.siteRes)}
-        allLanguages={this.state.siteRes.all_languages}
-        siteLanguages={this.state.siteRes.discussion_languages}
-      />
-    );
+  get listings() {
+    const { dataType } = getHomeQueryParams();
+    const siteRes = this.state.siteRes;
+
+    if (dataType === DataType.Post) {
+      switch (this.state.postsRes?.state) {
+        case "empty":
+          return <div style="min-height: 20000px;"></div>;
+        case "loading":
+          return (
+            <h5>
+              <Spinner large />
+            </h5>
+          );
+        case "success": {
+          const posts = this.state.postsRes.data.posts;
+          return (
+            <PostListings
+              posts={posts}
+              showCommunity
+              removeDuplicates
+              enableDownvotes={enableDownvotes(siteRes)}
+              enableNsfw={enableNsfw(siteRes)}
+              allLanguages={siteRes.all_languages}
+              siteLanguages={siteRes.discussion_languages}
+              onBlockPerson={this.handleBlockPerson}
+              onPostEdit={this.handlePostEdit}
+              onPostVote={this.handlePostVote}
+              onPostReport={this.handlePostReport}
+              onLockPost={this.handleLockPost}
+              onDeletePost={this.handleDeletePost}
+              onRemovePost={this.handleRemovePost}
+              onSavePost={this.handleSavePost}
+              onPurgePerson={this.handlePurgePerson}
+              onPurgePost={this.handlePurgePost}
+              onBanPerson={this.handleBanPerson}
+              onBanPersonFromCommunity={this.handleBanFromCommunity}
+              onAddModToCommunity={this.handleAddModToCommunity}
+              onAddAdmin={this.handleAddAdmin}
+              onTransferCommunity={this.handleTransferCommunity}
+              onFeaturePost={this.handleFeaturePost}
+            />
+          );
+        }
+      }
+    } else {
+      switch (this.state.commentsRes.state) {
+        case "loading":
+          return (
+            <h5>
+              <Spinner large />
+            </h5>
+          );
+        case "success": {
+          const comments = this.state.commentsRes.data.comments;
+          return (
+            <CommentNodes
+              nodes={commentsToFlatNodes(comments)}
+              viewType={CommentViewType.Flat}
+              finished={this.state.finished}
+              isTopLevel
+              showCommunity
+              showContext
+              enableDownvotes={enableDownvotes(siteRes)}
+              allLanguages={siteRes.all_languages}
+              siteLanguages={siteRes.discussion_languages}
+              onSaveComment={this.handleSaveComment}
+              onBlockPerson={this.handleBlockPerson}
+              onDeleteComment={this.handleDeleteComment}
+              onRemoveComment={this.handleRemoveComment}
+              onCommentVote={this.handleCommentVote}
+              onCommentReport={this.handleCommentReport}
+              onDistinguishComment={this.handleDistinguishComment}
+              onAddModToCommunity={this.handleAddModToCommunity}
+              onAddAdmin={this.handleAddAdmin}
+              onTransferCommunity={this.handleTransferCommunity}
+              onPurgeComment={this.handlePurgeComment}
+              onPurgePerson={this.handlePurgePerson}
+              onCommentReplyRead={this.handleCommentReplyRead}
+              onPersonMentionRead={this.handlePersonMentionRead}
+              onBanPersonFromCommunity={this.handleBanFromCommunity}
+              onBanPerson={this.handleBanPerson}
+              onCreateComment={this.handleCreateComment}
+              onEditComment={this.handleEditComment}
+            />
+          );
+        }
+      }
+    }
   }
 
-  selects() {
-    let allRss = `/feeds/all.xml?sort=${this.state.sort}`;
-    let localRss = `/feeds/local.xml?sort=${this.state.sort}`;
-    let auth = myAuth(false);
-    let frontRss = auth
-      ? `/feeds/front/${auth}.xml?sort=${this.state.sort}`
-      : undefined;
+  get selects() {
+    const { listingType, dataType, sort } = getHomeQueryParams();
 
     return (
-      <div className="mb-3">
-        {/* <span className="mr-3 d-flex justify-content-center">
+      <div className="row align-items-center mb-3 g-3">
+        <div className="col-auto">
           <DataTypeSelect
-            type_={this.state.dataType}
+            type_={dataType}
             onChange={this.handleDataTypeChange}
           />
-        </span> */}
-        <span className="mr-3 d-flex justify-content-center">
+        </div>
+        <div className="col-auto">
           <ListingTypeSelect
-            type_={this.state.listingType}
+            type_={
+              listingType ??
+              this.state.siteRes.site_view.local_site.default_post_listing_type
+            }
             showLocal={showLocal(this.isoData)}
             showSubscribed
             onChange={this.handleListingTypeChange}
           />
-        </span>
-        <span className="mr-0">
-          <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
-        </span>
-        {/* {this.state.listingType == ListingType.All && (
-          <>
-            <a href={allRss} rel={relTags} title="RSS">
-              <Icon icon="rss" classes="text-muted small" />
-            </a>
-            <link rel="alternate" type="application/atom+xml" href={allRss} />
-          </>
-        )}
-        {this.state.listingType == ListingType.Local && (
-          <>
-            <a href={localRss} rel={relTags} title="RSS">
-              <Icon icon="rss" classes="text-muted small" />
-            </a>
-            <link rel="alternate" type="application/atom+xml" href={localRss} />
-          </>
-        )}
-        {this.state.listingType == ListingType.Subscribed && frontRss && (
-          <>
-            <a href={frontRss} title="RSS" rel={relTags}>
-              <Icon icon="rss" classes="text-muted small" />
-            </a>
-            <link rel="alternate" type="application/atom+xml" href={frontRss} />
-          </>
-        )} */}
+        </div>
+        <div className="col-auto">
+          <SortSelect sort={sort} onChange={this.handleSortChange} />
+        </div>
+        <div className="col-auto ps-0">
+          {getRss(
+            listingType ??
+              this.state.siteRes.site_view.local_site.default_post_listing_type
+          )}
+        </div>
       </div>
     );
+  }
+
+  async fetchTrendingCommunities() {
+    this.setState({ trendingCommunitiesRes: { state: "loading" } });
+    this.setState({
+      trendingCommunitiesRes: await HttpService.client.listCommunities({
+        type_: "Local",
+        sort: "Hot",
+        limit: trendingFetchLimit,
+        auth: myAuth(),
+      }),
+    });
+  }
+
+  async fetchData() {
+    const auth = myAuth();
+    const { dataType, page, listingType, sort } = getHomeQueryParams();
+
+    if (dataType === DataType.Post) {
+      if (HomeCacheService.active) {
+        const { postsRes, scrollY } = HomeCacheService;
+        HomeCacheService.deactivate();
+        this.setState({ postsRes });
+        window.scrollTo({
+          left: 0,
+          top: scrollY,
+          behavior: "instant",
+        });
+      } else {
+        this.setState({ postsRes: { state: "loading" } });
+        this.setState({
+          postsRes: await HttpService.client.getPosts({
+            page,
+            limit: fetchLimit,
+            sort,
+            saved_only: false,
+            type_: listingType,
+            auth,
+          }),
+        });
+
+        HomeCacheService.postsRes = this.state.postsRes;
+      }
+    } else {
+      this.setState({ commentsRes: { state: "loading" } });
+      this.setState({
+        commentsRes: await HttpService.client.getComments({
+          page,
+          limit: fetchLimit,
+          sort: postToCommentSortType(sort),
+          saved_only: false,
+          type_: listingType,
+          auth,
+        }),
+      });
+    }
+
+    setupTippy();
   }
 
   handleShowSubscribedMobile(i: Home) {
@@ -674,209 +859,271 @@ export class Home extends Component<any, HomeState> {
   }
 
   handlePageChange(page: number) {
+    this.setState({ scrolled: false });
     this.updateUrl({ page });
-    window.scrollTo(0, 0);
   }
 
   handleSortChange(val: SortType) {
+    this.setState({ scrolled: false });
     this.updateUrl({ sort: val, page: 1 });
-    window.scrollTo(0, 0);
   }
 
   handleListingTypeChange(val: ListingType) {
+    this.setState({ scrolled: false });
     this.updateUrl({ listingType: val, page: 1 });
-    window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.updateUrl({ dataType: DataType[val], page: 1 });
-    window.scrollTo(0, 0);
+    this.setState({ scrolled: false });
+    this.updateUrl({ dataType: val, page: 1 });
   }
 
-  fetchData() {
-    let auth = myAuth(false);
-    if (this.state.dataType == DataType.Post) {
-      let getPostsForm: GetPosts = {
-        page: this.state.page,
-        limit: fetchLimit,
-        sort: this.state.sort,
-        saved_only: false,
-        type_: this.state.listingType,
-        auth,
-      };
+  async handleAddModToCommunity(form: AddModToCommunity) {
+    // TODO not sure what to do here
+    await HttpService.client.addModToCommunity(form);
+  }
 
-      WebSocketService.Instance.send(wsClient.getPosts(getPostsForm));
-    } else {
-      let getCommentsForm: GetComments = {
-        page: this.state.page,
-        limit: fetchLimit,
-        sort: postToCommentSortType(this.state.sort),
-        saved_only: false,
-        type_: this.state.listingType,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.getComments(getCommentsForm));
+  async handlePurgePerson(form: PurgePerson) {
+    const purgePersonRes = await HttpService.client.purgePerson(form);
+    this.purgeItem(purgePersonRes);
+  }
+
+  async handlePurgeComment(form: PurgeComment) {
+    const purgeCommentRes = await HttpService.client.purgeComment(form);
+    this.purgeItem(purgeCommentRes);
+  }
+
+  async handlePurgePost(form: PurgePost) {
+    const purgeRes = await HttpService.client.purgePost(form);
+    this.purgeItem(purgeRes);
+  }
+
+  async handleBlockPerson(form: BlockPerson) {
+    const blockPersonRes = await HttpService.client.blockPerson(form);
+    if (blockPersonRes.state == "success") {
+      updatePersonBlock(blockPersonRes.data);
     }
   }
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      return;
-    } else if (msg.reconnect) {
-      WebSocketService.Instance.send(
-        wsClient.communityJoin({
-          community_id: "00000000-0000-0000-0000-000000000000",
-        })
-      );
-      this.fetchData();
-    } else if (op == UserOperation.ListCommunities) {
-      let data = wsJsonToRes<ListCommunitiesResponse>(msg);
-      this.setState({ trendingCommunities: data.communities });
-    } else if (op == UserOperation.EditSite) {
-      let data = wsJsonToRes<SiteResponse>(msg);
-      this.setState(s => ((s.siteRes.site_view = data.site_view), s));
-      toast(i18n.t("site_saved"));
-    } else if (op == UserOperation.GetPosts) {
-      let data = wsJsonToRes<GetPostsResponse>(msg);
-      this.setState({ posts: data.posts, loading: false });
-      WebSocketService.Instance.send(
-        wsClient.communityJoin({
-          community_id: "00000000-0000-0000-0000-000000000000",
-        })
-      );
-      restoreScrollPosition(this.context);
-      setupTippy();
-    } else if (op == UserOperation.CreatePost) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      let mui = UserService.Instance.myUserInfo;
+  async handleCreateComment(form: CreateComment) {
+    const createCommentRes = await HttpService.client.createComment(form);
+    this.createAndUpdateComments(createCommentRes);
 
-      let showPostNotifs = mui?.local_user_view.local_user.show_new_post_notifs;
+    return createCommentRes;
+  }
 
-      // Only push these if you're on the first page, you pass the nsfw check, and it isn't blocked
-      if (
-        this.state.page == 1 &&
-        nsfwCheck(data.post_view) &&
-        !isPostBlocked(data.post_view)
-      ) {
-        // If you're on subscribed, only push it if you're subscribed.
-        if (this.state.listingType == ListingType.Subscribed) {
-          if (
-            mui?.follows
-              .map(c => c.community.id)
-              .includes(data.post_view.community.id)
-          ) {
-            this.state.posts.unshift(data.post_view);
-            if (showPostNotifs) {
-              notifyPost(data.post_view, this.context.router);
-            }
-          }
-        } else if (this.state.listingType == ListingType.Local) {
-          // If you're on the local view, only push it if its local
-          if (data.post_view.post.local) {
-            this.state.posts.unshift(data.post_view);
-            if (showPostNotifs) {
-              notifyPost(data.post_view, this.context.router);
-            }
-          }
-        } else {
-          this.state.posts.unshift(data.post_view);
-          if (showPostNotifs) {
-            notifyPost(data.post_view, this.context.router);
-          }
-        }
-        this.setState(this.state);
-      }
-    } else if (
-      op == UserOperation.EditPost ||
-      op == UserOperation.DeletePost ||
-      op == UserOperation.RemovePost ||
-      op == UserOperation.LockPost ||
-      op == UserOperation.FeaturePost ||
-      op == UserOperation.SavePost
-    ) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      editPostFindRes(data.post_view, this.state.posts);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      createPostLikeFindRes(data.post_view, this.state.posts);
-      this.setState(this.state);
-    } else if (op == UserOperation.AddAdmin) {
-      let data = wsJsonToRes<AddAdminResponse>(msg);
-      this.setState(s => ((s.siteRes.admins = data.admins), s));
-    } else if (op == UserOperation.BanPerson) {
-      let data = wsJsonToRes<BanPersonResponse>(msg);
-      this.state.posts
-        .filter(p => p.creator.id == data.person_view.person.id)
-        .forEach(p => (p.creator.banned = data.banned));
+  async handleEditComment(form: EditComment) {
+    const editCommentRes = await HttpService.client.editComment(form);
+    this.findAndUpdateComment(editCommentRes);
 
-      this.setState(this.state);
-    } else if (op == UserOperation.GetComments) {
-      let data = wsJsonToRes<GetCommentsResponse>(msg);
-      this.setState({ comments: data.comments, loading: false });
-    } else if (
-      op == UserOperation.EditComment ||
-      op == UserOperation.DeleteComment ||
-      op == UserOperation.RemoveComment
-    ) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      editCommentRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
+    return editCommentRes;
+  }
 
-      // Necessary since it might be a user reply
-      if (data.form_id) {
-        // If you're on subscribed, only push it if you're subscribed.
-        if (this.state.listingType == ListingType.Subscribed) {
-          if (
-            UserService.Instance.myUserInfo?.follows
-              .map(c => c.community.id)
-              .includes(data.comment_view.community.id)
-          ) {
-            this.state.comments.unshift(data.comment_view);
-          }
-        } else {
-          this.state.comments.unshift(data.comment_view);
-        }
-        this.setState(this.state);
-      }
-    } else if (op == UserOperation.SaveComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      saveCommentRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      createCommentLikeRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.BlockPerson) {
-      let data = wsJsonToRes<BlockPersonResponse>(msg);
-      updatePersonBlock(data);
-    } else if (op == UserOperation.CreatePostReport) {
-      let data = wsJsonToRes<PostReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.CreateCommentReport) {
-      let data = wsJsonToRes<CommentReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (
-      op == UserOperation.PurgePerson ||
-      op == UserOperation.PurgePost ||
-      op == UserOperation.PurgeComment ||
-      op == UserOperation.PurgeCommunity
-    ) {
-      let data = wsJsonToRes<PurgeItemResponse>(msg);
-      if (data.success) {
-        toast(i18n.t("purge_success"));
-        this.context.router.history.push(`/`);
-      }
-    } else if (op == UserOperation.PiPaymentFound) {
+  async handleDeleteComment(form: DeleteComment) {
+    const deleteCommentRes = await HttpService.client.deleteComment(form);
+    this.findAndUpdateComment(deleteCommentRes);
+  }
+
+  async handleDeletePost(form: DeletePost) {
+    const deleteRes = await HttpService.client.deletePost(form);
+    this.findAndUpdatePost(deleteRes);
+  }
+
+  async handleRemovePost(form: RemovePost) {
+    const removeRes = await HttpService.client.removePost(form);
+    this.findAndUpdatePost(removeRes);
+  }
+
+  async handleRemoveComment(form: RemoveComment) {
+    const removeCommentRes = await HttpService.client.removeComment(form);
+    this.findAndUpdateComment(removeCommentRes);
+  }
+
+  async handleSaveComment(form: SaveComment) {
+    const saveCommentRes = await HttpService.client.saveComment(form);
+    this.findAndUpdateComment(saveCommentRes);
+  }
+
+  async handleSavePost(form: SavePost) {
+    const saveRes = await HttpService.client.savePost(form);
+    this.findAndUpdatePost(saveRes);
+  }
+
+  async handleFeaturePost(form: FeaturePost) {
+    const featureRes = await HttpService.client.featurePost(form);
+    this.findAndUpdatePost(featureRes);
+  }
+
+  async handleCommentVote(form: CreateCommentLike) {
+    const voteRes = await HttpService.client.likeComment(form);
+    this.findAndUpdateComment(voteRes);
+  }
+
+  async handlePostEdit(form: EditPost) {
+    const res = await HttpService.client.editPost(form);
+    this.findAndUpdatePost(res);
+  }
+
+  async handlePostVote(form: CreatePostLike) {
+    const voteRes = await HttpService.client.likePost(form);
+    this.findAndUpdatePost(voteRes);
+  }
+
+  async handleCommentReport(form: CreateCommentReport) {
+    const reportRes = await HttpService.client.createCommentReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
     }
+  }
+
+  async handlePostReport(form: CreatePostReport) {
+    const reportRes = await HttpService.client.createPostReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  async handleLockPost(form: LockPost) {
+    const lockRes = await HttpService.client.lockPost(form);
+    this.findAndUpdatePost(lockRes);
+  }
+
+  async handleDistinguishComment(form: DistinguishComment) {
+    const distinguishRes = await HttpService.client.distinguishComment(form);
+    this.findAndUpdateComment(distinguishRes);
+  }
+
+  async handleAddAdmin(form: AddAdmin) {
+    const addAdminRes = await HttpService.client.addAdmin(form);
+
+    if (addAdminRes.state == "success") {
+      this.setState(s => ((s.siteRes.admins = addAdminRes.data.admins), s));
+    }
+  }
+
+  async handleTransferCommunity(form: TransferCommunity) {
+    await HttpService.client.transferCommunity(form);
+    toast(I18NextService.i18n.t("transfer_community"));
+  }
+
+  async handleCommentReplyRead(form: MarkCommentReplyAsRead) {
+    const readRes = await HttpService.client.markCommentReplyAsRead(form);
+    this.findAndUpdateCommentReply(readRes);
+  }
+
+  async handlePersonMentionRead(form: MarkPersonMentionAsRead) {
+    // TODO not sure what to do here. Maybe it is actually optional, because post doesn't need it.
+    await HttpService.client.markPersonMentionAsRead(form);
+  }
+
+  async handleBanFromCommunity(form: BanFromCommunity) {
+    const banRes = await HttpService.client.banFromCommunity(form);
+    this.updateBanFromCommunity(banRes);
+  }
+
+  async handleBanPerson(form: BanPerson) {
+    const banRes = await HttpService.client.banPerson(form);
+    this.updateBan(banRes);
+  }
+
+  updateBanFromCommunity(banRes: RequestState<BanFromCommunityResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.postsRes.state == "success") {
+          s.postsRes.data.posts
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        return s;
+      });
+    }
+  }
+
+  updateBan(banRes: RequestState<BanPersonResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.postsRes.state == "success") {
+          s.postsRes.data.posts
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        return s;
+      });
+    }
+  }
+
+  purgeItem(purgeRes: RequestState<PurgeItemResponse>) {
+    if (purgeRes.state == "success") {
+      toast(I18NextService.i18n.t("purge_success"));
+      this.context.router.history.push(`/`);
+    }
+  }
+
+  findAndUpdateComment(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editComment(
+          res.data.comment_view,
+          s.commentsRes.data.comments
+        );
+        s.finished.set(res.data.comment_view.comment.id, true);
+      }
+      return s;
+    });
+  }
+
+  createAndUpdateComments(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments.unshift(res.data.comment_view);
+
+        // Set finished for the parent
+        s.finished.set(
+          getCommentParentId(res.data.comment_view.comment) ?? 0,
+          true
+        );
+      }
+      return s;
+    });
+  }
+
+  findAndUpdateCommentReply(res: RequestState<CommentReplyResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editWith(
+          res.data.comment_reply_view,
+          s.commentsRes.data.comments
+        );
+      }
+      return s;
+    });
+  }
+
+  findAndUpdatePost(res: RequestState<PostResponse>) {
+    this.setState(s => {
+      if (s.postsRes.state == "success" && res.state == "success") {
+        s.postsRes.data.posts = editPost(
+          res.data.post_view,
+          s.postsRes.data.posts
+        );
+      }
+      return s;
+    });
   }
 }

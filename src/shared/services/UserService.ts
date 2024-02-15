@@ -1,12 +1,11 @@
 // import Cookies from 'js-cookie';
-import { LocalStorage, SessionStorage } from "combo-storage";
-import IsomorphicCookie from "isomorphic-cookie";
+import { isAuthPath } from "@utils/app";
+import { clearAuthCookie, isBrowser, setAuthCookie } from "@utils/browser";
+import * as cookie from "cookie";
 import jwt_decode from "jwt-decode";
 import { LoginResponse, MyUserInfo } from "lemmy-js-client";
-import { BehaviorSubject } from "rxjs";
-import { isHttps } from "../env";
-import { i18n } from "../i18next";
-import { isBrowser, toast } from "../utils";
+import { toast } from "../toast";
+import { I18NextService } from "./I18NextService";
 
 interface Claims {
   sub: string;
@@ -20,78 +19,75 @@ interface JwtInfo {
 }
 
 export class UserService {
-  private static _instance: UserService;
+  static #instance: UserService;
   public myUserInfo?: MyUserInfo;
   public jwtInfo?: JwtInfo;
-  public unreadInboxCountSub: BehaviorSubject<number> =
-    new BehaviorSubject<number>(0);
-  public unreadReportCountSub: BehaviorSubject<number> =
-    new BehaviorSubject<number>(0);
-  public unreadApplicationCountSub: BehaviorSubject<number> =
-    new BehaviorSubject<number>(0);
 
   private constructor() {
-    this.setJwtInfo();
+    this.#setJwtInfo();
   }
 
-  public login(res: LoginResponse) {
-    let expires = new Date();
+  public login({
+    res,
+    showToast = true,
+  }: {
+    res: LoginResponse;
+    showToast?: boolean;
+  }) {
+    const expires = new Date();
     expires.setDate(expires.getDate() + 365);
-    if (res.jwt) {
-      toast(i18n.t("logged_in"));
-      IsomorphicCookie.save("jwt", res.jwt, { expires, secure: isHttps });
-      SessionStorage.set("jwt", res.jwt);
-      LocalStorage.set("jwt", res.jwt);
-      this.setJwtInfo();
+
+    if (isBrowser() && res.jwt) {
+      showToast && toast(I18NextService.i18n.t("logged_in"));
+      setAuthCookie(res.jwt);
+      this.#setJwtInfo();
     }
   }
 
   public logout() {
     this.jwtInfo = undefined;
     this.myUserInfo = undefined;
-    IsomorphicCookie.remove("jwt"); // TODO is sometimes unreliable for some reason
-    SessionStorage.remove("jwt");
-    LocalStorage.remove("jwt");
-    document.cookie = "jwt=; Max-Age=0; path=/; domain=" + location.hostname;
-    location.reload();
+
+    if (isBrowser()) {
+      clearAuthCookie();
+    }
+
+    if (isAuthPath(location.pathname)) {
+      location.replace("/");
+    } else {
+      location.reload();
+    }
   }
 
-  public auth(throwErr = true): string | undefined {
-    let jwt = this.jwtInfo?.jwt;
+  public auth(throwErr = false): string | undefined {
+    const jwt = this.jwtInfo?.jwt;
+
     if (jwt) {
       return jwt;
     } else {
-      let msg = "No JWT cookie found";
+      const msg = "No JWT cookie found";
+
       if (throwErr && isBrowser()) {
         console.error(msg);
-        toast(i18n.t("not_logged_in"), "danger");
+        toast(I18NextService.i18n.t("not_logged_in"), "danger");
       }
+
       return undefined;
       // throw msg;
     }
   }
 
-  private setJwtInfo() {
-    let jwt: string | undefined = IsomorphicCookie.load("jwt");
+  #setJwtInfo() {
     if (isBrowser()) {
-      if (!jwt || jwt === undefined) {
-        jwt = SessionStorage.get("jwt");
-      }
-      if (!jwt || jwt === undefined) {
-        jwt = LocalStorage.get("jwt");
-      }
+      const { jwt } = cookie.parse(document.cookie);
+
       if (jwt) {
-        let expires = new Date();
-        expires.setDate(expires.getDate() + 365);
-        IsomorphicCookie.save("jwt", jwt, { expires, secure: isHttps });
+        this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
       }
-    }
-    if (jwt) {
-      this.jwtInfo = { jwt, claims: jwt_decode(jwt) };
     }
   }
 
   public static get Instance() {
-    return this._instance || (this._instance = new this());
+    return this.#instance || (this.#instance = new this());
   }
 }

@@ -1,0 +1,65 @@
+name: "\U0001F41E Bug report"
+description: Report a bug to help us improve Lemmy-UI.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to help improve Lemmy-UI by reporting a bug!
+  - type: checkboxes
+    attributes:
+      label: Requirements
+      description: Before you create a bug report, please carefully check the following –
+      options:
+        - label: This is a bug report, and if not, please post to https://lemmy.ml/c/lemmy_support instead.
+          required: true
+        - label: Please [check](https://github.com/LemmyNet/lemmy-ui/issues) to see if this issue already exists.
+          required: true
+        - label: It's a single bug. Do not report multiple bugs in one issue.
+          required: true
+        - label: It's a frontend issue, not a backend issue; Otherwise please create an issue on the [backend repo](https://github.com/LemmyNet/lemmy) instead.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Explain the bug and upload images, screenshots or videos if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        In a numbered list, walk us through the steps needed to reproduce the bug.
+        The better your description is _(go 'here', click 'there'...)_, the quicker we can fix it.
+      value: |
+        1.
+        2.
+        3.
+        4.
+    validations:
+      required: true
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical Details
+      description: |
+        Describe your environment (OS, browser, model of smartphone, etc)
+        If relevant, also share any console errors and/or screenshots here.
+    validations:
+      required: true
+  - type: input
+    id: lemmy-ui-version
+    attributes:
+      label: Lemmy Instance Version
+      description: What's the version of the Lemmy instance where the bug can be reproduced?
+      placeholder: ex. 0.18-rc.6
+    validations:
+      required: true
+  - type: input
+    id: lemmy-instance
+    attributes:
+      label: Lemmy Instance URL
+      description: What's the URL of the Lemmy instance where the bug can be reproduced?
+      placeholder: https://lemmy.ml

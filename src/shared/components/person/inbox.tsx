@@ -1,50 +1,70 @@
+import {
+  commentsToFlatNodes,
+  editCommentReply,
+  editMention,
+  editPrivateMessage,
+  editWith,
+  enableDownvotes,
+  getCommentParentId,
+  myAuth,
+  myAuthRequired,
+  setIsoData,
+  updatePersonBlock,
+} from "@utils/app";
+import { capitalizeFirstLetter, randomStr } from "@utils/helpers";
+import { RouteDataResponse } from "@utils/types";
+import classNames from "classnames";
 import { Component, linkEvent } from "inferno";
 import {
-  BlockPersonResponse,
+  AddAdmin,
+  AddModToCommunity,
+  BanFromCommunity,
+  BanFromCommunityResponse,
+  BanPerson,
+  BanPersonResponse,
+  BlockPerson,
+  CommentId,
   CommentReplyResponse,
   CommentReplyView,
   CommentReportResponse,
   CommentResponse,
   CommentSortType,
   CommentView,
-  GetPersonMentions,
+  CreateComment,
+  CreateCommentLike,
+  CreateCommentReport,
+  CreatePrivateMessage,
+  CreatePrivateMessageReport,
+  DeleteComment,
+  DeletePrivateMessage,
+  DistinguishComment,
+  EditComment,
+  EditPrivateMessage,
   GetPersonMentionsResponse,
-  GetPrivateMessages,
-  GetReplies,
   GetRepliesResponse,
   GetSiteResponse,
+  MarkCommentReplyAsRead,
+  MarkPersonMentionAsRead,
+  MarkPrivateMessageAsRead,
   PersonMentionResponse,
   PersonMentionView,
-  PostReportResponse,
   PrivateMessageReportResponse,
   PrivateMessageResponse,
-  PrivateMessagesResponse,
   PrivateMessageView,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
+  PrivateMessagesResponse,
+  PurgeComment,
+  PurgeItemResponse,
+  PurgePerson,
+  PurgePost,
+  RemoveComment,
+  SaveComment,
+  TransferCommunity,
 } from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
+import { fetchLimit, relTags } from "../../config";
 import { CommentViewType, InitialFetchRequest } from "../../interfaces";
-import { UserService, WebSocketService } from "../../services";
-import {
-  commentsToFlatNodes,
-  createCommentLikeRes,
-  editCommentRes,
-  enableDownvotes,
-  fetchLimit,
-  isBrowser,
-  myAuth,
-  relTags,
-  saveCommentRes,
-  setIsoData,
-  setupTippy,
-  toast,
-  updatePersonBlock,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+import { FirstLoadService, I18NextService, UserService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
+import { toast } from "../../toast";
 import { CommentNodes } from "../comment/comment-nodes";
 import { CommentSortSelect } from "../common/comment-sort-select";
 import { HtmlTags } from "../common/html-tags";
@@ -69,6 +89,13 @@ enum ReplyEnum {
   Mention,
   Message,
 }
+
+type InboxData = RouteDataResponse<{
+  repliesRes: GetRepliesResponse;
+  mentionsRes: GetPersonMentionsResponse;
+  messagesRes: PrivateMessagesResponse;
+}>;
+
 type ReplyType = {
   id: number;
   type_: ReplyEnum;
@@ -79,30 +106,31 @@ type ReplyType = {
 interface InboxState {
   unreadOrAll: UnreadOrAll;
   messageType: MessageType;
-  replies: CommentReplyView[];
-  mentions: PersonMentionView[];
-  messages: PrivateMessageView[];
-  combined: ReplyType[];
+  repliesRes: RequestState<GetRepliesResponse>;
+  mentionsRes: RequestState<GetPersonMentionsResponse>;
+  messagesRes: RequestState<PrivateMessagesResponse>;
+  markAllAsReadRes: RequestState<GetRepliesResponse>;
   sort: CommentSortType;
   page: number;
   siteRes: GetSiteResponse;
-  loading: boolean;
+  finished: Map<CommentId, boolean | undefined>;
+  isIsomorphic: boolean;
 }
 
 export class Inbox extends Component<any, InboxState> {
-  private isoData = setIsoData(this.context);
-  private subscription?: Subscription;
+  private isoData = setIsoData<InboxData>(this.context);
   state: InboxState = {
     unreadOrAll: UnreadOrAll.Unread,
     messageType: MessageType.All,
-    replies: [],
-    mentions: [],
-    messages: [],
-    combined: [],
-    sort: CommentSortType.New,
+    sort: "New",
     page: 1,
     siteRes: this.isoData.site_res,
-    loading: true,
+    repliesRes: { state: "empty" },
+    mentionsRes: { state: "empty" },
+    messagesRes: { state: "empty" },
+    markAllAsReadRes: { state: "empty" },
+    finished: new Map(),
+    isIsomorphic: false,
   };
 
   constructor(props: any, context: any) {
@@ -111,197 +139,263 @@ export class Inbox extends Component<any, InboxState> {
     this.handleSortChange = this.handleSortChange.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
 
-    if (!UserService.Instance.myUserInfo && isBrowser()) {
-      toast(i18n.t("not_logged_in"), "danger");
-      this.context.router.history.push(`/login`);
-    }
+    this.handleCreateComment = this.handleCreateComment.bind(this);
+    this.handleEditComment = this.handleEditComment.bind(this);
+    this.handleSaveComment = this.handleSaveComment.bind(this);
+    this.handleBlockPerson = this.handleBlockPerson.bind(this);
+    this.handleDeleteComment = this.handleDeleteComment.bind(this);
+    this.handleRemoveComment = this.handleRemoveComment.bind(this);
+    this.handleCommentVote = this.handleCommentVote.bind(this);
+    this.handleAddModToCommunity = this.handleAddModToCommunity.bind(this);
+    this.handleAddAdmin = this.handleAddAdmin.bind(this);
+    this.handlePurgePerson = this.handlePurgePerson.bind(this);
+    this.handlePurgeComment = this.handlePurgeComment.bind(this);
+    this.handleCommentReport = this.handleCommentReport.bind(this);
+    this.handleDistinguishComment = this.handleDistinguishComment.bind(this);
+    this.handleTransferCommunity = this.handleTransferCommunity.bind(this);
+    this.handleCommentReplyRead = this.handleCommentReplyRead.bind(this);
+    this.handlePersonMentionRead = this.handlePersonMentionRead.bind(this);
+    this.handleBanFromCommunity = this.handleBanFromCommunity.bind(this);
+    this.handleBanPerson = this.handleBanPerson.bind(this);
 
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
+    this.handleDeleteMessage = this.handleDeleteMessage.bind(this);
+    this.handleMarkMessageAsRead = this.handleMarkMessageAsRead.bind(this);
+    this.handleMessageReport = this.handleMessageReport.bind(this);
+    this.handleCreateMessage = this.handleCreateMessage.bind(this);
+    this.handleEditMessage = this.handleEditMessage.bind(this);
 
     // Only fetch the data if coming from another route
-    if (this.isoData.path == this.context.router.route.match.url) {
+    if (FirstLoadService.isFirstLoad) {
+      const { mentionsRes, messagesRes, repliesRes } = this.isoData.routeData;
+
       this.state = {
         ...this.state,
-        replies:
-          (this.isoData.routeData[0] as GetRepliesResponse).replies || [],
-        mentions:
-          (this.isoData.routeData[1] as GetPersonMentionsResponse).mentions ||
-          [],
-        messages:
-          (this.isoData.routeData[2] as PrivateMessagesResponse)
-            .private_messages || [],
-        loading: false,
+        repliesRes,
+        mentionsRes,
+        messagesRes,
+        isIsomorphic: true,
       };
-      this.state = { ...this.state, combined: this.buildCombined() };
-    } else {
-      this.refetch();
     }
   }
 
-  componentWillUnmount() {
-    if (isBrowser()) {
-      this.subscription?.unsubscribe();
+  async componentDidMount() {
+    if (!this.state.isIsomorphic) {
+      await this.refetch();
     }
   }
 
   get documentTitle(): string {
-    let mui = UserService.Instance.myUserInfo;
+    const mui = UserService.Instance.myUserInfo;
     return mui
-      ? `@${mui.local_user_view.person.name} ${i18n.t("inbox")} - ${
-          this.state.siteRes.site_view.site.name
-        }`
+      ? `@${mui.local_user_view.person.name} ${I18NextService.i18n.t(
+          "inbox"
+        )} - ${this.state.siteRes.site_view.site.name}`
       : "";
   }
 
+  get hasUnreads(): boolean {
+    if (this.state.unreadOrAll == UnreadOrAll.Unread) {
+      const { repliesRes, mentionsRes, messagesRes } = this.state;
+      const replyCount =
+        repliesRes.state == "success" ? repliesRes.data.replies.length : 0;
+      const mentionCount =
+        mentionsRes.state == "success" ? mentionsRes.data.mentions.length : 0;
+      const messageCount =
+        messagesRes.state == "success"
+          ? messagesRes.data.private_messages.length
+          : 0;
+
+      return replyCount + mentionCount + messageCount > 0;
+    } else {
+      return false;
+    }
+  }
+
   render() {
-    let auth = myAuth();
-    let inboxRss = auth ? `/feeds/inbox/${auth}.xml` : undefined;
+    const auth = myAuth();
+    const inboxRss = auth ? `/feeds/inbox/${auth}.xml` : undefined;
     return (
-      <div className="container-lg">
-        {this.state.loading ? (
-          <h5>
-            <Spinner large />
-          </h5>
-        ) : (
-          <div className="row">
-            <div className="col-12">
-              <HtmlTags
-                title={this.documentTitle}
-                path={this.context.router.route.match.url}
-              />
-              <h5 className="mb-2">
-                {i18n.t("inbox")}
-                {inboxRss && (
-                  <small>
-                    <a href={inboxRss} title="RSS" rel={relTags}>
-                      <Icon icon="rss" classes="ml-2 text-muted small" />
-                    </a>
-                    <link
-                      rel="alternate"
-                      type="application/atom+xml"
-                      href={inboxRss}
-                    />
-                  </small>
+      <div className="inbox container-lg">
+        <div className="row">
+          <div className="col-12">
+            <HtmlTags
+              title={this.documentTitle}
+              path={this.context.router.route.match.url}
+            />
+            <h1 className="h4 mb-4">
+              {I18NextService.i18n.t("inbox")}
+              {inboxRss && (
+                <small>
+                  <a href={inboxRss} title="RSS" rel={relTags}>
+                    <Icon icon="rss" classes="ms-2 text-muted small" />
+                  </a>
+                  <link
+                    rel="alternate"
+                    type="application/atom+xml"
+                    href={inboxRss}
+                  />
+                </small>
+              )}
+            </h1>
+            {this.hasUnreads && (
+              <button
+                className="btn btn-secondary mb-2 mb-sm-3"
+                onClick={linkEvent(this, this.handleMarkAllAsRead)}
+              >
+                {this.state.markAllAsReadRes.state == "loading" ? (
+                  <Spinner />
+                ) : (
+                  capitalizeFirstLetter(
+                    I18NextService.i18n.t("mark_all_as_read")
+                  )
                 )}
-              </h5>
-              {this.state.replies.length +
-                this.state.mentions.length +
-                this.state.messages.length >
-                0 &&
-                this.state.unreadOrAll == UnreadOrAll.Unread && (
-                  <button
-                    className="btn btn-secondary mb-2"
-                    onClick={linkEvent(this, this.markAllAsRead)}
-                  >
-                    {i18n.t("mark_all_as_read")}
-                  </button>
-                )}
-              {this.selects()}
-              {this.state.messageType == MessageType.All && this.all()}
-              {this.state.messageType == MessageType.Replies && this.replies()}
-              {this.state.messageType == MessageType.Mentions &&
-                this.mentions()}
-              {this.state.messageType == MessageType.Messages &&
-                this.messages()}
-              <Paginator
-                page={this.state.page}
-                onChange={this.handlePageChange}
-              />
-            </div>
+              </button>
+            )}
+            {this.selects()}
+            {this.section}
+            <Paginator
+              page={this.state.page}
+              onChange={this.handlePageChange}
+            />
           </div>
-        )}
+        </div>
       </div>
     );
   }
 
+  get section() {
+    switch (this.state.messageType) {
+      case MessageType.All: {
+        return this.all();
+      }
+      case MessageType.Replies: {
+        return this.replies();
+      }
+      case MessageType.Mentions: {
+        return this.mentions();
+      }
+      case MessageType.Messages: {
+        return this.messages();
+      }
+      default: {
+        return null;
+      }
+    }
+  }
+
   unreadOrAllRadios() {
+    const radioId = randomStr();
+
     return (
-      <div className="btn-group btn-group-toggle flex-wrap mb-2">
+      <div className="btn-group btn-group-toggle flex-wrap" role="group">
+        <input
+          id={`${radioId}-unread`}
+          type="radio"
+          className="btn-check"
+          value={UnreadOrAll.Unread}
+          checked={this.state.unreadOrAll === UnreadOrAll.Unread}
+          onChange={linkEvent(this, this.handleUnreadOrAllChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.unreadOrAll == UnreadOrAll.Unread && "active"}
-          `}
+          htmlFor={`${radioId}-unread`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.unreadOrAll === UnreadOrAll.Unread,
+          })}
         >
-          <input
-            type="radio"
-            value={UnreadOrAll.Unread}
-            checked={this.state.unreadOrAll == UnreadOrAll.Unread}
-            onChange={linkEvent(this, this.handleUnreadOrAllChange)}
-          />
-          {i18n.t("unread")}
+          {I18NextService.i18n.t("unread")}
         </label>
+
+        <input
+          id={`${radioId}-all`}
+          type="radio"
+          className="btn-check"
+          value={UnreadOrAll.All}
+          checked={this.state.unreadOrAll === UnreadOrAll.All}
+          onChange={linkEvent(this, this.handleUnreadOrAllChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.unreadOrAll == UnreadOrAll.All && "active"}
-          `}
+          htmlFor={`${radioId}-all`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.unreadOrAll === UnreadOrAll.All,
+          })}
         >
-          <input
-            type="radio"
-            value={UnreadOrAll.All}
-            checked={this.state.unreadOrAll == UnreadOrAll.All}
-            onChange={linkEvent(this, this.handleUnreadOrAllChange)}
-          />
-          {i18n.t("all")}
+          {I18NextService.i18n.t("all")}
         </label>
       </div>
     );
   }
 
   messageTypeRadios() {
+    const radioId = randomStr();
+
     return (
-      <div className="btn-group btn-group-toggle flex-wrap mb-2">
+      <div className="btn-group btn-group-toggle flex-wrap" role="group">
+        <input
+          id={`${radioId}-all`}
+          type="radio"
+          className="btn-check"
+          value={MessageType.All}
+          checked={this.state.messageType === MessageType.All}
+          onChange={linkEvent(this, this.handleMessageTypeChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.messageType == MessageType.All && "active"}
-          `}
+          htmlFor={`${radioId}-all`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.messageType === MessageType.All,
+          })}
         >
-          <input
-            type="radio"
-            value={MessageType.All}
-            checked={this.state.messageType == MessageType.All}
-            onChange={linkEvent(this, this.handleMessageTypeChange)}
-          />
-          {i18n.t("all")}
+          {I18NextService.i18n.t("all")}
         </label>
+
+        <input
+          id={`${radioId}-replies`}
+          type="radio"
+          className="btn-check"
+          value={MessageType.Replies}
+          checked={this.state.messageType === MessageType.Replies}
+          onChange={linkEvent(this, this.handleMessageTypeChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.messageType == MessageType.Replies && "active"}
-          `}
+          htmlFor={`${radioId}-replies`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.messageType === MessageType.Replies,
+          })}
         >
-          <input
-            type="radio"
-            value={MessageType.Replies}
-            checked={this.state.messageType == MessageType.Replies}
-            onChange={linkEvent(this, this.handleMessageTypeChange)}
-          />
-          {i18n.t("replies")}
+          {I18NextService.i18n.t("replies")}
         </label>
+
+        <input
+          id={`${radioId}-mentions`}
+          type="radio"
+          className="btn-check"
+          value={MessageType.Mentions}
+          checked={this.state.messageType === MessageType.Mentions}
+          onChange={linkEvent(this, this.handleMessageTypeChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.messageType == MessageType.Mentions && "active"}
-          `}
+          htmlFor={`${radioId}-mentions`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.messageType === MessageType.Mentions,
+          })}
         >
-          <input
-            type="radio"
-            value={MessageType.Mentions}
-            checked={this.state.messageType == MessageType.Mentions}
-            onChange={linkEvent(this, this.handleMessageTypeChange)}
-          />
-          {i18n.t("mentions")}
+          {I18NextService.i18n.t("mentions")}
         </label>
+
+        <input
+          id={`${radioId}-messages`}
+          type="radio"
+          className="btn-check"
+          value={MessageType.Messages}
+          checked={this.state.messageType === MessageType.Messages}
+          onChange={linkEvent(this, this.handleMessageTypeChange)}
+        />
         <label
-          className={`btn btn-outline-secondary pointer
-            ${this.state.messageType == MessageType.Messages && "active"}
-          `}
+          htmlFor={`${radioId}-messages`}
+          className={classNames("btn btn-outline-secondary pointer", {
+            active: this.state.messageType === MessageType.Messages,
+          })}
         >
-          <input
-            type="radio"
-            value={MessageType.Messages}
-            checked={this.state.messageType == MessageType.Messages}
-            onChange={linkEvent(this, this.handleMessageTypeChange)}
-          />
-          {i18n.t("messages")}
+          {I18NextService.i18n.t("messages")}
         </label>
       </div>
     );
@@ -309,13 +403,15 @@ export class Inbox extends Component<any, InboxState> {
 
   selects() {
     return (
-      <div className="mb-2">
-        <span className="mr-3">{this.unreadOrAllRadios()}</span>
-        <span className="mr-3">{this.messageTypeRadios()}</span>
-        <CommentSortSelect
-          sort={this.state.sort}
-          onChange={this.handleSortChange}
-        />
+      <div className="row row-cols-auto g-2 g-sm-3 mb-2 mb-sm-3">
+        <div className="col">{this.unreadOrAllRadios()}</div>
+        <div className="col">{this.messageTypeRadios()}</div>
+        <div className="col">
+          <CommentSortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+          />
+        </div>
       </div>
     );
   }
@@ -348,15 +444,20 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   buildCombined(): ReplyType[] {
-    let replies: ReplyType[] = this.state.replies.map(r =>
-      this.replyToReplyType(r)
-    );
-    let mentions: ReplyType[] = this.state.mentions.map(r =>
-      this.mentionToReplyType(r)
-    );
-    let messages: ReplyType[] = this.state.messages.map(r =>
-      this.messageToReplyType(r)
-    );
+    const replies: ReplyType[] =
+      this.state.repliesRes.state == "success"
+        ? this.state.repliesRes.data.replies.map(this.replyToReplyType)
+        : [];
+    const mentions: ReplyType[] =
+      this.state.mentionsRes.state == "success"
+        ? this.state.mentionsRes.data.mentions.map(this.mentionToReplyType)
+        : [];
+    const messages: ReplyType[] =
+      this.state.messagesRes.state == "success"
+        ? this.state.messagesRes.data.private_messages.map(
+            this.messageToReplyType
+          )
+        : [];
 
     return [...replies, ...mentions, ...messages].sort((a, b) =>
       b.published.localeCompare(a.published)
@@ -373,13 +474,31 @@ export class Inbox extends Component<any, InboxState> {
               { comment_view: i.view as CommentView, children: [], depth: 0 },
             ]}
             viewType={CommentViewType.Flat}
-            noIndent
+            finished={this.state.finished}
             markable
             showCommunity
             showContext
             enableDownvotes={enableDownvotes(this.state.siteRes)}
             allLanguages={this.state.siteRes.all_languages}
             siteLanguages={this.state.siteRes.discussion_languages}
+            onSaveComment={this.handleSaveComment}
+            onBlockPerson={this.handleBlockPerson}
+            onDeleteComment={this.handleDeleteComment}
+            onRemoveComment={this.handleRemoveComment}
+            onCommentVote={this.handleCommentVote}
+            onCommentReport={this.handleCommentReport}
+            onDistinguishComment={this.handleDistinguishComment}
+            onAddModToCommunity={this.handleAddModToCommunity}
+            onAddAdmin={this.handleAddAdmin}
+            onTransferCommunity={this.handleTransferCommunity}
+            onPurgeComment={this.handlePurgeComment}
+            onPurgePerson={this.handlePurgePerson}
+            onCommentReplyRead={this.handleCommentReplyRead}
+            onPersonMentionRead={this.handlePersonMentionRead}
+            onBanPersonFromCommunity={this.handleBanFromCommunity}
+            onBanPerson={this.handleBanPerson}
+            onCreateComment={this.handleCreateComment}
+            onEditComment={this.handleEditComment}
           />
         );
       case ReplyEnum.Mention:
@@ -393,14 +512,32 @@ export class Inbox extends Component<any, InboxState> {
                 depth: 0,
               },
             ]}
+            finished={this.state.finished}
             viewType={CommentViewType.Flat}
-            noIndent
             markable
             showCommunity
             showContext
             enableDownvotes={enableDownvotes(this.state.siteRes)}
             allLanguages={this.state.siteRes.all_languages}
             siteLanguages={this.state.siteRes.discussion_languages}
+            onSaveComment={this.handleSaveComment}
+            onBlockPerson={this.handleBlockPerson}
+            onDeleteComment={this.handleDeleteComment}
+            onRemoveComment={this.handleRemoveComment}
+            onCommentVote={this.handleCommentVote}
+            onCommentReport={this.handleCommentReport}
+            onDistinguishComment={this.handleDistinguishComment}
+            onAddModToCommunity={this.handleAddModToCommunity}
+            onAddAdmin={this.handleAddAdmin}
+            onTransferCommunity={this.handleTransferCommunity}
+            onPurgeComment={this.handlePurgeComment}
+            onPurgePerson={this.handlePurgePerson}
+            onCommentReplyRead={this.handleCommentReplyRead}
+            onPersonMentionRead={this.handlePersonMentionRead}
+            onBanPersonFromCommunity={this.handleBanFromCommunity}
+            onBanPerson={this.handleBanPerson}
+            onCreateComment={this.handleCreateComment}
+            onEditComment={this.handleEditComment}
           />
         );
       case ReplyEnum.Message:
@@ -408,6 +545,11 @@ export class Inbox extends Component<any, InboxState> {
           <PrivateMessage
             key={i.id}
             private_message_view={i.view as PrivateMessageView}
+            onDelete={this.handleDeleteMessage}
+            onMarkRead={this.handleMarkMessageAsRead}
+            onReport={this.handleMessageReport}
+            onCreate={this.handleCreateMessage}
+            onEdit={this.handleEditMessage}
           />
         );
       default:
@@ -416,455 +558,532 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   all() {
-    return <div>{this.state.combined.map(i => this.renderReplyType(i))}</div>;
+    if (
+      this.state.repliesRes.state == "loading" ||
+      this.state.mentionsRes.state == "loading" ||
+      this.state.messagesRes.state == "loading"
+    ) {
+      return (
+        <h1 className="h4">
+          <Spinner large />
+        </h1>
+      );
+    } else {
+      return (
+        <div>{this.buildCombined().map(r => this.renderReplyType(r))}</div>
+      );
+    }
   }
 
   replies() {
-    return (
-      <div>
-        <CommentNodes
-          nodes={commentsToFlatNodes(this.state.replies)}
-          viewType={CommentViewType.Flat}
-          noIndent
-          markable
-          showCommunity
-          showContext
-          enableDownvotes={enableDownvotes(this.state.siteRes)}
-          allLanguages={this.state.siteRes.all_languages}
-          siteLanguages={this.state.siteRes.discussion_languages}
-        />
-      </div>
-    );
+    switch (this.state.repliesRes.state) {
+      case "loading":
+        return (
+          <h1 className="h4">
+            <Spinner large />
+          </h1>
+        );
+      case "success": {
+        const replies = this.state.repliesRes.data.replies;
+        return (
+          <div>
+            <CommentNodes
+              nodes={commentsToFlatNodes(replies)}
+              viewType={CommentViewType.Flat}
+              finished={this.state.finished}
+              markable
+              showCommunity
+              showContext
+              enableDownvotes={enableDownvotes(this.state.siteRes)}
+              allLanguages={this.state.siteRes.all_languages}
+              siteLanguages={this.state.siteRes.discussion_languages}
+              onSaveComment={this.handleSaveComment}
+              onBlockPerson={this.handleBlockPerson}
+              onDeleteComment={this.handleDeleteComment}
+              onRemoveComment={this.handleRemoveComment}
+              onCommentVote={this.handleCommentVote}
+              onCommentReport={this.handleCommentReport}
+              onDistinguishComment={this.handleDistinguishComment}
+              onAddModToCommunity={this.handleAddModToCommunity}
+              onAddAdmin={this.handleAddAdmin}
+              onTransferCommunity={this.handleTransferCommunity}
+              onPurgeComment={this.handlePurgeComment}
+              onPurgePerson={this.handlePurgePerson}
+              onCommentReplyRead={this.handleCommentReplyRead}
+              onPersonMentionRead={this.handlePersonMentionRead}
+              onBanPersonFromCommunity={this.handleBanFromCommunity}
+              onBanPerson={this.handleBanPerson}
+              onCreateComment={this.handleCreateComment}
+              onEditComment={this.handleEditComment}
+            />
+          </div>
+        );
+      }
+    }
   }
 
   mentions() {
-    return (
-      <div>
-        {this.state.mentions.map(umv => (
-          <CommentNodes
-            key={umv.person_mention.id}
-            nodes={[{ comment_view: umv, children: [], depth: 0 }]}
-            viewType={CommentViewType.Flat}
-            noIndent
-            markable
-            showCommunity
-            showContext
-            enableDownvotes={enableDownvotes(this.state.siteRes)}
-            allLanguages={this.state.siteRes.all_languages}
-            siteLanguages={this.state.siteRes.discussion_languages}
-          />
-        ))}
-      </div>
-    );
+    switch (this.state.mentionsRes.state) {
+      case "loading":
+        return (
+          <h1 className="h4">
+            <Spinner large />
+          </h1>
+        );
+      case "success": {
+        const mentions = this.state.mentionsRes.data.mentions;
+        return (
+          <div>
+            {mentions.map(umv => (
+              <CommentNodes
+                key={umv.person_mention.id}
+                nodes={[{ comment_view: umv, children: [], depth: 0 }]}
+                viewType={CommentViewType.Flat}
+                finished={this.state.finished}
+                markable
+                showCommunity
+                showContext
+                enableDownvotes={enableDownvotes(this.state.siteRes)}
+                allLanguages={this.state.siteRes.all_languages}
+                siteLanguages={this.state.siteRes.discussion_languages}
+                onSaveComment={this.handleSaveComment}
+                onBlockPerson={this.handleBlockPerson}
+                onDeleteComment={this.handleDeleteComment}
+                onRemoveComment={this.handleRemoveComment}
+                onCommentVote={this.handleCommentVote}
+                onCommentReport={this.handleCommentReport}
+                onDistinguishComment={this.handleDistinguishComment}
+                onAddModToCommunity={this.handleAddModToCommunity}
+                onAddAdmin={this.handleAddAdmin}
+                onTransferCommunity={this.handleTransferCommunity}
+                onPurgeComment={this.handlePurgeComment}
+                onPurgePerson={this.handlePurgePerson}
+                onCommentReplyRead={this.handleCommentReplyRead}
+                onPersonMentionRead={this.handlePersonMentionRead}
+                onBanPersonFromCommunity={this.handleBanFromCommunity}
+                onBanPerson={this.handleBanPerson}
+                onCreateComment={this.handleCreateComment}
+                onEditComment={this.handleEditComment}
+              />
+            ))}
+          </div>
+        );
+      }
+    }
   }
 
   messages() {
-    return (
-      <div>
-        {this.state.messages.map(pmv => (
-          <PrivateMessage
-            key={pmv.private_message.id}
-            private_message_view={pmv}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  handlePageChange(page: number) {
-    this.setState({ page });
-    this.refetch();
-  }
-
-  handleUnreadOrAllChange(i: Inbox, event: any) {
-    i.setState({ unreadOrAll: Number(event.target.value), page: 1 });
-    i.refetch();
-  }
-
-  handleMessageTypeChange(i: Inbox, event: any) {
-    i.setState({ messageType: Number(event.target.value), page: 1 });
-    i.refetch();
-  }
-
-  static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let promises: Promise<any>[] = [];
-
-    let sort = CommentSortType.New;
-    let auth = req.auth;
-
-    if (auth) {
-      // It can be /u/me, or /username/1
-      let repliesForm: GetReplies = {
-        sort,
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-        auth,
-      };
-      promises.push(req.client.getReplies(repliesForm));
-
-      let personMentionsForm: GetPersonMentions = {
-        sort,
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-        auth,
-      };
-      promises.push(req.client.getPersonMentions(personMentionsForm));
-
-      let privateMessagesForm: GetPrivateMessages = {
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-        auth,
-      };
-      promises.push(req.client.getPrivateMessages(privateMessagesForm));
-    }
-
-    return promises;
-  }
-
-  refetch() {
-    let sort = this.state.sort;
-    let unread_only = this.state.unreadOrAll == UnreadOrAll.Unread;
-    let page = this.state.page;
-    let limit = fetchLimit;
-    let auth = myAuth();
-
-    if (auth) {
-      let repliesForm: GetReplies = {
-        sort,
-        unread_only,
-        page,
-        limit,
-        auth,
-      };
-      WebSocketService.Instance.send(wsClient.getReplies(repliesForm));
-
-      let personMentionsForm: GetPersonMentions = {
-        sort,
-        unread_only,
-        page,
-        limit,
-        auth,
-      };
-      WebSocketService.Instance.send(
-        wsClient.getPersonMentions(personMentionsForm)
-      );
-
-      let privateMessagesForm: GetPrivateMessages = {
-        unread_only,
-        page,
-        limit,
-        auth,
-      };
-      WebSocketService.Instance.send(
-        wsClient.getPrivateMessages(privateMessagesForm)
-      );
-    }
-  }
-
-  handleSortChange(val: CommentSortType) {
-    this.setState({ sort: val, page: 1 });
-    this.refetch();
-  }
-
-  markAllAsRead(i: Inbox) {
-    let auth = myAuth();
-    if (auth) {
-      WebSocketService.Instance.send(
-        wsClient.markAllAsRead({
-          auth,
-        })
-      );
-      i.setState({ replies: [], mentions: [], messages: [] });
-      i.setState({ combined: i.buildCombined() });
-      UserService.Instance.unreadInboxCountSub.next(0);
-      window.scrollTo(0, 0);
-      i.setState(i.state);
-    }
-  }
-
-  sendUnreadCount(read: boolean) {
-    let urcs = UserService.Instance.unreadInboxCountSub;
-    if (read) {
-      urcs.next(urcs.getValue() - 1);
-    } else {
-      urcs.next(urcs.getValue() + 1);
-    }
-  }
-
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      return;
-    } else if (msg.reconnect) {
-      this.refetch();
-    } else if (op == UserOperation.GetReplies) {
-      let data = wsJsonToRes<GetRepliesResponse>(msg);
-      this.setState({ replies: data.replies });
-      this.setState({ combined: this.buildCombined(), loading: false });
-      window.scrollTo(0, 0);
-      setupTippy();
-    } else if (op == UserOperation.GetPersonMentions) {
-      let data = wsJsonToRes<GetPersonMentionsResponse>(msg);
-      this.setState({ mentions: data.mentions });
-      this.setState({ combined: this.buildCombined() });
-      window.scrollTo(0, 0);
-      setupTippy();
-    } else if (op == UserOperation.GetPrivateMessages) {
-      let data = wsJsonToRes<PrivateMessagesResponse>(msg);
-      this.setState({ messages: data.private_messages });
-      this.setState({ combined: this.buildCombined() });
-      window.scrollTo(0, 0);
-      setupTippy();
-    } else if (op == UserOperation.EditPrivateMessage) {
-      let data = wsJsonToRes<PrivateMessageResponse>(msg);
-      let found = this.state.messages.find(
-        m =>
-          m.private_message.id === data.private_message_view.private_message.id
-      );
-      if (found) {
-        let combinedView = this.state.combined.find(
-          i => i.id == data.private_message_view.private_message.id
-        )?.view as PrivateMessageView | undefined;
-        if (combinedView) {
-          found.private_message.content = combinedView.private_message.content =
-            data.private_message_view.private_message.content;
-          found.private_message.updated = combinedView.private_message.updated =
-            data.private_message_view.private_message.updated;
-        }
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.DeletePrivateMessage) {
-      let data = wsJsonToRes<PrivateMessageResponse>(msg);
-      let found = this.state.messages.find(
-        m =>
-          m.private_message.id === data.private_message_view.private_message.id
-      );
-      if (found) {
-        let combinedView = this.state.combined.find(
-          i => i.id == data.private_message_view.private_message.id
-        )?.view as PrivateMessageView | undefined;
-        if (combinedView) {
-          found.private_message.deleted = combinedView.private_message.deleted =
-            data.private_message_view.private_message.deleted;
-          found.private_message.updated = combinedView.private_message.updated =
-            data.private_message_view.private_message.updated;
-        }
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.MarkPrivateMessageAsRead) {
-      let data = wsJsonToRes<PrivateMessageResponse>(msg);
-      let found = this.state.messages.find(
-        m =>
-          m.private_message.id === data.private_message_view.private_message.id
-      );
-
-      if (found) {
-        let combinedView = this.state.combined.find(
-          i =>
-            i.id == data.private_message_view.private_message.id &&
-            i.type_ == ReplyEnum.Message
-        )?.view as PrivateMessageView | undefined;
-        if (combinedView) {
-          found.private_message.updated = combinedView.private_message.updated =
-            data.private_message_view.private_message.updated;
-
-          // If youre in the unread view, just remove it from the list
-          if (
-            this.state.unreadOrAll == UnreadOrAll.Unread &&
-            data.private_message_view.private_message.read
-          ) {
-            this.setState({
-              messages: this.state.messages.filter(
-                r =>
-                  r.private_message.id !==
-                  data.private_message_view.private_message.id
-              ),
-            });
-            this.setState({
-              combined: this.state.combined.filter(
-                r => r.id !== data.private_message_view.private_message.id
-              ),
-            });
-          } else {
-            found.private_message.read = combinedView.private_message.read =
-              data.private_message_view.private_message.read;
-          }
-        }
-      }
-      this.sendUnreadCount(data.private_message_view.private_message.read);
-      this.setState(this.state);
-    } else if (op == UserOperation.MarkAllAsRead) {
-      // Moved to be instant
-    } else if (
-      op == UserOperation.EditComment ||
-      op == UserOperation.DeleteComment ||
-      op == UserOperation.RemoveComment
-    ) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      editCommentRes(data.comment_view, this.state.replies);
-      this.setState(this.state);
-    } else if (op == UserOperation.MarkCommentReplyAsRead) {
-      let data = wsJsonToRes<CommentReplyResponse>(msg);
-
-      let found = this.state.replies.find(
-        c => c.comment_reply.id == data.comment_reply_view.comment_reply.id
-      );
-
-      if (found) {
-        let combinedView = this.state.combined.find(
-          i =>
-            i.id == data.comment_reply_view.comment_reply.id &&
-            i.type_ == ReplyEnum.Reply
-        )?.view as CommentReplyView | undefined;
-        if (combinedView) {
-          found.comment.content = combinedView.comment.content =
-            data.comment_reply_view.comment.content;
-          found.comment.updated = combinedView.comment.updated =
-            data.comment_reply_view.comment.updated;
-          found.comment.removed = combinedView.comment.removed =
-            data.comment_reply_view.comment.removed;
-          found.comment.deleted = combinedView.comment.deleted =
-            data.comment_reply_view.comment.deleted;
-          found.counts.upvotes = combinedView.counts.upvotes =
-            data.comment_reply_view.counts.upvotes;
-          found.counts.downvotes = combinedView.counts.downvotes =
-            data.comment_reply_view.counts.downvotes;
-          found.counts.score = combinedView.counts.score =
-            data.comment_reply_view.counts.score;
-
-          // If youre in the unread view, just remove it from the list
-          if (
-            this.state.unreadOrAll == UnreadOrAll.Unread &&
-            data.comment_reply_view.comment_reply.read
-          ) {
-            this.setState({
-              replies: this.state.replies.filter(
-                r =>
-                  r.comment_reply.id !==
-                  data.comment_reply_view.comment_reply.id
-              ),
-            });
-            this.setState({
-              combined: this.state.combined.filter(
-                r => r.id !== data.comment_reply_view.comment_reply.id
-              ),
-            });
-          } else {
-            found.comment_reply.read = combinedView.comment_reply.read =
-              data.comment_reply_view.comment_reply.read;
-          }
-        }
-      }
-      this.sendUnreadCount(data.comment_reply_view.comment_reply.read);
-      this.setState(this.state);
-    } else if (op == UserOperation.MarkPersonMentionAsRead) {
-      let data = wsJsonToRes<PersonMentionResponse>(msg);
-
-      // TODO this might not be correct, it might need to use the comment id
-      let found = this.state.mentions.find(
-        c => c.person_mention.id == data.person_mention_view.person_mention.id
-      );
-
-      if (found) {
-        let combinedView = this.state.combined.find(
-          i =>
-            i.id == data.person_mention_view.person_mention.id &&
-            i.type_ == ReplyEnum.Mention
-        )?.view as PersonMentionView | undefined;
-        if (combinedView) {
-          found.comment.content = combinedView.comment.content =
-            data.person_mention_view.comment.content;
-          found.comment.updated = combinedView.comment.updated =
-            data.person_mention_view.comment.updated;
-          found.comment.removed = combinedView.comment.removed =
-            data.person_mention_view.comment.removed;
-          found.comment.deleted = combinedView.comment.deleted =
-            data.person_mention_view.comment.deleted;
-          found.counts.upvotes = combinedView.counts.upvotes =
-            data.person_mention_view.counts.upvotes;
-          found.counts.downvotes = combinedView.counts.downvotes =
-            data.person_mention_view.counts.downvotes;
-          found.counts.score = combinedView.counts.score =
-            data.person_mention_view.counts.score;
-
-          // If youre in the unread view, just remove it from the list
-          if (
-            this.state.unreadOrAll == UnreadOrAll.Unread &&
-            data.person_mention_view.person_mention.read
-          ) {
-            this.setState({
-              mentions: this.state.mentions.filter(
-                r =>
-                  r.person_mention.id !==
-                  data.person_mention_view.person_mention.id
-              ),
-            });
-            this.setState({
-              combined: this.state.combined.filter(
-                r => r.id !== data.person_mention_view.person_mention.id
-              ),
-            });
-          } else {
-            // TODO test to make sure these mentions are getting marked as read
-            found.person_mention.read = combinedView.person_mention.read =
-              data.person_mention_view.person_mention.read;
-          }
-        }
-      }
-      this.sendUnreadCount(data.person_mention_view.person_mention.read);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreatePrivateMessage) {
-      let data = wsJsonToRes<PrivateMessageResponse>(msg);
-      let mui = UserService.Instance.myUserInfo;
-      if (
-        data.private_message_view.recipient.id == mui?.local_user_view.person.id
-      ) {
-        this.state.messages.unshift(data.private_message_view);
-        this.state.combined.unshift(
-          this.messageToReplyType(data.private_message_view)
+    switch (this.state.messagesRes.state) {
+      case "loading":
+        return (
+          <h1 className="h4">
+            <Spinner large />
+          </h1>
         );
-        this.setState(this.state);
-      }
-    } else if (op == UserOperation.SaveComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      saveCommentRes(data.comment_view, this.state.replies);
-      this.setState(this.state);
-      setupTippy();
-    } else if (op == UserOperation.CreateCommentLike) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      createCommentLikeRes(data.comment_view, this.state.replies);
-      this.setState(this.state);
-    } else if (op == UserOperation.BlockPerson) {
-      let data = wsJsonToRes<BlockPersonResponse>(msg);
-      updatePersonBlock(data);
-    } else if (op == UserOperation.CreatePostReport) {
-      let data = wsJsonToRes<PostReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.CreateCommentReport) {
-      let data = wsJsonToRes<CommentReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.CreatePrivateMessageReport) {
-      let data = wsJsonToRes<PrivateMessageReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
+      case "success": {
+        const messages = this.state.messagesRes.data.private_messages;
+        return (
+          <div>
+            {messages.map(pmv => (
+              <PrivateMessage
+                key={pmv.private_message.id}
+                private_message_view={pmv}
+                onDelete={this.handleDeleteMessage}
+                onMarkRead={this.handleMarkMessageAsRead}
+                onReport={this.handleMessageReport}
+                onCreate={this.handleCreateMessage}
+                onEdit={this.handleEditMessage}
+              />
+            ))}
+          </div>
+        );
       }
     }
   }
 
-  isMention(view: any): view is PersonMentionView {
-    return (view as PersonMentionView).person_mention !== undefined;
+  async handlePageChange(page: number) {
+    this.setState({ page });
+    await this.refetch();
   }
 
-  isReply(view: any): view is CommentReplyView {
-    return (view as CommentReplyView).comment_reply !== undefined;
+  async handleUnreadOrAllChange(i: Inbox, event: any) {
+    i.setState({ unreadOrAll: Number(event.target.value), page: 1 });
+    await i.refetch();
+  }
+
+  async handleMessageTypeChange(i: Inbox, event: any) {
+    i.setState({ messageType: Number(event.target.value), page: 1 });
+    await i.refetch();
+  }
+
+  static async fetchInitialData({
+    client,
+    auth,
+  }: InitialFetchRequest): Promise<InboxData> {
+    const sort: CommentSortType = "New";
+
+    return {
+      mentionsRes: auth
+        ? await client.getPersonMentions({
+            sort,
+            unread_only: true,
+            page: 1,
+            limit: fetchLimit,
+            auth,
+          })
+        : { state: "empty" },
+      messagesRes: auth
+        ? await client.getPrivateMessages({
+            unread_only: true,
+            page: 1,
+            limit: fetchLimit,
+            auth,
+          })
+        : { state: "empty" },
+      repliesRes: auth
+        ? await client.getReplies({
+            sort,
+            unread_only: true,
+            page: 1,
+            limit: fetchLimit,
+            auth,
+          })
+        : { state: "empty" },
+    };
+  }
+
+  async refetch() {
+    const sort = this.state.sort;
+    const unread_only = this.state.unreadOrAll == UnreadOrAll.Unread;
+    const page = this.state.page;
+    const limit = fetchLimit;
+    const auth = myAuthRequired();
+
+    this.setState({ repliesRes: { state: "loading" } });
+    this.setState({
+      repliesRes: await HttpService.client.getReplies({
+        sort,
+        unread_only,
+        page,
+        limit,
+        auth,
+      }),
+    });
+
+    this.setState({ mentionsRes: { state: "loading" } });
+    this.setState({
+      mentionsRes: await HttpService.client.getPersonMentions({
+        sort,
+        unread_only,
+        page,
+        limit,
+        auth,
+      }),
+    });
+
+    this.setState({ messagesRes: { state: "loading" } });
+    this.setState({
+      messagesRes: await HttpService.client.getPrivateMessages({
+        unread_only,
+        page,
+        limit,
+        auth,
+      }),
+    });
+  }
+
+  async handleSortChange(val: CommentSortType) {
+    this.setState({ sort: val, page: 1 });
+    await this.refetch();
+  }
+
+  async handleMarkAllAsRead(i: Inbox) {
+    i.setState({ markAllAsReadRes: { state: "loading" } });
+
+    i.setState({
+      markAllAsReadRes: await HttpService.client.markAllAsRead({
+        auth: myAuthRequired(),
+      }),
+    });
+
+    if (i.state.markAllAsReadRes.state == "success") {
+      i.setState({
+        repliesRes: { state: "empty" },
+        mentionsRes: { state: "empty" },
+        messagesRes: { state: "empty" },
+      });
+    }
+  }
+
+  async handleAddModToCommunity(form: AddModToCommunity) {
+    // TODO not sure what to do here
+    HttpService.client.addModToCommunity(form);
+  }
+
+  async handlePurgePerson(form: PurgePerson) {
+    const purgePersonRes = await HttpService.client.purgePerson(form);
+    this.purgeItem(purgePersonRes);
+  }
+
+  async handlePurgeComment(form: PurgeComment) {
+    const purgeCommentRes = await HttpService.client.purgeComment(form);
+    this.purgeItem(purgeCommentRes);
+  }
+
+  async handlePurgePost(form: PurgePost) {
+    const purgeRes = await HttpService.client.purgePost(form);
+    this.purgeItem(purgeRes);
+  }
+
+  async handleBlockPerson(form: BlockPerson) {
+    const blockPersonRes = await HttpService.client.blockPerson(form);
+    if (blockPersonRes.state == "success") {
+      updatePersonBlock(blockPersonRes.data);
+    }
+  }
+
+  async handleCreateComment(form: CreateComment) {
+    const res = await HttpService.client.createComment(form);
+
+    if (res.state === "success") {
+      toast(I18NextService.i18n.t("reply_sent"));
+      this.findAndUpdateComment(res);
+    }
+
+    return res;
+  }
+
+  async handleEditComment(form: EditComment) {
+    const res = await HttpService.client.editComment(form);
+
+    if (res.state === "success") {
+      toast(I18NextService.i18n.t("edit"));
+      this.findAndUpdateComment(res);
+    } else if (res.state === "failed") {
+      toast(res.msg, "danger");
+    }
+
+    return res;
+  }
+
+  async handleDeleteComment(form: DeleteComment) {
+    const res = await HttpService.client.deleteComment(form);
+    if (res.state == "success") {
+      toast(I18NextService.i18n.t("deleted"));
+      this.findAndUpdateComment(res);
+    }
+  }
+
+  async handleRemoveComment(form: RemoveComment) {
+    const res = await HttpService.client.removeComment(form);
+    if (res.state == "success") {
+      toast(I18NextService.i18n.t("remove_comment"));
+      this.findAndUpdateComment(res);
+    }
+  }
+
+  async handleSaveComment(form: SaveComment) {
+    const res = await HttpService.client.saveComment(form);
+    this.findAndUpdateComment(res);
+  }
+
+  async handleCommentVote(form: CreateCommentLike) {
+    const res = await HttpService.client.likeComment(form);
+    this.findAndUpdateComment(res);
+  }
+
+  async handleCommentReport(form: CreateCommentReport) {
+    const reportRes = await HttpService.client.createCommentReport(form);
+    this.reportToast(reportRes);
+  }
+
+  async handleDistinguishComment(form: DistinguishComment) {
+    const res = await HttpService.client.distinguishComment(form);
+    this.findAndUpdateComment(res);
+  }
+
+  async handleAddAdmin(form: AddAdmin) {
+    const addAdminRes = await HttpService.client.addAdmin(form);
+
+    if (addAdminRes.state === "success") {
+      this.setState(s => ((s.siteRes.admins = addAdminRes.data.admins), s));
+    }
+  }
+
+  async handleTransferCommunity(form: TransferCommunity) {
+    await HttpService.client.transferCommunity(form);
+    toast(I18NextService.i18n.t("transfer_community"));
+  }
+
+  async handleCommentReplyRead(form: MarkCommentReplyAsRead) {
+    const res = await HttpService.client.markCommentReplyAsRead(form);
+    this.findAndUpdateCommentReply(res);
+  }
+
+  async handlePersonMentionRead(form: MarkPersonMentionAsRead) {
+    const res = await HttpService.client.markPersonMentionAsRead(form);
+    this.findAndUpdateMention(res);
+  }
+
+  async handleBanFromCommunity(form: BanFromCommunity) {
+    const banRes = await HttpService.client.banFromCommunity(form);
+    this.updateBanFromCommunity(banRes);
+  }
+
+  async handleBanPerson(form: BanPerson) {
+    const banRes = await HttpService.client.banPerson(form);
+    this.updateBan(banRes);
+  }
+
+  async handleDeleteMessage(form: DeletePrivateMessage) {
+    const res = await HttpService.client.deletePrivateMessage(form);
+    this.findAndUpdateMessage(res);
+  }
+
+  async handleEditMessage(form: EditPrivateMessage) {
+    const res = await HttpService.client.editPrivateMessage(form);
+    this.findAndUpdateMessage(res);
+  }
+
+  async handleMarkMessageAsRead(form: MarkPrivateMessageAsRead) {
+    const res = await HttpService.client.markPrivateMessageAsRead(form);
+    this.findAndUpdateMessage(res);
+  }
+
+  async handleMessageReport(form: CreatePrivateMessageReport) {
+    const res = await HttpService.client.createPrivateMessageReport(form);
+    this.reportToast(res);
+  }
+
+  async handleCreateMessage(form: CreatePrivateMessage) {
+    const res = await HttpService.client.createPrivateMessage(form);
+    this.setState(s => {
+      if (s.messagesRes.state == "success" && res.state == "success") {
+        s.messagesRes.data.private_messages.unshift(
+          res.data.private_message_view
+        );
+      }
+
+      return s;
+    });
+  }
+
+  findAndUpdateMessage(res: RequestState<PrivateMessageResponse>) {
+    this.setState(s => {
+      if (s.messagesRes.state === "success" && res.state === "success") {
+        s.messagesRes.data.private_messages = editPrivateMessage(
+          res.data.private_message_view,
+          s.messagesRes.data.private_messages
+        );
+      }
+      return s;
+    });
+  }
+
+  updateBanFromCommunity(banRes: RequestState<BanFromCommunityResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.repliesRes.state == "success") {
+          s.repliesRes.data.replies
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        if (s.mentionsRes.state == "success") {
+          s.mentionsRes.data.mentions
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        return s;
+      });
+    }
+  }
+
+  updateBan(banRes: RequestState<BanPersonResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.repliesRes.state == "success") {
+          s.repliesRes.data.replies
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        if (s.mentionsRes.state == "success") {
+          s.mentionsRes.data.mentions
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        return s;
+      });
+    }
+  }
+
+  purgeItem(purgeRes: RequestState<PurgeItemResponse>) {
+    if (purgeRes.state == "success") {
+      toast(I18NextService.i18n.t("purge_success"));
+      this.context.router.history.push(`/`);
+    }
+  }
+
+  reportToast(
+    res: RequestState<PrivateMessageReportResponse | CommentReportResponse>
+  ) {
+    if (res.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  // A weird case, since you have only replies and mentions, not comment responses
+  findAndUpdateComment(res: RequestState<CommentResponse>) {
+    if (res.state == "success") {
+      this.setState(s => {
+        if (s.repliesRes.state == "success") {
+          s.repliesRes.data.replies = editWith(
+            res.data.comment_view,
+            s.repliesRes.data.replies
+          );
+        }
+        if (s.mentionsRes.state == "success") {
+          s.mentionsRes.data.mentions = editWith(
+            res.data.comment_view,
+            s.mentionsRes.data.mentions
+          );
+        }
+        // Set finished for the parent
+        s.finished.set(
+          getCommentParentId(res.data.comment_view.comment) ?? 0,
+          true
+        );
+        return s;
+      });
+    }
+  }
+
+  findAndUpdateCommentReply(res: RequestState<CommentReplyResponse>) {
+    this.setState(s => {
+      if (s.repliesRes.state == "success" && res.state == "success") {
+        s.repliesRes.data.replies = editCommentReply(
+          res.data.comment_reply_view,
+          s.repliesRes.data.replies
+        );
+      }
+      return s;
+    });
+  }
+
+  findAndUpdateMention(res: RequestState<PersonMentionResponse>) {
+    this.setState(s => {
+      if (s.mentionsRes.state == "success" && res.state == "success") {
+        s.mentionsRes.data.mentions = editMention(
+          res.data.person_mention_view,
+          s.mentionsRes.data.mentions
+        );
+      }
+      return s;
+    });
   }
 }

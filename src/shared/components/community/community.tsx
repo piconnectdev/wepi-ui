@@ -1,13 +1,57 @@
-import { Component, linkEvent } from "inferno";
 import {
+  commentsToFlatNodes,
+  communityRSSUrl,
+  editComment,
+  editPost,
+  editWith,
+  enableDownvotes,
+  enableNsfw,
+  getCommentParentId,
+  getDataTypeString,
+  myAuth,
+  postToCommentSortType,
+  setIsoData,
+  showLocal,
+  updateCommunityBlock,
+  updatePersonBlock,
+} from "@utils/app";
+import {
+  getPageFromString,
+  getQueryParams,
+  getQueryString,
+} from "@utils/helpers";
+import type { QueryParams } from "@utils/types";
+import { RouteDataResponse } from "@utils/types";
+import { Component, RefObject, createRef, linkEvent } from "inferno";
+import { RouteComponentProps } from "inferno-router/dist/Route";
+import {
+  AddAdmin,
+  AddModToCommunity,
   AddModToCommunityResponse,
+  BanFromCommunity,
   BanFromCommunityResponse,
-  BlockCommunityResponse,
-  BlockPersonResponse,
-  CommentReportResponse,
+  BanPerson,
+  BanPersonResponse,
+  BlockCommunity,
+  BlockPerson,
+  CommentId,
+  CommentReplyResponse,
   CommentResponse,
-  CommentView,
   CommunityResponse,
+  CreateComment,
+  CreateCommentLike,
+  CreateCommentReport,
+  CreatePostLike,
+  CreatePostReport,
+  DeleteComment,
+  DeleteCommunity,
+  DeletePost,
+  DistinguishComment,
+  EditComment,
+  EditCommunity,
+  EditPost,
+  FeaturePost,
+  FollowCommunity,
   GetComments,
   GetCommentsResponse,
   GetCommunity,
@@ -15,55 +59,33 @@ import {
   GetPosts,
   GetPostsResponse,
   GetSiteResponse,
-  ListingType,
-  PostReportResponse,
+  LockPost,
+  MarkCommentReplyAsRead,
+  MarkPersonMentionAsRead,
   PostResponse,
-  PostView,
+  PurgeComment,
+  PurgeCommunity,
   PurgeItemResponse,
+  PurgePerson,
+  PurgePost,
+  RemoveComment,
+  RemoveCommunity,
+  RemovePost,
+  SaveComment,
+  SavePost,
   SortType,
-  UserOperation,
-  wsJsonToRes,
-  wsUserOp,
+  TransferCommunity,
 } from "lemmy-js-client";
-import { Subscription } from "rxjs";
-import { i18n } from "../../i18next";
+import { fetchLimit, relTags } from "../../config";
 import {
   CommentViewType,
   DataType,
   InitialFetchRequest,
 } from "../../interfaces";
-import { UserService, WebSocketService } from "../../services";
-import {
-  commentsToFlatNodes,
-  communityRSSUrl,
-  createCommentLikeRes,
-  createPostLikeFindRes,
-  editCommentRes,
-  editPostFindRes,
-  enableDownvotes,
-  enableNsfw,
-  fetchLimit,
-  getDataTypeFromProps,
-  getPageFromProps,
-  getSortTypeFromProps,
-  isPostBlocked,
-  myAuth,
-  notifyPost,
-  nsfwCheck,
-  postToCommentSortType,
-  relTags,
-  restoreScrollPosition,
-  saveCommentRes,
-  saveScrollPosition,
-  setIsoData,
-  setupTippy,
-  showLocal,
-  toast,
-  updateCommunityBlock,
-  updatePersonBlock,
-  wsClient,
-  wsSubscribe,
-} from "../../utils";
+import { FirstLoadService, I18NextService, UserService } from "../../services";
+import { HttpService, RequestState } from "../../services/HttpService";
+import { setupTippy } from "../../tippy";
+import { toast } from "../../toast";
 import { CommentNodes } from "../comment/comment-nodes";
 import { BannerIconHeader } from "../common/banner-icon-header";
 import { DataTypeSelect } from "../common/data-type-select";
@@ -76,19 +98,20 @@ import { SiteSidebar } from "../home/site-sidebar";
 import { PostListings } from "../post/post-listings";
 import { CommunityLink } from "./community-link";
 
+type CommunityData = RouteDataResponse<{
+  communityRes: GetCommunityResponse;
+  postsRes: GetPostsResponse;
+  commentsRes: GetCommentsResponse;
+}>;
+
 interface State {
-  communityRes?: GetCommunityResponse;
+  communityRes: RequestState<GetCommunityResponse>;
+  postsRes: RequestState<GetPostsResponse>;
+  commentsRes: RequestState<GetCommentsResponse>;
   siteRes: GetSiteResponse;
-  communityName: string;
-  communityLoading: boolean;
-  postsLoading: boolean;
-  commentsLoading: boolean;
-  posts: PostView[];
-  comments: CommentView[];
-  dataType: DataType;
-  sort: SortType;
-  page: number;
   showSidebarMobile: boolean;
+  finished: Map<CommentId, boolean | undefined>;
+  isIsomorphic: boolean;
 }
 
 interface CommunityProps {
@@ -97,311 +120,373 @@ interface CommunityProps {
   page: number;
 }
 
-interface UrlParams {
-  dataType?: string;
-  sort?: SortType;
-  page?: number;
+function getCommunityQueryParams() {
+  return getQueryParams<CommunityProps>({
+    dataType: getDataTypeFromQuery,
+    page: getPageFromString,
+    sort: getSortTypeFromQuery,
+  });
 }
 
-export class Community extends Component<any, State> {
-  private isoData = setIsoData(this.context);
-  private subscription?: Subscription;
+function getDataTypeFromQuery(type?: string): DataType {
+  return type ? DataType[type] : DataType.Post;
+}
+
+function getSortTypeFromQuery(type?: string): SortType {
+  const mySortType =
+    UserService.Instance.myUserInfo?.local_user_view.local_user
+      .default_sort_type;
+
+  return type ? (type as SortType) : mySortType ?? "Active";
+}
+
+export class Community extends Component<
+  RouteComponentProps<{ name: string }>,
+  State
+> {
+  private isoData = setIsoData<CommunityData>(this.context);
   state: State = {
-    communityName: this.props.match.params.name,
-    communityLoading: true,
-    postsLoading: true,
-    commentsLoading: true,
-    posts: [],
-    comments: [],
-    dataType: getDataTypeFromProps(this.props),
-    sort: getSortTypeFromProps(this.props),
-    page: getPageFromProps(this.props),
+    communityRes: { state: "empty" },
+    postsRes: { state: "empty" },
+    commentsRes: { state: "empty" },
     siteRes: this.isoData.site_res,
     showSidebarMobile: false,
+    finished: new Map(),
+    isIsomorphic: false,
   };
-
-  constructor(props: any, context: any) {
+  private readonly mainContentRef: RefObject<HTMLElement>;
+  constructor(props: RouteComponentProps<{ name: string }>, context: any) {
     super(props, context);
 
     this.handleSortChange = this.handleSortChange.bind(this);
     this.handleDataTypeChange = this.handleDataTypeChange.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
 
-    this.parseMessage = this.parseMessage.bind(this);
-    this.subscription = wsSubscribe(this.parseMessage);
-
+    // All of the action binds
+    this.handleDeleteCommunity = this.handleDeleteCommunity.bind(this);
+    this.handleEditCommunity = this.handleEditCommunity.bind(this);
+    this.handleFollow = this.handleFollow.bind(this);
+    this.handleRemoveCommunity = this.handleRemoveCommunity.bind(this);
+    this.handleCreateComment = this.handleCreateComment.bind(this);
+    this.handleEditComment = this.handleEditComment.bind(this);
+    this.handleSaveComment = this.handleSaveComment.bind(this);
+    this.handleBlockCommunity = this.handleBlockCommunity.bind(this);
+    this.handleBlockPerson = this.handleBlockPerson.bind(this);
+    this.handleDeleteComment = this.handleDeleteComment.bind(this);
+    this.handleRemoveComment = this.handleRemoveComment.bind(this);
+    this.handleCommentVote = this.handleCommentVote.bind(this);
+    this.handleAddModToCommunity = this.handleAddModToCommunity.bind(this);
+    this.handleAddAdmin = this.handleAddAdmin.bind(this);
+    this.handlePurgePerson = this.handlePurgePerson.bind(this);
+    this.handlePurgeComment = this.handlePurgeComment.bind(this);
+    this.handleCommentReport = this.handleCommentReport.bind(this);
+    this.handleDistinguishComment = this.handleDistinguishComment.bind(this);
+    this.handleTransferCommunity = this.handleTransferCommunity.bind(this);
+    this.handleCommentReplyRead = this.handleCommentReplyRead.bind(this);
+    this.handlePersonMentionRead = this.handlePersonMentionRead.bind(this);
+    this.handleBanFromCommunity = this.handleBanFromCommunity.bind(this);
+    this.handleBanPerson = this.handleBanPerson.bind(this);
+    this.handlePostVote = this.handlePostVote.bind(this);
+    this.handlePostEdit = this.handlePostEdit.bind(this);
+    this.handlePostReport = this.handlePostReport.bind(this);
+    this.handleLockPost = this.handleLockPost.bind(this);
+    this.handleDeletePost = this.handleDeletePost.bind(this);
+    this.handleRemovePost = this.handleRemovePost.bind(this);
+    this.handleSavePost = this.handleSavePost.bind(this);
+    this.handlePurgePost = this.handlePurgePost.bind(this);
+    this.handleFeaturePost = this.handleFeaturePost.bind(this);
+    this.mainContentRef = createRef();
     // Only fetch the data if coming from another route
-    if (this.isoData.path == this.context.router.route.match.url) {
-      this.state = {
-        ...this.state,
-        communityRes: this.isoData.routeData[0] as GetCommunityResponse,
-      };
-      let postsRes = this.isoData.routeData[1] as GetPostsResponse | undefined;
-      let commentsRes = this.isoData.routeData[2] as
-        | GetCommentsResponse
-        | undefined;
-
-      if (postsRes) {
-        this.state = { ...this.state, posts: postsRes.posts };
-      }
-
-      if (commentsRes) {
-        this.state = { ...this.state, comments: commentsRes.comments };
-      }
+    if (FirstLoadService.isFirstLoad) {
+      const { communityRes, commentsRes, postsRes } = this.isoData.routeData;
 
       this.state = {
         ...this.state,
-        communityLoading: false,
-        postsLoading: false,
-        commentsLoading: false,
+        isIsomorphic: true,
+        commentsRes,
+        communityRes,
+        postsRes,
       };
-    } else {
-      this.fetchCommunity();
-      this.fetchData();
     }
   }
 
-  fetchCommunity() {
-    let form: GetCommunity = {
-      name: this.state.communityName,
-      auth: myAuth(false),
-    };
-    WebSocketService.Instance.send(wsClient.getCommunity(form));
+  async fetchCommunity() {
+    this.setState({ communityRes: { state: "loading" } });
+    this.setState({
+      communityRes: await HttpService.client.getCommunity({
+        name: this.props.match.params.name,
+        auth: myAuth(),
+      }),
+    });
   }
 
-  componentDidMount() {
+  async componentDidMount() {
+    if (!this.state.isIsomorphic) {
+      await Promise.all([this.fetchCommunity(), this.fetchData()]);
+    }
+
     setupTippy();
   }
 
-  componentWillUnmount() {
-    saveScrollPosition(this.context);
-    this.subscription?.unsubscribe();
-  }
+  static async fetchInitialData({
+    client,
+    path,
+    query: { dataType: urlDataType, page: urlPage, sort: urlSort },
+    auth,
+  }: InitialFetchRequest<QueryParams<CommunityProps>>): Promise<
+    Promise<CommunityData>
+  > {
+    const pathSplit = path.split("/");
 
-  static getDerivedStateFromProps(props: any): CommunityProps {
-    return {
-      dataType: getDataTypeFromProps(props),
-      sort: getSortTypeFromProps(props),
-      page: getPageFromProps(props),
-    };
-  }
-
-  static fetchInitialData(req: InitialFetchRequest): Promise<any>[] {
-    let pathSplit = req.path.split("/");
-    let promises: Promise<any>[] = [];
-
-    let communityName = pathSplit[2];
-    let communityForm: GetCommunity = {
+    const communityName = pathSplit[2];
+    const communityForm: GetCommunity = {
       name: communityName,
-      auth: req.auth,
+      auth,
     };
-    promises.push(req.client.getCommunity(communityForm));
 
-    let dataType: DataType = pathSplit[4]
-      ? DataType[pathSplit[4]]
-      : DataType.Post;
+    const dataType = getDataTypeFromQuery(urlDataType);
 
-    let mui = UserService.Instance.myUserInfo;
+    const sort = getSortTypeFromQuery(urlSort);
 
-    let sort: SortType = pathSplit[6]
-      ? SortType[pathSplit[6]]
-      : mui
-      ? Object.values(SortType)[
-          mui.local_user_view.local_user.default_sort_type
-        ]
-      : SortType.Active;
+    const page = getPageFromString(urlPage);
 
-    let page = pathSplit[8] ? Number(pathSplit[8]) : 1;
+    let postsResponse: RequestState<GetPostsResponse> = { state: "empty" };
+    let commentsResponse: RequestState<GetCommentsResponse> = {
+      state: "empty",
+    };
 
-    if (dataType == DataType.Post) {
-      let getPostsForm: GetPosts = {
+    if (dataType === DataType.Post) {
+      const getPostsForm: GetPosts = {
         community_name: communityName,
         page,
         limit: fetchLimit,
         sort,
-        type_: ListingType.All,
+        type_: "All",
         saved_only: false,
-        auth: req.auth,
+        auth,
       };
-      promises.push(req.client.getPosts(getPostsForm));
-      promises.push(Promise.resolve());
+
+      postsResponse = await client.getPosts(getPostsForm);
     } else {
-      let getCommentsForm: GetComments = {
+      const getCommentsForm: GetComments = {
         community_name: communityName,
         page,
         limit: fetchLimit,
         sort: postToCommentSortType(sort),
-        type_: ListingType.All,
+        type_: "All",
         saved_only: false,
-        auth: req.auth,
+        auth,
       };
-      promises.push(Promise.resolve());
-      promises.push(req.client.getComments(getCommentsForm));
+
+      commentsResponse = await client.getComments(getCommentsForm);
     }
 
-    return promises;
-  }
-
-  componentDidUpdate(_: any, lastState: State) {
-    if (
-      lastState.dataType !== this.state.dataType ||
-      lastState.sort !== this.state.sort ||
-      lastState.page !== this.state.page
-    ) {
-      this.setState({ postsLoading: true, commentsLoading: true });
-      this.fetchData();
-    }
+    return {
+      communityRes: await client.getCommunity(communityForm),
+      commentsRes: commentsResponse,
+      postsRes: postsResponse,
+    };
   }
 
   get documentTitle(): string {
-    let cRes = this.state.communityRes;
-    return cRes
-      ? `${cRes.community_view.community.title} - ${this.state.siteRes.site_view.site.name}`
+    const cRes = this.state.communityRes;
+    return cRes.state == "success"
+      ? `${cRes.data.community_view.community.title} - ${this.isoData.site_res.site_view.site.name}`
       : "";
   }
 
-  render() {
-    // For some reason, this returns an empty vec if it matches the site langs
-    let res = this.state.communityRes;
-    let communityLangs =
-      res?.discussion_languages.length == 0
-        ? this.state.siteRes.all_languages.map(l => l.id)
-        : res?.discussion_languages;
-
-    return (
-      <div className="container-lg">
-        {this.state.communityLoading ? (
+  renderCommunity() {
+    switch (this.state.communityRes.state) {
+      case "loading":
+        return (
           <h5>
             <Spinner large />
           </h5>
-        ) : (
-          res && (
-            <>
-              <HtmlTags
-                title={this.documentTitle}
-                path={this.context.router.route.match.url}
-                description={res.community_view.community.description}
-                image={res.community_view.community.icon}
-              />
+        );
+      case "success": {
+        const res = this.state.communityRes.data;
+        const { page } = getCommunityQueryParams();
 
-              <div className="row">
-                <div className="col-12 col-md-8">
-                  {this.communityInfo()}
-                  <div className="d-block d-md-none">
-                    <button
-                      className="btn btn-secondary d-inline-block mb-2 mr-3"
-                      onClick={linkEvent(this, this.handleShowSidebarMobile)}
-                    >
-                      {i18n.t("sidebar")}{" "}
-                      <Icon
-                        icon={
-                          this.state.showSidebarMobile
-                            ? `minus-square`
-                            : `plus-square`
-                        }
-                        classes="icon-inline"
-                      />
-                    </button>
-                    {this.state.showSidebarMobile && (
-                      <>
-                        <Sidebar
-                          community_view={res.community_view}
-                          moderators={res.moderators}
-                          admins={this.state.siteRes.admins}
-                          online={res.online}
-                          enableNsfw={enableNsfw(this.state.siteRes)}
-                          editable
-                          allLanguages={this.state.siteRes.all_languages}
-                          siteLanguages={
-                            this.state.siteRes.discussion_languages
-                          }
-                          communityLanguages={communityLangs}
-                        />
-                        {!res.community_view.community.local && res.site && (
-                          <SiteSidebar
-                            site={res.site}
-                            showLocal={showLocal(this.isoData)}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                  {this.selects()}
-                  {this.listings()}
-                  <Paginator
-                    page={this.state.page}
-                    onChange={this.handlePageChange}
-                  />
-                </div>
-                <div className="d-none d-md-block col-md-4">
-                  <Sidebar
-                    community_view={res.community_view}
-                    moderators={res.moderators}
-                    admins={this.state.siteRes.admins}
-                    online={res.online}
-                    enableNsfw={enableNsfw(this.state.siteRes)}
-                    editable
-                    allLanguages={this.state.siteRes.all_languages}
-                    siteLanguages={this.state.siteRes.discussion_languages}
-                    communityLanguages={communityLangs}
-                  />
-                  {!res.community_view.community.local && res.site && (
-                    <SiteSidebar
-                      site={res.site}
-                      showLocal={showLocal(this.isoData)}
+        return (
+          <>
+            <HtmlTags
+              title={this.documentTitle}
+              path={this.context.router.route.match.url}
+              canonicalPath={res.community_view.community.actor_id}
+              description={res.community_view.community.description}
+              image={res.community_view.community.icon}
+            />
+
+            <div className="row">
+              <main
+                className="col-12 col-md-8 col-lg-9"
+                ref={this.mainContentRef}
+              >
+                {this.communityInfo(res)}
+                <div className="d-block d-md-none">
+                  <button
+                    className="btn btn-secondary d-inline-block mb-2 me-3"
+                    onClick={linkEvent(this, this.handleShowSidebarMobile)}
+                  >
+                    {I18NextService.i18n.t("sidebar")}{" "}
+                    <Icon
+                      icon={
+                        this.state.showSidebarMobile
+                          ? `minus-square`
+                          : `plus-square`
+                      }
+                      classes="icon-inline"
                     />
-                  )}
+                  </button>
+                  {this.state.showSidebarMobile && this.sidebar(res)}
                 </div>
-              </div>
-            </>
-          )
-        )}
-      </div>
+                {this.selects(res)}
+                {this.listings(res)}
+                <Paginator page={page} onChange={this.handlePageChange} />
+              </main>
+              <aside className="d-none d-md-block col-md-4 col-lg-3">
+                {this.sidebar(res)}
+              </aside>
+            </div>
+          </>
+        );
+      }
+    }
+  }
+
+  render() {
+    return (
+      <div className="community container-lg">{this.renderCommunity()}</div>
     );
   }
 
-  listings() {
-    return this.state.dataType == DataType.Post ? (
-      this.state.postsLoading ? (
-        <h5>
-          <Spinner large />
-        </h5>
-      ) : (
-        <PostListings
-          posts={this.state.posts}
-          removeDuplicates
-          enableDownvotes={enableDownvotes(this.state.siteRes)}
-          enableNsfw={enableNsfw(this.state.siteRes)}
-          allLanguages={this.state.siteRes.all_languages}
-          siteLanguages={this.state.siteRes.discussion_languages}
+  sidebar(res: GetCommunityResponse) {
+    const { site_res } = this.isoData;
+    // For some reason, this returns an empty vec if it matches the site langs
+    const communityLangs =
+      res.discussion_languages.length === 0
+        ? site_res.all_languages.map(({ id }) => id)
+        : res.discussion_languages;
+
+    return (
+      <>
+        <Sidebar
+          community_view={res.community_view}
+          moderators={res.moderators}
+          admins={site_res.admins}
+          enableNsfw={enableNsfw(site_res)}
+          editable
+          allLanguages={site_res.all_languages}
+          siteLanguages={site_res.discussion_languages}
+          communityLanguages={communityLangs}
+          onDeleteCommunity={this.handleDeleteCommunity}
+          onRemoveCommunity={this.handleRemoveCommunity}
+          onLeaveModTeam={this.handleAddModToCommunity}
+          onFollowCommunity={this.handleFollow}
+          onBlockCommunity={this.handleBlockCommunity}
+          onPurgeCommunity={this.handlePurgeCommunity}
+          onEditCommunity={this.handleEditCommunity}
         />
-      )
-    ) : this.state.commentsLoading ? (
-      <h5>
-        <Spinner large />
-      </h5>
-    ) : (
-      <CommentNodes
-        nodes={commentsToFlatNodes(this.state.comments)}
-        viewType={CommentViewType.Flat}
-        noIndent
-        showContext
-        enableDownvotes={enableDownvotes(this.state.siteRes)}
-        moderators={this.state.communityRes?.moderators}
-        admins={this.state.siteRes.admins}
-        allLanguages={this.state.siteRes.all_languages}
-        siteLanguages={this.state.siteRes.discussion_languages}
-      />
+        {!res.community_view.community.local && res.site && (
+          <SiteSidebar site={res.site} showLocal={showLocal(this.isoData)} />
+        )}
+      </>
     );
   }
 
-  communityInfo() {
-    let community = this.state.communityRes?.community_view.community;
+  listings(communityRes: GetCommunityResponse) {
+    const { dataType } = getCommunityQueryParams();
+    const { site_res } = this.isoData;
+
+    if (dataType === DataType.Post) {
+      switch (this.state.postsRes.state) {
+        case "loading":
+          return (
+            <h5>
+              <Spinner large />
+            </h5>
+          );
+        case "success":
+          return (
+            <PostListings
+              posts={this.state.postsRes.data.posts}
+              removeDuplicates
+              enableDownvotes={enableDownvotes(site_res)}
+              enableNsfw={enableNsfw(site_res)}
+              allLanguages={site_res.all_languages}
+              siteLanguages={site_res.discussion_languages}
+              onBlockPerson={this.handleBlockPerson}
+              onPostEdit={this.handlePostEdit}
+              onPostVote={this.handlePostVote}
+              onPostReport={this.handlePostReport}
+              onLockPost={this.handleLockPost}
+              onDeletePost={this.handleDeletePost}
+              onRemovePost={this.handleRemovePost}
+              onSavePost={this.handleSavePost}
+              onPurgePerson={this.handlePurgePerson}
+              onPurgePost={this.handlePurgePost}
+              onBanPerson={this.handleBanPerson}
+              onBanPersonFromCommunity={this.handleBanFromCommunity}
+              onAddModToCommunity={this.handleAddModToCommunity}
+              onAddAdmin={this.handleAddAdmin}
+              onTransferCommunity={this.handleTransferCommunity}
+              onFeaturePost={this.handleFeaturePost}
+            />
+          );
+      }
+    } else {
+      switch (this.state.commentsRes.state) {
+        case "loading":
+          return (
+            <h5>
+              <Spinner large />
+            </h5>
+          );
+        case "success":
+          return (
+            <CommentNodes
+              nodes={commentsToFlatNodes(this.state.commentsRes.data.comments)}
+              viewType={CommentViewType.Flat}
+              finished={this.state.finished}
+              isTopLevel
+              showContext
+              enableDownvotes={enableDownvotes(site_res)}
+              moderators={communityRes.moderators}
+              admins={site_res.admins}
+              allLanguages={site_res.all_languages}
+              siteLanguages={site_res.discussion_languages}
+              onSaveComment={this.handleSaveComment}
+              onBlockPerson={this.handleBlockPerson}
+              onDeleteComment={this.handleDeleteComment}
+              onRemoveComment={this.handleRemoveComment}
+              onCommentVote={this.handleCommentVote}
+              onCommentReport={this.handleCommentReport}
+              onDistinguishComment={this.handleDistinguishComment}
+              onAddModToCommunity={this.handleAddModToCommunity}
+              onAddAdmin={this.handleAddAdmin}
+              onTransferCommunity={this.handleTransferCommunity}
+              onPurgeComment={this.handlePurgeComment}
+              onPurgePerson={this.handlePurgePerson}
+              onCommentReplyRead={this.handleCommentReplyRead}
+              onPersonMentionRead={this.handlePersonMentionRead}
+              onBanPersonFromCommunity={this.handleBanFromCommunity}
+              onBanPerson={this.handleBanPerson}
+              onCreateComment={this.handleCreateComment}
+              onEditComment={this.handleEditComment}
+            />
+          );
+      }
+    }
+  }
+
+  communityInfo(res: GetCommunityResponse) {
+    const community = res.community_view.community;
+
     return (
       community && (
         <div className="mb-2">
           <BannerIconHeader banner={community.banner} icon={community.icon} />
-          <h5 className="mb-0 overflow-wrap-anywhere">{community.title}</h5>
+          <h1 className="h4 mb-0 overflow-wrap-anywhere">{community.title}</h1>
           <CommunityLink
             community={community}
             realLink
@@ -414,25 +499,25 @@ export class Community extends Component<any, State> {
     );
   }
 
-  selects() {
+  selects(res: GetCommunityResponse) {
     // let communityRss = this.state.communityRes.map(r =>
     //   communityRSSUrl(r.community_view.community.actor_id, this.state.sort)
     // );
-    let res = this.state.communityRes;
-    let communityRss = res
-      ? communityRSSUrl(res.community_view.community.actor_id, this.state.sort)
+    const { dataType, sort } = getCommunityQueryParams();
+    const communityRss = res
+      ? communityRSSUrl(res.community_view.community.actor_id, sort)
       : undefined;
 
     return (
       <div className="mb-3">
-        <span className="mr-3">
+        <span className="me-3">
           <DataTypeSelect
-            type_={this.state.dataType}
+            type_={dataType}
             onChange={this.handleDataTypeChange}
           />
         </span>
-        <span className="mr-2">
-          <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
+        <span className="me-2">
+          <SortSelect sort={sort} onChange={this.handleSortChange} />
         </span>
         {communityRss && (
           <>
@@ -455,211 +540,406 @@ export class Community extends Component<any, State> {
     window.scrollTo(0, 0);
   }
 
-  handleSortChange(val: SortType) {
-    this.updateUrl({ sort: val, page: 1 });
+  handleSortChange(sort: SortType) {
+    this.updateUrl({ sort, page: 1 });
     window.scrollTo(0, 0);
   }
 
-  handleDataTypeChange(val: DataType) {
-    this.updateUrl({ dataType: DataType[val], page: 1 });
+  handleDataTypeChange(dataType: DataType) {
+    this.updateUrl({ dataType, page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleShowSidebarMobile(i: Community) {
-    i.setState({ showSidebarMobile: !i.state.showSidebarMobile });
+    i.setState(({ showSidebarMobile }) => ({
+      showSidebarMobile: !showSidebarMobile,
+    }));
   }
 
-  updateUrl(paramUpdates: UrlParams) {
-    const dataTypeStr = paramUpdates.dataType || DataType[this.state.dataType];
-    const sortStr = paramUpdates.sort || this.state.sort;
-    const page = paramUpdates.page || this.state.page;
+  async updateUrl({ dataType, page, sort }: Partial<CommunityProps>) {
+    const {
+      dataType: urlDataType,
+      page: urlPage,
+      sort: urlSort,
+    } = getCommunityQueryParams();
 
-    let typeView = `/c/${this.state.communityName}`;
+    const queryParams: QueryParams<CommunityProps> = {
+      dataType: getDataTypeString(dataType ?? urlDataType),
+      page: (page ?? urlPage).toString(),
+      sort: sort ?? urlSort,
+    };
 
     this.props.history.push(
-      `${typeView}/data_type/${dataTypeStr}/sort/${sortStr}/page/${page}`
+      `/c/${this.props.match.params.name}${getQueryString(queryParams)}`
     );
+
+    await this.fetchData();
   }
 
-  fetchData() {
-    if (this.state.dataType == DataType.Post) {
-      let form: GetPosts = {
-        page: this.state.page,
-        limit: fetchLimit,
-        sort: this.state.sort,
-        type_: ListingType.All,
-        community_name: this.state.communityName,
-        saved_only: false,
-        auth: myAuth(false),
-      };
-      WebSocketService.Instance.send(wsClient.getPosts(form));
+  async fetchData() {
+    const { dataType, page, sort } = getCommunityQueryParams();
+    const { name } = this.props.match.params;
+
+    if (dataType === DataType.Post) {
+      this.setState({ postsRes: { state: "loading" } });
+      this.setState({
+        postsRes: await HttpService.client.getPosts({
+          page,
+          limit: fetchLimit,
+          sort,
+          type_: "All",
+          community_name: name,
+          saved_only: false,
+          auth: myAuth(),
+        }),
+      });
     } else {
-      let form: GetComments = {
-        page: this.state.page,
-        limit: fetchLimit,
-        sort: postToCommentSortType(this.state.sort),
-        type_: ListingType.All,
-        community_name: this.state.communityName,
-        saved_only: false,
-        auth: myAuth(false),
-      };
-      WebSocketService.Instance.send(wsClient.getComments(form));
+      this.setState({ commentsRes: { state: "loading" } });
+      this.setState({
+        commentsRes: await HttpService.client.getComments({
+          page,
+          limit: fetchLimit,
+          sort: postToCommentSortType(sort),
+          type_: "All",
+          community_name: name,
+          saved_only: false,
+          auth: myAuth(),
+        }),
+      });
+    }
+
+    setupTippy();
+  }
+
+  async handleDeleteCommunity(form: DeleteCommunity) {
+    const deleteCommunityRes = await HttpService.client.deleteCommunity(form);
+    this.updateCommunity(deleteCommunityRes);
+  }
+
+  async handleAddModToCommunity(form: AddModToCommunity) {
+    const addModRes = await HttpService.client.addModToCommunity(form);
+    this.updateModerators(addModRes);
+  }
+
+  async handleFollow(form: FollowCommunity) {
+    const followCommunityRes = await HttpService.client.followCommunity(form);
+    this.updateCommunity(followCommunityRes);
+
+    // Update myUserInfo
+    if (followCommunityRes.state == "success") {
+      const communityId = followCommunityRes.data.community_view.community.id;
+      const mui = UserService.Instance.myUserInfo;
+      if (mui) {
+        mui.follows = mui.follows.filter(i => i.community.id != communityId);
+      }
     }
   }
 
-  parseMessage(msg: any) {
-    let op = wsUserOp(msg);
-    console.log(msg);
-    let res = this.state.communityRes;
-    if (msg.error) {
-      toast(i18n.t(msg.error), "danger");
-      this.context.router.history.push("/");
-      return;
-    } else if (msg.reconnect) {
-      if (res) {
-        WebSocketService.Instance.send(
-          wsClient.communityJoin({
-            community_id: res.community_view.community.id,
-          })
+  async handlePurgeCommunity(form: PurgeCommunity) {
+    const purgeCommunityRes = await HttpService.client.purgeCommunity(form);
+    this.purgeItem(purgeCommunityRes);
+  }
+
+  async handlePurgePerson(form: PurgePerson) {
+    const purgePersonRes = await HttpService.client.purgePerson(form);
+    this.purgeItem(purgePersonRes);
+  }
+
+  async handlePurgeComment(form: PurgeComment) {
+    const purgeCommentRes = await HttpService.client.purgeComment(form);
+    this.purgeItem(purgeCommentRes);
+  }
+
+  async handlePurgePost(form: PurgePost) {
+    const purgeRes = await HttpService.client.purgePost(form);
+    this.purgeItem(purgeRes);
+  }
+
+  async handleBlockCommunity(form: BlockCommunity) {
+    const blockCommunityRes = await HttpService.client.blockCommunity(form);
+    if (blockCommunityRes.state == "success") {
+      updateCommunityBlock(blockCommunityRes.data);
+      this.setState(s => {
+        if (s.communityRes.state == "success") {
+          s.communityRes.data.community_view.blocked =
+            blockCommunityRes.data.blocked;
+        }
+      });
+    }
+  }
+
+  async handleBlockPerson(form: BlockPerson) {
+    const blockPersonRes = await HttpService.client.blockPerson(form);
+    if (blockPersonRes.state == "success") {
+      updatePersonBlock(blockPersonRes.data);
+    }
+  }
+
+  async handleRemoveCommunity(form: RemoveCommunity) {
+    const removeCommunityRes = await HttpService.client.removeCommunity(form);
+    this.updateCommunity(removeCommunityRes);
+  }
+
+  async handleEditCommunity(form: EditCommunity) {
+    const res = await HttpService.client.editCommunity(form);
+    this.updateCommunity(res);
+
+    return res;
+  }
+
+  async handleCreateComment(form: CreateComment) {
+    const createCommentRes = await HttpService.client.createComment(form);
+    this.createAndUpdateComments(createCommentRes);
+
+    return createCommentRes;
+  }
+
+  async handleEditComment(form: EditComment) {
+    const editCommentRes = await HttpService.client.editComment(form);
+    this.findAndUpdateComment(editCommentRes);
+
+    return editCommentRes;
+  }
+
+  async handleDeleteComment(form: DeleteComment) {
+    const deleteCommentRes = await HttpService.client.deleteComment(form);
+    this.findAndUpdateComment(deleteCommentRes);
+  }
+
+  async handleDeletePost(form: DeletePost) {
+    const deleteRes = await HttpService.client.deletePost(form);
+    this.findAndUpdatePost(deleteRes);
+  }
+
+  async handleRemovePost(form: RemovePost) {
+    const removeRes = await HttpService.client.removePost(form);
+    this.findAndUpdatePost(removeRes);
+  }
+
+  async handleRemoveComment(form: RemoveComment) {
+    const removeCommentRes = await HttpService.client.removeComment(form);
+    this.findAndUpdateComment(removeCommentRes);
+  }
+
+  async handleSaveComment(form: SaveComment) {
+    const saveCommentRes = await HttpService.client.saveComment(form);
+    this.findAndUpdateComment(saveCommentRes);
+  }
+
+  async handleSavePost(form: SavePost) {
+    const saveRes = await HttpService.client.savePost(form);
+    this.findAndUpdatePost(saveRes);
+  }
+
+  async handleFeaturePost(form: FeaturePost) {
+    const featureRes = await HttpService.client.featurePost(form);
+    this.findAndUpdatePost(featureRes);
+  }
+
+  async handleCommentVote(form: CreateCommentLike) {
+    const voteRes = await HttpService.client.likeComment(form);
+    this.findAndUpdateComment(voteRes);
+  }
+
+  async handlePostEdit(form: EditPost) {
+    const res = await HttpService.client.editPost(form);
+    this.findAndUpdatePost(res);
+  }
+
+  async handlePostVote(form: CreatePostLike) {
+    const voteRes = await HttpService.client.likePost(form);
+    this.findAndUpdatePost(voteRes);
+  }
+
+  async handleCommentReport(form: CreateCommentReport) {
+    const reportRes = await HttpService.client.createCommentReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  async handlePostReport(form: CreatePostReport) {
+    const reportRes = await HttpService.client.createPostReport(form);
+    if (reportRes.state == "success") {
+      toast(I18NextService.i18n.t("report_created"));
+    }
+  }
+
+  async handleLockPost(form: LockPost) {
+    const lockRes = await HttpService.client.lockPost(form);
+    this.findAndUpdatePost(lockRes);
+  }
+
+  async handleDistinguishComment(form: DistinguishComment) {
+    const distinguishRes = await HttpService.client.distinguishComment(form);
+    this.findAndUpdateComment(distinguishRes);
+  }
+
+  async handleAddAdmin(form: AddAdmin) {
+    const addAdminRes = await HttpService.client.addAdmin(form);
+
+    if (addAdminRes.state == "success") {
+      this.setState(s => ((s.siteRes.admins = addAdminRes.data.admins), s));
+    }
+  }
+
+  async handleTransferCommunity(form: TransferCommunity) {
+    const transferCommunityRes = await HttpService.client.transferCommunity(
+      form
+    );
+    toast(I18NextService.i18n.t("transfer_community"));
+    this.updateCommunityFull(transferCommunityRes);
+  }
+
+  async handleCommentReplyRead(form: MarkCommentReplyAsRead) {
+    const readRes = await HttpService.client.markCommentReplyAsRead(form);
+    this.findAndUpdateCommentReply(readRes);
+  }
+
+  async handlePersonMentionRead(form: MarkPersonMentionAsRead) {
+    // TODO not sure what to do here. Maybe it is actually optional, because post doesn't need it.
+    await HttpService.client.markPersonMentionAsRead(form);
+  }
+
+  async handleBanFromCommunity(form: BanFromCommunity) {
+    const banRes = await HttpService.client.banFromCommunity(form);
+    this.updateBanFromCommunity(banRes);
+  }
+
+  async handleBanPerson(form: BanPerson) {
+    const banRes = await HttpService.client.banPerson(form);
+    this.updateBan(banRes);
+  }
+
+  updateBanFromCommunity(banRes: RequestState<BanFromCommunityResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.postsRes.state == "success") {
+          s.postsRes.data.posts
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(
+              c => (c.creator_banned_from_community = banRes.data.banned)
+            );
+        }
+        return s;
+      });
+    }
+  }
+
+  updateBan(banRes: RequestState<BanPersonResponse>) {
+    // Maybe not necessary
+    if (banRes.state == "success") {
+      this.setState(s => {
+        if (s.postsRes.state == "success") {
+          s.postsRes.data.posts
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        if (s.commentsRes.state == "success") {
+          s.commentsRes.data.comments
+            .filter(c => c.creator.id == banRes.data.person_view.person.id)
+            .forEach(c => (c.creator.banned = banRes.data.banned));
+        }
+        return s;
+      });
+    }
+  }
+
+  updateCommunity(res: RequestState<CommunityResponse>) {
+    this.setState(s => {
+      if (s.communityRes.state == "success" && res.state == "success") {
+        s.communityRes.data.community_view = res.data.community_view;
+        s.communityRes.data.discussion_languages =
+          res.data.discussion_languages;
+      }
+      return s;
+    });
+  }
+
+  updateCommunityFull(res: RequestState<GetCommunityResponse>) {
+    this.setState(s => {
+      if (s.communityRes.state == "success" && res.state == "success") {
+        s.communityRes.data.community_view = res.data.community_view;
+        s.communityRes.data.moderators = res.data.moderators;
+      }
+      return s;
+    });
+  }
+
+  purgeItem(purgeRes: RequestState<PurgeItemResponse>) {
+    if (purgeRes.state == "success") {
+      toast(I18NextService.i18n.t("purge_success"));
+      this.context.router.history.push(`/`);
+    }
+  }
+
+  findAndUpdateComment(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editComment(
+          res.data.comment_view,
+          s.commentsRes.data.comments
+        );
+        s.finished.set(res.data.comment_view.comment.id, true);
+      }
+      return s;
+    });
+  }
+
+  createAndUpdateComments(res: RequestState<CommentResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments.unshift(res.data.comment_view);
+
+        // Set finished for the parent
+        s.finished.set(
+          getCommentParentId(res.data.comment_view.comment) ?? 0,
+          true
         );
       }
-      this.fetchData();
-    } else if (op == UserOperation.GetCommunity) {
-      let data = wsJsonToRes<GetCommunityResponse>(msg);
-      this.setState({ communityRes: data, communityLoading: false });
-      // TODO why is there no auth in this form?
-      WebSocketService.Instance.send(
-        wsClient.communityJoin({
-          community_id: data.community_view.community.id,
-        })
-      );
-    } else if (
-      op == UserOperation.EditCommunity ||
-      op == UserOperation.DeleteCommunity ||
-      op == UserOperation.RemoveCommunity
-    ) {
-      let data = wsJsonToRes<CommunityResponse>(msg);
-      if (res) {
-        res.community_view = data.community_view;
-        res.discussion_languages = data.discussion_languages;
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.FollowCommunity) {
-      let data = wsJsonToRes<CommunityResponse>(msg);
-      if (res) {
-        res.community_view.subscribed = data.community_view.subscribed;
-        res.community_view.counts.subscribers =
-          data.community_view.counts.subscribers;
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.GetPosts) {
-      let data = wsJsonToRes<GetPostsResponse>(msg);
-      this.setState({ posts: data.posts, postsLoading: false });
-      restoreScrollPosition(this.context);
-      setupTippy();
-    } else if (
-      op == UserOperation.EditPost ||
-      op == UserOperation.DeletePost ||
-      op == UserOperation.RemovePost ||
-      op == UserOperation.LockPost ||
-      op == UserOperation.FeaturePost ||
-      op == UserOperation.SavePost
-    ) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      editPostFindRes(data.post_view, this.state.posts);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreatePost) {
-      let data = wsJsonToRes<PostResponse>(msg);
+      return s;
+    });
+  }
 
-      let showPostNotifs =
-        UserService.Instance.myUserInfo?.local_user_view.local_user
-          .show_new_post_notifs;
+  findAndUpdateCommentReply(res: RequestState<CommentReplyResponse>) {
+    this.setState(s => {
+      if (s.commentsRes.state == "success" && res.state == "success") {
+        s.commentsRes.data.comments = editWith(
+          res.data.comment_reply_view,
+          s.commentsRes.data.comments
+        );
+      }
+      return s;
+    });
+  }
 
-      // Only push these if you're on the first page, you pass the nsfw check, and it isn't blocked
-      //
-      if (
-        this.state.page == 1 &&
-        nsfwCheck(data.post_view) &&
-        !isPostBlocked(data.post_view)
-      ) {
-        this.state.posts.unshift(data.post_view);
-        if (showPostNotifs) {
-          notifyPost(data.post_view, this.context.router);
-        }
-        this.setState(this.state);
+  findAndUpdatePost(res: RequestState<PostResponse>) {
+    this.setState(s => {
+      if (s.postsRes.state == "success" && res.state == "success") {
+        s.postsRes.data.posts = editPost(
+          res.data.post_view,
+          s.postsRes.data.posts
+        );
       }
-    } else if (op == UserOperation.CreatePostLike) {
-      let data = wsJsonToRes<PostResponse>(msg);
-      createPostLikeFindRes(data.post_view, this.state.posts);
-      this.setState(this.state);
-    } else if (op == UserOperation.AddModToCommunity) {
-      let data = wsJsonToRes<AddModToCommunityResponse>(msg);
-      if (res) {
-        res.moderators = data.moderators;
-      }
-      this.setState(this.state);
-    } else if (op == UserOperation.BanFromCommunity) {
-      let data = wsJsonToRes<BanFromCommunityResponse>(msg);
+      return s;
+    });
+  }
 
-      // TODO this might be incorrect
-      this.state.posts
-        .filter(p => p.creator.id == data.person_view.person.id)
-        .forEach(p => (p.creator_banned_from_community = data.banned));
-
-      this.setState(this.state);
-    } else if (op == UserOperation.GetComments) {
-      let data = wsJsonToRes<GetCommentsResponse>(msg);
-      this.setState({ comments: data.comments, commentsLoading: false });
-    } else if (
-      op == UserOperation.EditComment ||
-      op == UserOperation.DeleteComment ||
-      op == UserOperation.RemoveComment
-    ) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      editCommentRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-
-      // Necessary since it might be a user reply
-      if (data.form_id) {
-        this.state.comments.unshift(data.comment_view);
-        this.setState(this.state);
+  updateModerators(res: RequestState<AddModToCommunityResponse>) {
+    // Update the moderators
+    this.setState(s => {
+      if (s.communityRes.state == "success" && res.state == "success") {
+        s.communityRes.data.moderators = res.data.moderators;
       }
-    } else if (op == UserOperation.SaveComment) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      saveCommentRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let data = wsJsonToRes<CommentResponse>(msg);
-      createCommentLikeRes(data.comment_view, this.state.comments);
-      this.setState(this.state);
-    } else if (op == UserOperation.BlockPerson) {
-      let data = wsJsonToRes<BlockPersonResponse>(msg);
-      updatePersonBlock(data);
-    } else if (op == UserOperation.CreatePostReport) {
-      let data = wsJsonToRes<PostReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.CreateCommentReport) {
-      let data = wsJsonToRes<CommentReportResponse>(msg);
-      if (data) {
-        toast(i18n.t("report_created"));
-      }
-    } else if (op == UserOperation.PurgeCommunity) {
-      let data = wsJsonToRes<PurgeItemResponse>(msg);
-      if (data.success) {
-        toast(i18n.t("purge_success"));
-        this.context.router.history.push(`/`);
-      }
-    } else if (op == UserOperation.BlockCommunity) {
-      let data = wsJsonToRes<BlockCommunityResponse>(msg);
-      if (res) {
-        res.community_view.blocked = data.blocked;
-      }
-      updateCommunityBlock(data);
-      this.setState(this.state);
-    }
+      return s;
+    });
   }
 }

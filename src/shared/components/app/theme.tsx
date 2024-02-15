@@ -8,8 +8,8 @@ interface Props {
 
 export class Theme extends Component<Props> {
   render() {
-    let user = UserService.Instance.myUserInfo;
-    let hasTheme = user?.local_user_view.local_user.theme !== "browser";
+    const user = UserService.Instance.myUserInfo;
+    const hasTheme = user?.local_user_view.local_user.theme !== "browser";
 
     if (user && hasTheme) {
       return (
@@ -21,13 +21,35 @@ export class Theme extends Component<Props> {
           />
         </Helmet>
       );
-    } else if (this.props.defaultTheme != "browser") {
+    } else if (
+      this.props.defaultTheme != "browser" &&
+      this.props.defaultTheme != "browser-compact"
+    ) {
       return (
         <Helmet>
           <link
             rel="stylesheet"
             type="text/css"
             href={`/css/themes/${this.props.defaultTheme}.css`}
+          />
+        </Helmet>
+      );
+    } else if (this.props.defaultTheme == "browser-compact") {
+      return (
+        <Helmet>
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href="/css/themes/litely-compact.css"
+            id="default-light"
+            media="(prefers-color-scheme: light)"
+          />
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href="/css/themes/darkly-compact.css"
+            id="default-dark"
+            media="(prefers-color-scheme: no-preference), (prefers-color-scheme: dark)"
           />
         </Helmet>
       );

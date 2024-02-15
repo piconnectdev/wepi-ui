@@ -1,6 +1,7 @@
+import { getStaticDir } from "@utils/env";
 import classNames from "classnames";
 import { Component } from "inferno";
-import { i18n } from "../../i18next";
+import { I18NextService } from "../../services";
 
 interface IconProps {
   icon: string;
@@ -23,9 +24,11 @@ export class Icon extends Component<IconProps, any> {
         })}
       >
         <use
-          xlinkHref={`/static/assets/symbols.svg#icon-${this.props.icon}`}
+          xlinkHref={`${getStaticDir()}/assets/symbols.svg#icon-${
+            this.props.icon
+          }`}
         ></use>
-        <div className="sr-only">
+        <div className="visually-hidden">
           <title>{this.props.icon}</title>
         </div>
       </svg>
@@ -35,6 +38,7 @@ export class Icon extends Component<IconProps, any> {
 
 interface SpinnerProps {
   large?: boolean;
+  className?: string;
 }
 
 export class Spinner extends Component<SpinnerProps, any> {
@@ -46,7 +50,9 @@ export class Spinner extends Component<SpinnerProps, any> {
     return (
       <Icon
         icon="spinner"
-        classes={`spin ${this.props.large && "spinner-large"}`}
+        classes={classNames("spin", this.props.className, {
+          "spinner-large": this.props.large,
+        })}
       />
     );
   }
@@ -59,9 +65,9 @@ export class PurgeWarning extends Component<any, any> {
 
   render() {
     return (
-      <div className="mt-2 alert alert-danger" role="alert">
-        <Icon icon="alert-triangle" classes="icon-inline mr-2" />
-        {i18n.t("purge_warning")}
+      <div className="purge-warning mt-2 alert alert-danger" role="alert">
+        <Icon icon="alert-triangle" classes="icon-inline me-2" />
+        {I18NextService.i18n.t("purge_warning")}
       </div>
     );
   }

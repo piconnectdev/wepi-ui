@@ -1,8 +1,8 @@
+import { randomStr } from "@utils/helpers";
+import classNames from "classnames";
 import { Component, linkEvent } from "inferno";
-import { pictrsUri } from "../../env";
-import { i18n } from "../../i18next";
-import { UserService } from "../../services";
-import { myAuth, randomStr, toast } from "../../utils";
+import { HttpService, I18NextService, UserService } from "../../services";
+import { toast } from "../../toast";
 import { Icon } from "./icon";
 
 interface ImageUploadFormProps {
@@ -33,38 +33,36 @@ export class ImageUploadForm extends Component<
 
   render() {
     return (
-      <form className="d-inline">
-        <label
-          htmlFor={this.id}
-          className="pointer text-muted small font-weight-bold"
-        >
-          {this.props.imageSrc ? (
-            <span className="d-inline-block position-relative">
-              <img
-                src={this.props.imageSrc}
-                height={this.props.rounded ? 60 : ""}
-                width={this.props.rounded ? 60 : ""}
-                className={`img-fluid ${
-                  this.props.rounded ? "rounded-circle" : ""
-                }`}
-              />
-              <a
-                onClick={linkEvent(this, this.handleRemoveImage)}
-                aria-label={i18n.t("remove")}
-              >
-                <Icon icon="x" classes="mini-overlay" />
-              </a>
-            </span>
-          ) : (
-            <span className="btn btn-secondary">{this.props.uploadTitle}</span>
-          )}
-        </label>
+      <form className="image-upload-form d-inline">
+        {this.props.imageSrc && (
+          <span className="d-inline-block position-relative mb-2">
+            {/* TODO: Create "Current Iamge" translation for alt text */}
+            <img
+              alt=""
+              src={this.props.imageSrc}
+              height={this.props.rounded ? 60 : ""}
+              width={this.props.rounded ? 60 : ""}
+              className={classNames({
+                "rounded-circle object-fit-cover": this.props.rounded,
+                "img-fluid": !this.props.rounded,
+              })}
+            />
+            <button
+              className="position-absolute d-block p-0 end-0 border-0 top-0 bg-transparent text-white"
+              type="button"
+              onClick={linkEvent(this, this.handleRemoveImage)}
+              aria-label={I18NextService.i18n.t("remove")}
+            >
+              <Icon icon="x" classes="mini-overlay" />
+            </button>
+          </span>
+        )}
         <input
           id={this.id}
           type="file"
           accept="image/*,video/*"
+          className="small form-control"
           name={this.id}
-          className="d-none"
           disabled={!UserService.Instance.myUserInfo}
           onChange={linkEvent(this, this.handleImageUpload)}
         />
@@ -73,37 +71,29 @@ export class ImageUploadForm extends Component<
   }
 
   handleImageUpload(i: ImageUploadForm, event: any) {
-    if (event) event.preventDefault();
-    let file = event.target.files[0];
-    const formData = new FormData();
-    formData.append("images[]", file);
+    event.preventDefault();
+    const image = event.target.files[0] as File;
 
     i.setState({ loading: true });
-    let auth = myAuth(true);
-    let uri = auth ? `${pictrsUri}?jwt=${auth}` : pictrsUri;
-    fetch(uri, {
-      method: "POST",
-      body: formData,
-    })
-      .then(res => res.json())
-      .then(res => {
-        console.log("pictrs upload:");
-        console.log(res);
-        if (res.msg == "ok") {
-          let hash = res.files[0].file;
-          let url = `${pictrsUri}/${hash}`;
-          i.setState({ loading: false });
-          i.props.onUpload(url);
+
+    HttpService.client.uploadImage({ image }).then(res => {
+      console.log("pictrs upload:");
+      console.log(res);
+      if (res.state === "success") {
+        if (res.data.msg === "ok") {
+          i.props.onUpload(res.data.url as string);
+        } else if (res.data.msg === "too_large") {
+          toast(I18NextService.i18n.t("upload_too_large"), "danger");
         } else {
-          i.setState({ loading: false });
           toast(JSON.stringify(res), "danger");
         }
-      })
-      .catch(error => {
-        i.setState({ loading: false });
-        console.error(error);
-        toast(error, "danger");
-      });
+      } else if (res.state === "failed") {
+        console.error(res.msg);
+        toast(res.msg, "danger");
+      }
+
+      i.setState({ loading: false });
+    });
   }
 
   handleRemoveImage(i: ImageUploadForm, event: any) {
